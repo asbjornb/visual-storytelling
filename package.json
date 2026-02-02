@@ -11,5 +11,10 @@
   "description": "Interactive visual storytelling and data visualizations",
   "devDependencies": {
     "vite": "^7.3.1"
+  },
+  "dependencies": {
+    "@google/genai": "^1.39.0",
+    "d3": "^7.9.0",
+    "topojson-client": "^3.1.0"
   }
 }

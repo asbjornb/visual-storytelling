@@ -1,0 +1,387 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,700;1,400&display=swap");
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #0a0a0a;
+  --bg-card: #111;
+  --fg: #e0ddd5;
+  --fg-muted: #807d75;
+  --accent: #c8a96e;
+  --accent-dim: #6e5c38;
+  --state-fill: #3a6b4e;
+  --territory-fill: #2d5440;
+  --other-fill: #1a1a1a;
+  --new-fill: #c8a96e;
+  --border: #222;
+
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-display: "Playfair Display", Georgia, serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── Prologue ─────────────────────────────────────────── */
+
+.prologue {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.prologue-map {
+  position: absolute;
+  inset: 0;
+  opacity: 0.15;
+  z-index: 0;
+}
+
+.prologue-map svg {
+  width: 100%;
+  height: 100%;
+}
+
+.prologue-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 640px;
+  padding: 2rem;
+}
+
+.prologue h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.25rem;
+  color: var(--fg);
+}
+
+.prologue-subtitle {
+  font-size: 1.15rem;
+  color: var(--fg-muted);
+  margin-bottom: 2.5rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.prologue blockquote {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.2rem;
+  color: var(--accent);
+  border: none;
+  padding: 0;
+  margin-bottom: 1rem;
+}
+
+.prologue blockquote cite {
+  display: block;
+  font-family: var(--font-body);
+  font-style: normal;
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+  margin-top: 0.5rem;
+}
+
+.scroll-hint {
+  margin-top: 3rem;
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ── Scrollytelling layout ────────────────────────────── */
+
+.scrolly {
+  position: relative;
+}
+
+.scrolly-map {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 100vh;
+  z-index: 0;
+}
+
+.scrolly-map svg {
+  width: 100%;
+  height: 100%;
+}
+
+.map-year {
+  position: absolute;
+  bottom: 2rem;
+  right: 2rem;
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 700;
+  color: var(--accent);
+  opacity: 0.2;
+  line-height: 1;
+  pointer-events: none;
+  transition: opacity 0.4s;
+}
+
+.scrolly-text {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ── Steps ────────────────────────────────────────────── */
+
+.step {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 2rem;
+}
+
+.step-content {
+  pointer-events: auto;
+  max-width: 380px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+  opacity: 0.15;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.step.is-active .step-content {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.step-year {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.step h2 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+}
+
+.step-subtitle {
+  color: var(--fg-muted);
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.step-stats {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.stat {
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+  background: rgba(200, 169, 110, 0.08);
+  border: 1px solid rgba(200, 169, 110, 0.15);
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+}
+
+.stat strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.step p {
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+  color: var(--fg);
+}
+
+.step blockquote {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--accent);
+  border-left: 2px solid var(--accent-dim);
+  padding-left: 1rem;
+  margin-top: 0.75rem;
+}
+
+.step blockquote cite {
+  display: block;
+  font-family: var(--font-body);
+  font-style: normal;
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+  margin-top: 0.35rem;
+}
+
+/* ── Epilogue special styling ─────────────────────────── */
+
+.step--epilogue .step-content {
+  border-color: #442a2a;
+  background: #130e0e;
+}
+
+.step--epilogue .step-year {
+  color: #d46a6a;
+}
+
+.step--epilogue blockquote {
+  color: #d46a6a;
+  border-left-color: #6a2a2a;
+}
+
+.step-disclaimer {
+  font-size: 0.75rem;
+  color: #d46a6a;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+}
+
+/* ── Step spacer ──────────────────────────────────────── */
+
+.step-spacer {
+  height: 50vh;
+}
+
+/* ── Timeline indicator ───────────────────────────────── */
+
+.timeline {
+  position: fixed;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  height: 200px;
+  width: 3px;
+}
+
+.timeline-track {
+  width: 100%;
+  height: 100%;
+  background: var(--border);
+  border-radius: 2px;
+  position: relative;
+}
+
+.timeline-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: height 0.3s ease;
+}
+
+/* ── Map paths ────────────────────────────────────────── */
+
+.map-state {
+  fill: var(--state-fill);
+  stroke: var(--bg);
+  stroke-width: 0.5;
+  transition: fill 0.8s ease, d 0.8s ease;
+}
+
+.map-territory {
+  fill: var(--territory-fill);
+  stroke: var(--bg);
+  stroke-width: 0.5;
+  transition: fill 0.8s ease, d 0.8s ease;
+}
+
+.map-other {
+  fill: var(--other-fill);
+  stroke: none;
+  transition: d 0.8s ease;
+}
+
+.map-disputed {
+  fill: #2a2520;
+  stroke: var(--accent-dim);
+  stroke-width: 0.5;
+  stroke-dasharray: 3 2;
+  transition: d 0.8s ease;
+}
+
+.map-none {
+  fill: transparent;
+  stroke: none;
+}
+
+/* ── Responsive ───────────────────────────────────────── */
+
+@media (min-width: 768px) {
+  .step {
+    padding-left: 4rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .step {
+    align-items: flex-end;
+    padding-bottom: 4rem;
+  }
+
+  .step-content {
+    max-width: 100%;
+  }
+
+  .map-year {
+    bottom: auto;
+    top: 1rem;
+    right: 1rem;
+    font-size: 2.5rem;
+  }
+
+  .timeline {
+    display: none;
+  }
+}
