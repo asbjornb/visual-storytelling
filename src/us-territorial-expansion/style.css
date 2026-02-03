@@ -150,9 +150,10 @@ body {
    ═══════════════════════════════════════════════════════════ */
 
 .page--transition {
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: flex-start;
   padding: 3rem;
+  padding-top: 4rem;
 }
 
 .page--transition .page-overlay {
@@ -492,6 +493,11 @@ body {
     max-width: 240px;
   }
 
+  .page--story {
+    padding-left: 3.5rem;
+    padding-right: 3.5rem;
+  }
+
   .page-story {
     max-width: 480px;
   }
@@ -504,7 +510,7 @@ body {
 @media (max-width: 600px) {
   .page--transition {
     padding: 1.5rem;
-    padding-bottom: 5rem;
+    padding-top: 2.5rem;
   }
 
   .page--transition .page-year {
@@ -517,6 +523,8 @@ body {
 
   .page--story {
     padding: 1rem;
+    padding-left: 2.75rem;
+    padding-right: 2.75rem;
     padding-bottom: 5rem;
   }
 

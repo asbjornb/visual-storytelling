@@ -102,10 +102,19 @@ async function loadAllGeoJSON() {
 // Map rendering
 // ─────────────────────────────────────────────────────────────
 
+// Store base dimensions for viewBox
+let baseWidth = 0;
+let baseHeight = 0;
+
 function fitProjection(svg, geoData) {
   const container = svg.node().parentNode;
-  const width = container.clientWidth;
-  const height = container.clientHeight;
+  // Always use full viewport size for projection (not thumbnail size)
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  // Store base dimensions for viewBox
+  baseWidth = width;
+  baseHeight = height;
 
   const finalData = geoData[geoData.length - 1];
   const allFeatures = Object.values(finalData).flat();
@@ -113,6 +122,10 @@ function fitProjection(svg, geoData) {
 
   projection.fitSize([width, height], collection);
   path.projection(projection);
+
+  // Set viewBox so SVG scales when container shrinks (thumbnail mode)
+  svg.attr("viewBox", `0 0 ${width} ${height}`);
+  svg.attr("preserveAspectRatio", "xMidYMid meet");
 }
 
 function renderMap(svg, geoData, stepIndex, options = {}) {
