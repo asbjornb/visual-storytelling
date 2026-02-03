@@ -53,7 +53,7 @@ Scroll-driven visual story of how the United States grew from 1776 to present da
 **Tech approach:**
 - Scrollytelling format (scroll-driven transitions between sections)
 - D3.js + TopoJSON for animated territory maps
-- Historical boundary GeoJSON from Michael Porath's US History Maps dataset (poezn.github.io/us-history-maps, CC-NC-SA)
+- Historical boundary GeoJSON from Michael Porath's US History Maps dataset (poezn.github.io/us-history-maps, CC BY-SA 3.0)
 - Nano Banana API (Google Gemini image gen) for consistent-style editorial illustrations
 - Image specs stored in JSONL, generated via local script for iterability
 
