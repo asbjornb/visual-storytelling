@@ -303,6 +303,60 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   EDGE NAVIGATION ARROWS
+   ═══════════════════════════════════════════════════════════ */
+
+.edge-nav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 64px;
+  border: none;
+  background: rgba(255, 253, 248, 0.7);
+  backdrop-filter: blur(4px);
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  opacity: 0.6;
+}
+
+.edge-nav:hover {
+  opacity: 1;
+  background: rgba(255, 253, 248, 0.9);
+}
+
+.edge-nav:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.edge-nav.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.edge-nav--prev {
+  left: 0;
+  border-radius: 0 8px 8px 0;
+  padding-left: 4px;
+}
+
+.edge-nav--next {
+  right: 0;
+  border-radius: 8px 0 0 8px;
+  padding-right: 4px;
+}
+
+.edge-nav svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* ═══════════════════════════════════════════════════════════
    TIMELINE NAVIGATION
    ═══════════════════════════════════════════════════════════ */
 
@@ -400,6 +454,35 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   RESPONSIVE - DESKTOP (side panel layout)
+   ═══════════════════════════════════════════════════════════ */
+
+@media (min-width: 901px) {
+  /* Story pages on desktop: side panel layout */
+  .page--story {
+    padding: 3rem;
+    padding-left: 4rem;
+    align-items: center;
+  }
+
+  .page--story .page-story {
+    max-width: 420px;
+    margin: 0;
+  }
+
+  /* Edge arrows slightly larger on desktop */
+  .edge-nav {
+    width: 56px;
+    height: 80px;
+  }
+
+  .edge-nav svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
    RESPONSIVE - TABLET
    ═══════════════════════════════════════════════════════════ */
 
@@ -461,6 +544,18 @@ body {
 
   .page-story blockquote {
     font-size: 0.85rem;
+  }
+
+  /* Edge arrows smaller on mobile */
+  .edge-nav {
+    width: 36px;
+    height: 48px;
+    opacity: 0.5;
+  }
+
+  .edge-nav svg {
+    width: 20px;
+    height: 20px;
   }
 
   .timeline {

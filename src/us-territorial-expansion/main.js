@@ -39,6 +39,8 @@ const CATEGORY_CLASS = {
   none: "map-none",
 };
 
+const DESKTOP_BREAKPOINT = 900;
+
 // State
 let geoDataByStep = [];
 let currentPage = 0;
@@ -50,6 +52,32 @@ let touchStartY = 0;
 // D3 setup
 const projection = d3.geoAlbersUsa();
 const path = d3.geoPath().projection(projection);
+
+// ─────────────────────────────────────────────────────────────
+// Responsive helpers
+// ─────────────────────────────────────────────────────────────
+
+function isDesktop() {
+  return window.innerWidth >= DESKTOP_BREAKPOINT;
+}
+
+// Get pages that should be navigable (desktop skips transition pages)
+function getNavigablePages() {
+  if (isDesktop()) {
+    // Desktop: only intro and story pages
+    return pageElements.filter((el) => {
+      const type = el.dataset.type;
+      return type === "intro" || type === "story";
+    });
+  }
+  // Mobile: all pages
+  return pageElements;
+}
+
+function getNavigableIndices() {
+  const navigable = getNavigablePages();
+  return navigable.map((el) => pageElements.indexOf(el));
+}
 
 // ─────────────────────────────────────────────────────────────
 // Data loading
@@ -136,6 +164,7 @@ function goToPage(newPage) {
 
   const svg = d3.select("#map");
   const mapLayer = document.getElementById("map-layer");
+  const desktop = isDesktop();
 
   // Update page visibility
   pageElements.forEach((el, i) => {
@@ -148,29 +177,72 @@ function goToPage(newPage) {
 
   // Update map based on page type
   if (type === "intro") {
-    // Intro: show first map faintly
     mapLayer.classList.remove("is-thumbnail");
     renderMap(svg, geoDataByStep, 0, { opacity: 0.15, duration: 600 });
   } else if (type === "transition") {
-    // Transition: full screen map with animation
     mapLayer.classList.remove("is-thumbnail");
     renderMap(svg, geoDataByStep, step, { opacity: 1, duration: 800 });
   } else if (type === "story") {
-    // Story: map becomes thumbnail
-    mapLayer.classList.add("is-thumbnail");
-    renderMap(svg, geoDataByStep, step, { opacity: 1, duration: 400 });
+    // On desktop: keep map full size with side panel
+    // On mobile: thumbnail mode
+    if (desktop) {
+      mapLayer.classList.remove("is-thumbnail");
+    } else {
+      mapLayer.classList.add("is-thumbnail");
+    }
+    renderMap(svg, geoDataByStep, step, { opacity: 1, duration: desktop ? 800 : 400 });
   }
 
   currentPage = newPage;
   updateTimeline();
+  updateEdgeNav();
 }
 
 function nextPage() {
-  goToPage(currentPage + 1);
+  const indices = getNavigableIndices();
+  const currentIdx = indices.indexOf(currentPage);
+  if (currentIdx < indices.length - 1) {
+    goToPage(indices[currentIdx + 1]);
+  }
 }
 
 function prevPage() {
-  goToPage(currentPage - 1);
+  const indices = getNavigableIndices();
+  const currentIdx = indices.indexOf(currentPage);
+  if (currentIdx > 0) {
+    goToPage(indices[currentIdx - 1]);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Edge navigation arrows
+// ─────────────────────────────────────────────────────────────
+
+function setupEdgeNav() {
+  const prevBtn = document.getElementById("edge-prev");
+  const nextBtn = document.getElementById("edge-next");
+
+  prevBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    prevPage();
+  });
+
+  nextBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    nextPage();
+  });
+
+  updateEdgeNav();
+}
+
+function updateEdgeNav() {
+  const prevBtn = document.getElementById("edge-prev");
+  const nextBtn = document.getElementById("edge-next");
+  const indices = getNavigableIndices();
+  const currentIdx = indices.indexOf(currentPage);
+
+  prevBtn.classList.toggle("is-hidden", currentIdx <= 0);
+  nextBtn.classList.toggle("is-hidden", currentIdx >= indices.length - 1);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -181,17 +253,27 @@ function buildTimeline() {
   const timeline = document.getElementById("timeline");
   timeline.innerHTML = "";
 
+  const desktop = isDesktop();
+  const navigableIndices = getNavigableIndices();
+
   pageElements.forEach((pageEl, i) => {
     const { type } = getPageInfo(pageEl);
+
+    // On desktop, skip transition pages in timeline (except intro)
+    if (desktop && type === "transition") {
+      return;
+    }
+
     const bar = document.createElement("button");
     bar.className = "timeline-bar";
     bar.dataset.page = i;
 
-    if (type === "transition" || type === "intro") {
-      bar.classList.add("timeline-bar--tall");
-    }
     if (type === "intro") {
       bar.classList.add("timeline-bar--intro");
+    }
+    // On mobile, transition pages are taller
+    if (!desktop && (type === "transition" || type === "intro")) {
+      bar.classList.add("timeline-bar--tall");
     }
 
     bar.addEventListener("click", () => goToPage(i));
@@ -203,9 +285,10 @@ function buildTimeline() {
 
 function updateTimeline() {
   const bars = document.querySelectorAll(".timeline-bar");
-  bars.forEach((bar, i) => {
-    bar.classList.toggle("is-active", i === currentPage);
-    bar.setAttribute("aria-current", i === currentPage ? "page" : "false");
+  bars.forEach((bar) => {
+    const pageIdx = parseInt(bar.dataset.page);
+    bar.classList.toggle("is-active", pageIdx === currentPage);
+    bar.setAttribute("aria-current", pageIdx === currentPage ? "page" : "false");
   });
 }
 
@@ -227,7 +310,6 @@ function setupSwipe() {
     const deltaX = touchEndX - touchStartX;
     const deltaY = touchEndY - touchStartY;
 
-    // Only trigger if horizontal swipe is dominant and significant
     if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
       if (deltaX < 0) {
         nextPage();
@@ -262,12 +344,11 @@ function setupClickNav() {
   const viewer = document.getElementById("viewer");
 
   viewer.addEventListener("click", (e) => {
-    // Don't navigate if clicking on interactive elements
-    if (e.target.closest(".timeline, button, a")) return;
+    if (e.target.closest(".timeline, .edge-nav, button, a, .page-story")) return;
 
     const rect = viewer.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const threshold = rect.width * 0.3;
+    const threshold = rect.width * 0.25;
 
     if (x < threshold) {
       prevPage();
@@ -281,22 +362,57 @@ function setupClickNav() {
 // Resize handling
 // ─────────────────────────────────────────────────────────────
 
+let lastWasDesktop = null;
+
 function handleResize() {
   const svg = d3.select("#map");
+  const desktop = isDesktop();
+
+  // Refit projection
   fitProjection(svg, geoDataByStep);
+
+  // If viewport mode changed, rebuild timeline and adjust current page
+  if (lastWasDesktop !== desktop) {
+    // If switching to desktop and on a transition page, move to next story page
+    if (desktop) {
+      const { type } = getPageInfo(pageElements[currentPage]);
+      if (type === "transition") {
+        const nextStory = pageElements.findIndex((el, i) =>
+          i > currentPage && el.dataset.type === "story"
+        );
+        if (nextStory !== -1) {
+          currentPage = nextStory;
+          pageElements.forEach((el, i) => {
+            el.classList.toggle("is-active", i === currentPage);
+          });
+        }
+      }
+    }
+
+    buildTimeline();
+    lastWasDesktop = desktop;
+  }
 
   // Re-render current map state
   const pageEl = pageElements[currentPage];
   const { type, step } = getPageInfo(pageEl);
+  const mapLayer = document.getElementById("map-layer");
 
   svg.selectAll("path").remove();
 
   if (type === "intro") {
+    mapLayer.classList.remove("is-thumbnail");
     renderMap(svg, geoDataByStep, 0, { opacity: 0.15, duration: 0 });
   } else if (step !== null) {
-    const opacity = type === "transition" ? 1 : 1;
-    renderMap(svg, geoDataByStep, step, { opacity, duration: 0 });
+    if (desktop || type === "transition") {
+      mapLayer.classList.remove("is-thumbnail");
+    } else {
+      mapLayer.classList.add("is-thumbnail");
+    }
+    renderMap(svg, geoDataByStep, step, { opacity: 1, duration: 0 });
   }
+
+  updateEdgeNav();
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -304,29 +420,23 @@ function handleResize() {
 // ─────────────────────────────────────────────────────────────
 
 async function init() {
-  // Load geo data
   geoDataByStep = await loadAllGeoJSON();
 
-  // Get page elements
   pageElements = Array.from(document.querySelectorAll(".page"));
   totalPages = pageElements.length;
+  lastWasDesktop = isDesktop();
 
-  // Setup map
   const svg = d3.select("#map");
   fitProjection(svg, geoDataByStep);
 
-  // Initial render (intro state)
   renderMap(svg, geoDataByStep, 0, { opacity: 0.15 });
 
-  // Build UI
   buildTimeline();
-
-  // Setup interactions
+  setupEdgeNav();
   setupSwipe();
   setupKeyboard();
   setupClickNav();
 
-  // Handle resize
   window.addEventListener("resize", debounce(handleResize, 200));
 }
 
