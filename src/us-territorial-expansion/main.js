@@ -1,19 +1,25 @@
 import * as d3 from "d3";
 
-// Era accent colors
+// Bright candy colors for newly acquired territory
 const ERA_COLORS = {
-  original: "#9a958a",
-  louisiana: "#a85a4a",
-  redriver: "#5d8a87",
-  florida: "#758556",
-  texas: "#b07a3e",
-  oregon: "#637592",
-  mexican: "#8b5a4a",
-  gadsden: "#6b7a5a",
-  alaska: "#4a7c7a",
-  pacific: "#5a6b8a",
-  modern: "#8b4a4a",
+  original: "#ff6b9d",    // Hot pink
+  louisiana: "#ff9f43",   // Bright orange
+  redriver: "#00d4aa",    // Mint turquoise
+  florida: "#a8e847",     // Lime green
+  texas: "#ff4757",       // Coral red
+  oregon: "#3498ff",      // Bright blue
+  mexican: "#ffd32a",     // Golden yellow
+  gadsden: "#a55eea",     // Purple
+  alaska: "#00d8d6",      // Cyan
+  pacific: "#7d5fff",     // Violet
+  modern: "#ff3838",      // Bright red
 };
+
+// Color for established US territory (previous acquisitions)
+const ESTABLISHED_US_COLOR = "#b8c4d0";
+
+// Dim color for non-US areas
+const NON_US_COLOR = "#e8e4dc";
 
 // Map step definitions (GeoJSON files)
 const MAP_STEPS = [
@@ -139,6 +145,10 @@ function fitProjection(svg, geoData) {
   svg.attr("preserveAspectRatio", "xMidYMid meet");
 }
 
+// Track which step each feature was added (for coloring new vs established)
+let featureBirthStep = new Map();
+let lastRenderedStep = -1;
+
 function renderMap(svg, geoData, stepIndex, options = {}) {
   const { opacity = 1, duration = 800 } = options;
   const data = geoData[stepIndex];
@@ -147,6 +157,7 @@ function renderMap(svg, geoData, stepIndex, options = {}) {
   const era = MAP_STEPS[stepIndex].era;
   const eraColor = ERA_COLORS[era] || ERA_COLORS.original;
   const categories = ["other_country", "none", "disputed", "territory", "state"];
+  const isUSCategory = (cat) => cat === "state" || cat === "territory";
 
   for (const cat of categories) {
     const features = data[cat] || [];
@@ -154,21 +165,50 @@ function renderMap(svg, geoData, stepIndex, options = {}) {
 
     const sel = svg.selectAll(`.${className}`).data(features, (d, i) => `${cat}-${i}`);
 
+    // Enter: new features
     sel
       .enter()
       .append("path")
       .attr("class", className)
       .attr("d", path)
       .attr("opacity", 0)
-      .attr("fill", (cat === "state" || cat === "territory") ? eraColor : null)
       .attr("stroke", "#f8f5f0")
+      .each(function(d, i) {
+        const key = `${cat}-${i}`;
+        if (!featureBirthStep.has(key)) {
+          featureBirthStep.set(key, stepIndex);
+        }
+      })
+      .attr("fill", function(d, i) {
+        if (!isUSCategory(cat)) return NON_US_COLOR;
+        // New US territory gets bright color
+        return eraColor;
+      })
       .transition()
       .duration(duration)
       .attr("opacity", opacity);
 
-    sel.transition().duration(duration).attr("d", path).attr("opacity", opacity);
+    // Update: existing features - transition established US to medium color
+    sel
+      .transition()
+      .duration(duration)
+      .attr("d", path)
+      .attr("opacity", opacity)
+      .attr("fill", function(d, i) {
+        if (!isUSCategory(cat)) return NON_US_COLOR;
+        const key = `${cat}-${i}`;
+        const birthStep = featureBirthStep.get(key);
+        // If added this step, keep bright; otherwise fade to established
+        if (birthStep === stepIndex) {
+          return eraColor;
+        }
+        return ESTABLISHED_US_COLOR;
+      });
+
     sel.exit().transition().duration(duration / 2).attr("opacity", 0).remove();
   }
+
+  lastRenderedStep = stepIndex;
 }
 
 // ─────────────────────────────────────────────────────────────

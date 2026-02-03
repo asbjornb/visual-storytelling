@@ -424,21 +424,21 @@ body {
    ═══════════════════════════════════════════════════════════ */
 
 .map-state {
-  fill: #c8c3b8;
+  fill: #b8c4d0;  /* Established US - medium blue-gray */
   stroke: var(--bg);
   stroke-width: 0.8;
   transition: fill 0.8s ease;
 }
 
 .map-territory {
-  fill: #d4cfc4;
+  fill: #b8c4d0;  /* Established US - medium blue-gray */
   stroke: var(--bg);
   stroke-width: 0.8;
   transition: fill 0.8s ease;
 }
 
 .map-other {
-  fill: #e8e4dc;
+  fill: #e8e4dc;  /* Non-US - dim */
   stroke: none;
 }
 
