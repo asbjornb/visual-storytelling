@@ -120,7 +120,18 @@ function fitProjection(svg, geoData) {
   const allFeatures = Object.values(finalData).flat();
   const collection = { type: "FeatureCollection", features: allFeatures };
 
-  projection.fitSize([width, height], collection);
+  // On desktop, offset map to the right to leave room for side panel
+  if (isDesktop()) {
+    const panelWidth = 480; // Space for side panel
+    const mapWidth = width - panelWidth;
+    projection.fitSize([mapWidth, height], collection);
+    // Shift projection to the right
+    const [tx, ty] = projection.translate();
+    projection.translate([tx + panelWidth, ty]);
+  } else {
+    projection.fitSize([width, height], collection);
+  }
+
   path.projection(projection);
 
   // Set viewBox so SVG scales when container shrinks (thumbnail mode)
