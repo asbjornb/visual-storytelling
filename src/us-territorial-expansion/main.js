@@ -1,19 +1,10 @@
 import * as d3 from "d3";
 
-// Era accent colors
-const ERA_COLORS = {
-  original: "#9a958a",
-  louisiana: "#a85a4a",
-  redriver: "#5d8a87",
-  florida: "#758556",
-  texas: "#b07a3e",
-  oregon: "#637592",
-  mexican: "#8b5a4a",
-  gadsden: "#6b7a5a",
-  alaska: "#4a7c7a",
-  pacific: "#5a6b8a",
-  modern: "#8b4a4a",
-};
+// US territory color - cool blue-gray
+const US_COLOR = "#b8c4d0";
+
+// Non-US areas - dim warm gray
+const NON_US_COLOR = "#e8e4dc";
 
 // Map step definitions (GeoJSON files)
 const MAP_STEPS = [
@@ -144,9 +135,8 @@ function renderMap(svg, geoData, stepIndex, options = {}) {
   const data = geoData[stepIndex];
   if (!data) return;
 
-  const era = MAP_STEPS[stepIndex].era;
-  const eraColor = ERA_COLORS[era] || ERA_COLORS.original;
   const categories = ["other_country", "none", "disputed", "territory", "state"];
+  const isUSCategory = (cat) => cat === "state" || cat === "territory";
 
   for (const cat of categories) {
     const features = data[cat] || [];
@@ -154,19 +144,30 @@ function renderMap(svg, geoData, stepIndex, options = {}) {
 
     const sel = svg.selectAll(`.${className}`).data(features, (d, i) => `${cat}-${i}`);
 
+    // US territory = blue-gray, non-US = dim
+    const fillColor = isUSCategory(cat) ? US_COLOR : NON_US_COLOR;
+
+    // Enter: new DOM elements
     sel
       .enter()
       .append("path")
       .attr("class", className)
       .attr("d", path)
       .attr("opacity", 0)
-      .attr("fill", (cat === "state" || cat === "territory") ? eraColor : null)
       .attr("stroke", "#f8f5f0")
+      .attr("fill", fillColor)
       .transition()
       .duration(duration)
       .attr("opacity", opacity);
 
-    sel.transition().duration(duration).attr("d", path).attr("opacity", opacity);
+    // Update: existing DOM elements - transition to new era color
+    sel
+      .transition()
+      .duration(duration)
+      .attr("d", path)
+      .attr("opacity", opacity)
+      .attr("fill", fillColor);
+
     sel.exit().transition().duration(duration / 2).attr("opacity", 0).remove();
   }
 }
