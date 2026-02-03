@@ -5,27 +5,11 @@ import * as topojson from "topojson-client";
 // Colors
 // ─────────────────────────────────────────────────────────────
 
-// Established US territory color - cool blue-gray
-const ESTABLISHED_COLOR = "#b8c4d0";
+// US territory color - cool blue-gray
+const US_COLOR = "#b8c4d0";
 
 // Non-US context countries - dim warm gray
 const CONTEXT_COLOR = "#e8e4dc";
-
-// Per-acquisition "candy" colors - used to highlight newly acquired territory
-const ERA_COLORS = {
-  original: "#e63946",   // Red
-  louisiana: "#f4a261",  // Orange
-  redriver: "#e9c46a",   // Yellow
-  florida: "#2a9d8f",    // Teal
-  texas: "#264653",      // Dark blue
-  oregon: "#8338ec",     // Purple
-  mexican: "#ff006e",    // Pink
-  gadsden: "#fb5607",    // Bright orange
-  alaska: "#3a86ff",     // Blue
-  hawaii: "#06d6a0",     // Green
-  pacific: "#06d6a0",    // Green (same as Hawaii)
-  modern: "#b8c4d0",     // Gray (established)
-};
 
 // Ocean/background - handled by CSS
 
@@ -43,7 +27,7 @@ const MAP_STEPS = [
   { year: "1848", file: "1848-mexican-cession.geojson", era: "mexican" },
   { year: "1853", file: "1853-gadsden.geojson", era: "gadsden" },
   { year: "1867", file: "1867-alaska.geojson", era: "alaska" },
-  { year: "1898", file: "1898-spanish-american-war.geojson", era: "hawaii" },
+  { year: "1898", file: "1898-spanish-american-war.geojson", era: "pacific" },
   { year: "1899–1959", file: "1900-samoa.geojson", era: "pacific" },
   { year: "2025–26", file: "1959-final.geojson", era: "modern" },
 ];
@@ -86,7 +70,6 @@ const DESKTOP_BREAKPOINT = 900;
 // ─────────────────────────────────────────────────────────────
 
 let geoDataByStep = [];
-let acquisitionsData = null;
 let contextCountries = null;
 let currentPage = 0;
 let totalPages = 0;
@@ -170,10 +153,6 @@ async function loadContextCountries() {
   return filtered;
 }
 
-async function loadAcquisitions() {
-  return d3.json("/data/us-territorial-expansion/acquisitions.geojson");
-}
-
 // ─────────────────────────────────────────────────────────────
 // Map rendering
 // ─────────────────────────────────────────────────────────────
@@ -234,86 +213,65 @@ function initializeMap(svg) {
       .attr("stroke", "#f8f5f0")
       .attr("stroke-width", 0.5);
   }
-
-  // Render all acquisition polygons upfront (hidden until their step)
-  if (acquisitionsData) {
-    svg.select(".layer-us")
-      .selectAll(".acquisition")
-      .data(acquisitionsData.features)
-      .enter()
-      .append("path")
-      .attr("class", d => `acquisition acquisition-${d.properties.era}`)
-      .attr("d", path)
-      .attr("fill", ESTABLISHED_COLOR)
-      .attr("stroke", "#f8f5f0")
-      .attr("stroke-width", 0.5)
-      .attr("opacity", 0);
-  }
 }
 
 function renderMapStep(svg, geoData, stepIndex, options = {}) {
   const { opacity = 1, duration = 800 } = options;
+  const data = geoData[stepIndex];
+  if (!data) return;
 
-  if (!acquisitionsData) return;
+  const categories = ["other_country", "none", "disputed", "territory", "state", "seceded_state"];
+  const isUSCategory = (cat) => cat === "state" || cat === "territory" || cat === "seceded_state";
 
   const usLayer = svg.select(".layer-us");
 
-  // Animate each acquisition based on whether it's past, current, or future
-  acquisitionsData.features.forEach((feature) => {
-    const featureStep = feature.properties.step;
-    const era = feature.properties.era;
-    const sel = usLayer.select(`.acquisition-${era}`);
+  for (const cat of categories) {
+    const features = data[cat] || [];
+    const className = CATEGORY_CLASS[cat] || "map-none";
 
-    if (sel.empty()) return;
+    const sel = usLayer.selectAll(`.${className}`).data(features, (d, i) => `${cat}-${i}`);
 
-    if (featureStep > stepIndex) {
-      // Future acquisition - fade out
-      sel.transition()
-        .duration(duration / 2)
-        .ease(d3.easeCubicIn)
-        .attr("opacity", 0);
-    } else if (featureStep === stepIndex) {
-      // Current step - pop in with candy color
-      sel.transition()
-        .duration(duration)
-        .ease(d3.easeCubicOut)
-        .attr("opacity", opacity)
-        .attr("fill", ERA_COLORS[era] || ESTABLISHED_COLOR);
-    } else {
-      // Past acquisition - fade to established color
-      sel.transition()
-        .duration(duration)
-        .ease(d3.easeCubicInOut)
-        .attr("opacity", opacity)
-        .attr("fill", ESTABLISHED_COLOR);
-    }
-  });
+    const fillColor = isUSCategory(cat) ? US_COLOR : CONTEXT_COLOR;
+
+    // Enter: new DOM elements
+    sel
+      .enter()
+      .append("path")
+      .attr("class", className)
+      .attr("d", path)
+      .attr("opacity", 0)
+      .attr("stroke", "#f8f5f0")
+      .attr("stroke-width", 0.5)
+      .attr("fill", fillColor)
+      .transition()
+      .duration(duration)
+      .attr("opacity", opacity);
+
+    // Update: existing DOM elements
+    sel
+      .transition()
+      .duration(duration)
+      .attr("d", path)
+      .attr("opacity", opacity)
+      .attr("fill", fillColor);
+
+    sel.exit().transition().duration(duration / 2).attr("opacity", 0).remove();
+  }
 
   currentMapStep = stepIndex;
 }
 
 function updateMapOpacity(svg, opacity, duration = 600) {
-  // For acquisitions, only update opacity of visible ones (step <= currentMapStep)
-  if (acquisitionsData) {
-    acquisitionsData.features.forEach((feature) => {
-      const featureStep = feature.properties.step;
-      const era = feature.properties.era;
-      const sel = svg.select(".layer-us").select(`.acquisition-${era}`);
-
-      if (!sel.empty() && featureStep <= currentMapStep) {
-        sel.transition()
-          .duration(duration)
-          .ease(d3.easeCubicInOut)
-          .attr("opacity", opacity);
-      }
-    });
-  }
+  svg.select(".layer-us")
+    .selectAll("path")
+    .transition()
+    .duration(duration)
+    .attr("opacity", opacity);
 
   svg.select(".layer-context")
     .selectAll("path")
     .transition()
     .duration(duration)
-    .ease(d3.easeCubicInOut)
     .attr("opacity", opacity);
 }
 
@@ -590,10 +548,9 @@ function handleResize() {
 
 async function init() {
   // Load data in parallel
-  [geoDataByStep, contextCountries, acquisitionsData] = await Promise.all([
+  [geoDataByStep, contextCountries] = await Promise.all([
     loadAllGeoJSON(),
-    loadContextCountries(),
-    loadAcquisitions()
+    loadContextCountries()
   ]);
 
   pageElements = Array.from(document.querySelectorAll(".page"));
