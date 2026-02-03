@@ -1,34 +1,34 @@
 import * as d3 from "d3";
 
-// Era accent colors - matches CSS custom properties
+// Era accent colors
 const ERA_COLORS = {
-  original: "#9a958a",    // Warm gray for original states
-  louisiana: "#a85a4a",   // Oxide red
-  redriver: "#5d8a87",    // Dusty teal
-  florida: "#758556",     // Olive
-  texas: "#b07a3e",       // Burnt ochre
-  oregon: "#637592",      // Slate blue
-  mexican: "#8b5a4a",     // Muted oxide
-  gadsden: "#6b7a5a",     // Muted olive
-  alaska: "#4a7c7a",      // Deep teal
-  pacific: "#5a6b8a",     // Slate
-  modern: "#8b4a4a",      // Muted warning red
+  original: "#9a958a",
+  louisiana: "#a85a4a",
+  redriver: "#5d8a87",
+  florida: "#758556",
+  texas: "#b07a3e",
+  oregon: "#637592",
+  mexican: "#8b5a4a",
+  gadsden: "#6b7a5a",
+  alaska: "#4a7c7a",
+  pacific: "#5a6b8a",
+  modern: "#8b4a4a",
 };
 
-// Timeline steps: maps to GeoJSON files
-const STEPS = [
-  { year: "1783", file: "1789-original-states.geojson", label: "Treaty of Paris", era: "original" },
-  { year: "1803", file: "1803-louisiana-purchase.geojson", label: "Louisiana Purchase", era: "louisiana" },
-  { year: "1818", file: "1818-red-river-basin.geojson", label: "Red River Basin", era: "redriver" },
-  { year: "1819", file: "1819-florida.geojson", label: "Florida", era: "florida" },
-  { year: "1845", file: "1845-texas.geojson", label: "Texas", era: "texas" },
-  { year: "1846", file: "1846-oregon.geojson", label: "Oregon", era: "oregon" },
-  { year: "1848", file: "1848-mexican-cession.geojson", label: "Mexican Cession", era: "mexican" },
-  { year: "1853", file: "1853-gadsden.geojson", label: "Gadsden Purchase", era: "gadsden" },
-  { year: "1867", file: "1867-alaska.geojson", label: "Alaska", era: "alaska" },
-  { year: "1898", file: "1898-spanish-american-war.geojson", label: "Spanish-American War", era: "pacific" },
-  { year: "1899–1959", file: "1900-samoa.geojson", label: "Pacific & Caribbean", era: "pacific" },
-  { year: "2025–26", file: "1959-final.geojson", label: "Modern Rhetoric", era: "modern" },
+// Map step definitions (GeoJSON files)
+const MAP_STEPS = [
+  { year: "1783", file: "1789-original-states.geojson", era: "original" },
+  { year: "1803", file: "1803-louisiana-purchase.geojson", era: "louisiana" },
+  { year: "1818", file: "1818-red-river-basin.geojson", era: "redriver" },
+  { year: "1819", file: "1819-florida.geojson", era: "florida" },
+  { year: "1845", file: "1845-texas.geojson", era: "texas" },
+  { year: "1846", file: "1846-oregon.geojson", era: "oregon" },
+  { year: "1848", file: "1848-mexican-cession.geojson", era: "mexican" },
+  { year: "1853", file: "1853-gadsden.geojson", era: "gadsden" },
+  { year: "1867", file: "1867-alaska.geojson", era: "alaska" },
+  { year: "1898", file: "1898-spanish-american-war.geojson", era: "pacific" },
+  { year: "1899–1959", file: "1900-samoa.geojson", era: "pacific" },
+  { year: "2025–26", file: "1959-final.geojson", era: "modern" },
 ];
 
 const CATEGORY_CLASS = {
@@ -39,26 +39,25 @@ const CATEGORY_CLASS = {
   none: "map-none",
 };
 
-const MOBILE_BREAKPOINT = 768;
-
+// State
 let geoDataByStep = [];
-// currentPage: -1 = intro, 0-11 = map steps
-let currentPage = -1;
-const TOTAL_PAGES = STEPS.length + 1; // intro + 12 steps
-let isCollapsed = false;
+let currentPage = 0;
+let totalPages = 0;
+let pageElements = [];
+let touchStartX = 0;
+let touchStartY = 0;
 
-// Projection: Albers USA handles Alaska/Hawaii insets
+// D3 setup
 const projection = d3.geoAlbersUsa();
 const path = d3.geoPath().projection(projection);
 
-function isMobile() {
-  return window.innerWidth < MOBILE_BREAKPOINT;
-}
+// ─────────────────────────────────────────────────────────────
+// Data loading
+// ─────────────────────────────────────────────────────────────
 
 async function loadAllGeoJSON() {
-  const promises = STEPS.map((s) =>
+  const promises = MAP_STEPS.map((s) =>
     d3.json(`/data/us-territorial-expansion/${s.file}`).then((geojson) => {
-      // Separate features by category
       const byCategory = {};
       for (const feature of geojson.features) {
         const cat = feature.properties.CATEGORY || "none";
@@ -71,12 +70,15 @@ async function loadAllGeoJSON() {
   return Promise.all(promises);
 }
 
+// ─────────────────────────────────────────────────────────────
+// Map rendering
+// ─────────────────────────────────────────────────────────────
+
 function fitProjection(svg, geoData) {
   const container = svg.node().parentNode;
   const width = container.clientWidth;
   const height = container.clientHeight;
 
-  // Use the final step (most territory) to fit projection
   const finalData = geoData[geoData.length - 1];
   const allFeatures = Object.values(finalData).flat();
   const collection = { type: "FeatureCollection", features: allFeatures };
@@ -85,11 +87,12 @@ function fitProjection(svg, geoData) {
   path.projection(projection);
 }
 
-function renderMap(svg, geoData, stepIndex) {
+function renderMap(svg, geoData, stepIndex, options = {}) {
+  const { opacity = 1, duration = 800 } = options;
   const data = geoData[stepIndex];
   if (!data) return;
 
-  const era = STEPS[stepIndex].era;
+  const era = MAP_STEPS[stepIndex].era;
   const eraColor = ERA_COLORS[era] || ERA_COLORS.original;
   const categories = ["other_country", "none", "disputed", "territory", "state"];
 
@@ -99,7 +102,6 @@ function renderMap(svg, geoData, stepIndex) {
 
     const sel = svg.selectAll(`.${className}`).data(features, (d, i) => `${cat}-${i}`);
 
-    // Enter - new territories get the current era color
     sel
       .enter()
       .append("path")
@@ -109,176 +111,220 @@ function renderMap(svg, geoData, stepIndex) {
       .attr("fill", (cat === "state" || cat === "territory") ? eraColor : null)
       .attr("stroke", "#f8f5f0")
       .transition()
-      .duration(800)
-      .attr("opacity", 1);
+      .duration(duration)
+      .attr("opacity", opacity);
 
-    // Update - keep existing colors, just update path geometry
-    sel.transition().duration(800).attr("d", path);
-
-    // Exit
-    sel.exit().transition().duration(400).attr("opacity", 0).remove();
+    sel.transition().duration(duration).attr("d", path).attr("opacity", opacity);
+    sel.exit().transition().duration(duration / 2).attr("opacity", 0).remove();
   }
 }
 
-function updateMapYear(stepIndex) {
-  const yearEl = document.getElementById("map-year");
-  if (stepIndex >= 0 && stepIndex < STEPS.length) {
-    yearEl.textContent = STEPS[stepIndex].year;
-    yearEl.style.opacity = "0.2";
-  } else {
-    yearEl.textContent = "";
-    yearEl.style.opacity = "0";
-  }
-}
+// ─────────────────────────────────────────────────────────────
+// Page navigation
+// ─────────────────────────────────────────────────────────────
 
-function updateNavUI() {
-  const currentEl = document.getElementById("nav-current");
-  const prevBtn = document.getElementById("btn-prev");
-  const nextBtn = document.getElementById("btn-next");
-
-  // Update page counter (1-indexed for display)
-  currentEl.textContent = currentPage + 2; // -1 becomes 1, 0 becomes 2, etc.
-
-  // Update button states
-  prevBtn.disabled = currentPage <= -1;
-  nextBtn.disabled = currentPage >= STEPS.length - 1;
-}
-
-function setCollapsed(collapsed) {
-  isCollapsed = collapsed;
-  const contentPanel = document.getElementById("content-panel");
-
-  if (collapsed) {
-    contentPanel.classList.add("is-collapsed");
-  } else {
-    contentPanel.classList.remove("is-collapsed");
-  }
-}
-
-function toggleCollapsed() {
-  setCollapsed(!isCollapsed);
-
-  // Hide hint after first toggle
-  const hint = document.getElementById("hint");
-  if (hint) hint.classList.add("is-hidden");
+function getPageInfo(pageEl) {
+  return {
+    type: pageEl.dataset.type,
+    step: pageEl.dataset.step !== undefined ? parseInt(pageEl.dataset.step) : null,
+  };
 }
 
 function goToPage(newPage) {
-  // Clamp to valid range
-  newPage = Math.max(-1, Math.min(newPage, STEPS.length - 1));
-
+  newPage = Math.max(0, Math.min(newPage, totalPages - 1));
   if (newPage === currentPage) return;
 
-  const pages = document.querySelectorAll(".page");
   const svg = d3.select("#map");
+  const mapLayer = document.getElementById("map-layer");
 
-  // Remove active class from all pages
-  pages.forEach((p) => p.classList.remove("is-active"));
+  // Update page visibility
+  pageElements.forEach((el, i) => {
+    el.classList.toggle("is-active", i === newPage);
+  });
 
-  // Find and activate the new page
-  const targetPage = document.querySelector(`.page[data-step="${newPage}"]`);
-  if (targetPage) {
-    targetPage.classList.add("is-active");
-  }
+  // Get new page info
+  const pageEl = pageElements[newPage];
+  const { type, step } = getPageInfo(pageEl);
 
-  // Update map if we're on a map step (not intro)
-  if (newPage >= 0) {
-    renderMap(svg, geoDataByStep, newPage);
-    updateMapYear(newPage);
-  } else {
-    // Intro page - show initial state faintly or clear
-    updateMapYear(-1);
-    // Optionally render step 0 with low opacity for intro
-    svg.selectAll("path").transition().duration(400).attr("opacity", 0.15);
+  // Update map based on page type
+  if (type === "intro") {
+    // Intro: show first map faintly
+    mapLayer.classList.remove("is-thumbnail");
+    renderMap(svg, geoDataByStep, 0, { opacity: 0.15, duration: 600 });
+  } else if (type === "transition") {
+    // Transition: full screen map with animation
+    mapLayer.classList.remove("is-thumbnail");
+    renderMap(svg, geoDataByStep, step, { opacity: 1, duration: 800 });
+  } else if (type === "story") {
+    // Story: map becomes thumbnail
+    mapLayer.classList.add("is-thumbnail");
+    renderMap(svg, geoDataByStep, step, { opacity: 1, duration: 400 });
   }
 
   currentPage = newPage;
-  updateNavUI();
-
-  // On mobile, collapse content after navigation to show map transition
-  // then expand after a short delay
-  if (isMobile() && !isCollapsed) {
-    setCollapsed(true);
-    setTimeout(() => setCollapsed(false), 1200);
-  }
-
-  // Hide hint after first navigation
-  const hint = document.getElementById("hint");
-  if (hint) hint.classList.add("is-hidden");
+  updateTimeline();
 }
 
-function setupNavigation() {
-  const prevBtn = document.getElementById("btn-prev");
-  const nextBtn = document.getElementById("btn-next");
+function nextPage() {
+  goToPage(currentPage + 1);
+}
 
-  // Button clicks
-  prevBtn.addEventListener("click", () => goToPage(currentPage - 1));
-  nextBtn.addEventListener("click", () => goToPage(currentPage + 1));
+function prevPage() {
+  goToPage(currentPage - 1);
+}
 
-  // Keyboard navigation
+// ─────────────────────────────────────────────────────────────
+// Timeline navigation
+// ─────────────────────────────────────────────────────────────
+
+function buildTimeline() {
+  const timeline = document.getElementById("timeline");
+  timeline.innerHTML = "";
+
+  pageElements.forEach((pageEl, i) => {
+    const { type } = getPageInfo(pageEl);
+    const bar = document.createElement("button");
+    bar.className = "timeline-bar";
+    bar.dataset.page = i;
+
+    if (type === "transition" || type === "intro") {
+      bar.classList.add("timeline-bar--tall");
+    }
+    if (type === "intro") {
+      bar.classList.add("timeline-bar--intro");
+    }
+
+    bar.addEventListener("click", () => goToPage(i));
+    timeline.appendChild(bar);
+  });
+
+  updateTimeline();
+}
+
+function updateTimeline() {
+  const bars = document.querySelectorAll(".timeline-bar");
+  bars.forEach((bar, i) => {
+    bar.classList.toggle("is-active", i === currentPage);
+    bar.setAttribute("aria-current", i === currentPage ? "page" : "false");
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Swipe navigation
+// ─────────────────────────────────────────────────────────────
+
+function setupSwipe() {
+  const viewer = document.getElementById("viewer");
+
+  viewer.addEventListener("touchstart", (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  viewer.addEventListener("touchend", (e) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+
+    // Only trigger if horizontal swipe is dominant and significant
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      if (deltaX < 0) {
+        nextPage();
+      } else {
+        prevPage();
+      }
+    }
+  }, { passive: true });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Keyboard navigation
+// ─────────────────────────────────────────────────────────────
+
+function setupKeyboard() {
   document.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+    if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === " ") {
       e.preventDefault();
-      goToPage(currentPage - 1);
-    } else if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === " ") {
+      nextPage();
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
       e.preventDefault();
-      goToPage(currentPage + 1);
+      prevPage();
     }
   });
-
-  // Set total pages in UI
-  document.getElementById("nav-total").textContent = TOTAL_PAGES;
 }
 
-function setupCollapseToggle() {
-  // Add click handlers to all page headers
-  const headers = document.querySelectorAll("[data-collapse-toggle]");
-  headers.forEach((header) => {
-    header.addEventListener("click", (e) => {
-      // Only toggle on mobile
-      if (isMobile()) {
-        e.preventDefault();
-        toggleCollapsed();
-      }
-    });
+// ─────────────────────────────────────────────────────────────
+// Click navigation (click sides of screen)
+// ─────────────────────────────────────────────────────────────
+
+function setupClickNav() {
+  const viewer = document.getElementById("viewer");
+
+  viewer.addEventListener("click", (e) => {
+    // Don't navigate if clicking on interactive elements
+    if (e.target.closest(".timeline, button, a")) return;
+
+    const rect = viewer.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const threshold = rect.width * 0.3;
+
+    if (x < threshold) {
+      prevPage();
+    } else if (x > rect.width - threshold) {
+      nextPage();
+    }
   });
 }
+
+// ─────────────────────────────────────────────────────────────
+// Resize handling
+// ─────────────────────────────────────────────────────────────
 
 function handleResize() {
   const svg = d3.select("#map");
   fitProjection(svg, geoDataByStep);
 
-  // Re-render current step
-  if (currentPage >= 0) {
-    svg.selectAll("path").remove();
-    renderMap(svg, geoDataByStep, currentPage);
-  }
+  // Re-render current map state
+  const pageEl = pageElements[currentPage];
+  const { type, step } = getPageInfo(pageEl);
 
-  // Reset collapse state when switching between mobile/desktop
-  if (!isMobile()) {
-    setCollapsed(false);
+  svg.selectAll("path").remove();
+
+  if (type === "intro") {
+    renderMap(svg, geoDataByStep, 0, { opacity: 0.15, duration: 0 });
+  } else if (step !== null) {
+    const opacity = type === "transition" ? 1 : 1;
+    renderMap(svg, geoDataByStep, step, { opacity, duration: 0 });
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// Initialization
+// ─────────────────────────────────────────────────────────────
+
 async function init() {
+  // Load geo data
   geoDataByStep = await loadAllGeoJSON();
 
+  // Get page elements
+  pageElements = Array.from(document.querySelectorAll(".page"));
+  totalPages = pageElements.length;
+
+  // Setup map
   const svg = d3.select("#map");
   fitProjection(svg, geoDataByStep);
 
-  // Render initial map (step 0) with low opacity for intro background
-  renderMap(svg, geoDataByStep, 0);
-  svg.selectAll("path").attr("opacity", 0.15);
+  // Initial render (intro state)
+  renderMap(svg, geoDataByStep, 0, { opacity: 0.15 });
 
-  // Set up navigation
-  setupNavigation();
-  setupCollapseToggle();
-  updateNavUI();
+  // Build UI
+  buildTimeline();
 
-  // On mobile, start collapsed to show the map
-  if (isMobile()) {
-    setCollapsed(true);
-  }
+  // Setup interactions
+  setupSwipe();
+  setupKeyboard();
+  setupClickNav();
 
   // Handle resize
   window.addEventListener("resize", debounce(handleResize, 200));
