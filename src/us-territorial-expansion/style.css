@@ -463,7 +463,8 @@ body {
   .page--story {
     padding: 3rem;
     padding-left: 4rem;
-    align-items: center;
+    align-items: flex-start;
+    justify-content: center;
   }
 
   .page--story .page-story {
