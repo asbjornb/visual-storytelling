@@ -197,6 +197,54 @@ function main() {
     }
   }
 
+  // Extract Gadsden Purchase via geometric differencing
+  // (Can't use state-based approach since it doesn't align with state boundaries)
+  console.log("Processing gadsden (geometric diff)...");
+  try {
+    const file1848 = join(DATA_DIR, "1848-mexican-cession.geojson");
+    const file1853 = join(DATA_DIR, "1853-gadsden.geojson");
+    const dissolved1848 = join(TEMP_DIR, "1848-dissolved.geojson");
+    const dissolved1853 = join(TEMP_DIR, "1853-dissolved.geojson");
+    const gadsdenFile = join(TEMP_DIR, "gadsden.geojson");
+
+    // Dissolve both files to single polygons
+    const filterExpr = 'CATEGORY == "state" || CATEGORY == "territory"';
+    run(`mapshaper "${file1848}" -filter '${filterExpr}' -dissolve -o "${dissolved1848}" force`);
+    run(`mapshaper "${file1853}" -filter '${filterExpr}' -dissolve -o "${dissolved1853}" force`);
+
+    // Compute difference (1853 - 1848) with geographic filter for Gadsden region
+    const gadsdenCmd = `mapshaper "${dissolved1848}" "${dissolved1853}" combine-files ` +
+      `-snap interval=0.01 -target 2 -erase target=2 source=1 ` +
+      `-filter-slivers min-area=100km2 -clip bbox=-115,31,-106,34 -o "${gadsdenFile}" force`;
+
+    if (run(gadsdenCmd)) {
+      const result = JSON.parse(readFileSync(gadsdenFile, "utf-8"));
+      let geometry = null;
+
+      if (result.type === "GeometryCollection" && result.geometries?.length > 0) {
+        geometry = result.geometries[0];
+      } else if (result.type === "FeatureCollection" && result.features?.length > 0) {
+        geometry = result.features[0].geometry;
+      } else if (result.type === "Polygon" || result.type === "MultiPolygon") {
+        geometry = result;
+      }
+
+      if (geometry && geometry.coordinates?.length > 0) {
+        geometry = rewindGeometry(geometry);
+        acquisitions.push({
+          type: "Feature",
+          properties: { era: "gadsden", step: 7, label: "Gadsden Purchase (1853)" },
+          geometry,
+        });
+        console.log("  Added gadsden");
+      } else {
+        console.log("  No geometry for gadsden");
+      }
+    }
+  } catch (e) {
+    console.log(`  Error extracting gadsden: ${e.message}`);
+  }
+
   // Sort by step
   acquisitions.sort((a, b) => a.properties.step - b.properties.step);
 
