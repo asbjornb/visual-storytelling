@@ -128,6 +128,49 @@ body {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
 }
 
+/* ── Page header (for mobile collapse) ────────────────── */
+
+.page-header {
+  display: none; /* Hidden on desktop */
+}
+
+.page-header-text {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.page-header-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(61, 74, 92, 0.08);
+  color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s, transform 0.3s;
+}
+
+.collapse-btn:hover {
+  background: rgba(61, 74, 92, 0.15);
+}
+
 /* ── Intro page special styling ───────────────────────── */
 
 .page--intro {
@@ -345,9 +388,9 @@ body {
   opacity: 0.5;
 }
 
-/* ── Keyboard hint ────────────────────────────────────── */
+/* ── Hint ─────────────────────────────────────────────── */
 
-.keyboard-hint {
+.hint {
   position: fixed;
   bottom: 6rem;
   left: 50%;
@@ -361,9 +404,17 @@ body {
   transition: opacity 0.4s;
 }
 
-.keyboard-hint.is-hidden {
+.hint.is-hidden {
   opacity: 0;
   pointer-events: none;
+}
+
+.hint-desktop {
+  display: inline;
+}
+
+.hint-mobile {
+  display: none;
 }
 
 /* ── Map paths ────────────────────────────────────────── */
@@ -401,7 +452,7 @@ body {
   stroke: none;
 }
 
-/* ── Responsive ───────────────────────────────────────── */
+/* ── Desktop responsive ───────────────────────────────── */
 
 @media (min-width: 768px) {
   .page:not(.page--intro) {
@@ -409,43 +460,201 @@ body {
   }
 }
 
+/* ── Mobile / Tablet ──────────────────────────────────── */
+
 @media (max-width: 767px) {
-  .page:not(.page--intro) {
-    left: 1rem;
-    right: 1rem;
-    max-width: none;
+  /* Content panel becomes a bottom sheet */
+  .content-panel {
+    position: fixed;
     top: auto;
-    bottom: 7rem;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0;
+    align-items: flex-end;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* When collapsed, slide most of the panel off-screen */
+  .content-panel.is-collapsed {
+    transform: translateY(calc(100% - 72px));
+  }
+
+  /* Pages stack at the bottom */
+  .page {
+    position: relative;
+    left: auto;
+    top: auto;
+    right: auto;
+    bottom: auto;
     transform: none;
-  }
-
-  .page--intro {
-    left: 1rem;
-    right: 1rem;
     max-width: none;
-    transform: translateY(-50%);
+    width: 100%;
+    display: none;
   }
 
-  .page--intro.is-active {
-    transform: translateY(-50%);
+  .page.is-active {
+    display: block;
   }
 
   .page-content {
-    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    padding: 0;
+    max-height: 55vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
+  /* Show the header on mobile */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    min-height: 56px;
+  }
+
+  .page-header .page-year {
+    margin-bottom: 0;
+    font-size: 0.85rem;
+  }
+
+  /* Rotate chevron when collapsed */
+  .is-collapsed .collapse-btn {
+    transform: rotate(180deg);
+  }
+
+  /* Body content scrolls */
+  .page-body {
+    padding: 1.25rem;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  /* Hide duplicate h2 since we have title in header */
+  .page-body h2 {
+    display: none;
+  }
+
+  .page-body .page-year {
+    display: none;
+  }
+
+  /* Intro page on mobile */
+  .page--intro {
+    text-align: left;
+  }
+
+  .page--intro .page-content {
+    max-height: 60vh;
+  }
+
+  .page--intro .page-body {
+    text-align: center;
+  }
+
+  .page--intro h1 {
+    font-size: 2rem;
+  }
+
+  .page--intro .page-subtitle {
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .page--intro blockquote {
+    font-size: 1rem;
+  }
+
+  /* Map year moves to top on mobile */
   .map-year {
     bottom: auto;
     top: 1rem;
     right: 1rem;
-    font-size: 2.5rem;
+    font-size: clamp(2.5rem, 12vw, 4rem);
   }
 
+  /* Nav controls at bottom */
   .nav-controls {
-    bottom: 1rem;
+    bottom: 0.75rem;
+    padding: 0.35rem 0.5rem;
+    gap: 0.5rem;
   }
 
-  .keyboard-hint {
+  .nav-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .nav-progress {
+    font-size: 0.85rem;
+    min-width: 50px;
+  }
+
+  /* Show mobile hint, hide desktop hint */
+  .hint {
+    bottom: 4rem;
+  }
+
+  .hint-desktop {
     display: none;
+  }
+
+  .hint-mobile {
+    display: inline;
+  }
+}
+
+/* ── Small mobile ─────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .page-content {
+    max-height: 50vh;
+  }
+
+  .page--intro h1 {
+    font-size: 1.75rem;
+  }
+
+  .page-body {
+    padding: 1rem;
+  }
+
+  .page p {
+    font-size: 0.9rem;
+  }
+
+  .page blockquote {
+    font-size: 0.85rem;
+  }
+
+  .stat {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.5rem;
+  }
+}
+
+/* ── Landscape mobile ─────────────────────────────────── */
+
+@media (max-width: 767px) and (max-height: 500px) {
+  .content-panel.is-collapsed {
+    transform: translateY(calc(100% - 60px));
+  }
+
+  .page-content {
+    max-height: 45vh;
+  }
+
+  .page-header {
+    padding: 0.75rem 1rem;
+    min-height: 44px;
+  }
+
+  .page-body {
+    padding: 0.75rem 1rem;
   }
 }

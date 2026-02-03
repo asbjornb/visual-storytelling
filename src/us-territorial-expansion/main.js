@@ -39,14 +39,21 @@ const CATEGORY_CLASS = {
   none: "map-none",
 };
 
+const MOBILE_BREAKPOINT = 768;
+
 let geoDataByStep = [];
 // currentPage: -1 = intro, 0-11 = map steps
 let currentPage = -1;
 const TOTAL_PAGES = STEPS.length + 1; // intro + 12 steps
+let isCollapsed = false;
 
 // Projection: Albers USA handles Alaska/Hawaii insets
 const projection = d3.geoAlbersUsa();
 const path = d3.geoPath().projection(projection);
+
+function isMobile() {
+  return window.innerWidth < MOBILE_BREAKPOINT;
+}
 
 async function loadAllGeoJSON() {
   const promises = STEPS.map((s) =>
@@ -137,6 +144,25 @@ function updateNavUI() {
   nextBtn.disabled = currentPage >= STEPS.length - 1;
 }
 
+function setCollapsed(collapsed) {
+  isCollapsed = collapsed;
+  const contentPanel = document.getElementById("content-panel");
+
+  if (collapsed) {
+    contentPanel.classList.add("is-collapsed");
+  } else {
+    contentPanel.classList.remove("is-collapsed");
+  }
+}
+
+function toggleCollapsed() {
+  setCollapsed(!isCollapsed);
+
+  // Hide hint after first toggle
+  const hint = document.getElementById("hint");
+  if (hint) hint.classList.add("is-hidden");
+}
+
 function goToPage(newPage) {
   // Clamp to valid range
   newPage = Math.max(-1, Math.min(newPage, STEPS.length - 1));
@@ -169,8 +195,15 @@ function goToPage(newPage) {
   currentPage = newPage;
   updateNavUI();
 
-  // Hide keyboard hint after first navigation
-  const hint = document.getElementById("keyboard-hint");
+  // On mobile, collapse content after navigation to show map transition
+  // then expand after a short delay
+  if (isMobile() && !isCollapsed) {
+    setCollapsed(true);
+    setTimeout(() => setCollapsed(false), 1200);
+  }
+
+  // Hide hint after first navigation
+  const hint = document.getElementById("hint");
   if (hint) hint.classList.add("is-hidden");
 }
 
@@ -197,6 +230,20 @@ function setupNavigation() {
   document.getElementById("nav-total").textContent = TOTAL_PAGES;
 }
 
+function setupCollapseToggle() {
+  // Add click handlers to all page headers
+  const headers = document.querySelectorAll("[data-collapse-toggle]");
+  headers.forEach((header) => {
+    header.addEventListener("click", (e) => {
+      // Only toggle on mobile
+      if (isMobile()) {
+        e.preventDefault();
+        toggleCollapsed();
+      }
+    });
+  });
+}
+
 function handleResize() {
   const svg = d3.select("#map");
   fitProjection(svg, geoDataByStep);
@@ -205,6 +252,11 @@ function handleResize() {
   if (currentPage >= 0) {
     svg.selectAll("path").remove();
     renderMap(svg, geoDataByStep, currentPage);
+  }
+
+  // Reset collapse state when switching between mobile/desktop
+  if (!isMobile()) {
+    setCollapsed(false);
   }
 }
 
@@ -220,7 +272,13 @@ async function init() {
 
   // Set up navigation
   setupNavigation();
+  setupCollapseToggle();
   updateNavUI();
+
+  // On mobile, start collapsed to show the map
+  if (isMobile()) {
+    setCollapsed(true);
+  }
 
   // Handle resize
   window.addEventListener("resize", debounce(handleResize, 200));
