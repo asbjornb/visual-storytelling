@@ -40,7 +40,9 @@ const CATEGORY_CLASS = {
 };
 
 let geoDataByStep = [];
-let currentStep = -1;
+// currentPage: -1 = intro, 0-11 = map steps
+let currentPage = -1;
+const TOTAL_PAGES = STEPS.length + 1; // intro + 12 steps
 
 // Projection: Albers USA handles Alaska/Hawaii insets
 const projection = d3.geoAlbersUsa();
@@ -74,34 +76,6 @@ function fitProjection(svg, geoData) {
 
   projection.fitSize([width, height], collection);
   path.projection(projection);
-}
-
-function renderPrologueMap(geoData) {
-  const container = d3.select("#prologue-map");
-  const svg = container.append("svg");
-  const width = container.node().clientWidth;
-  const height = container.node().clientHeight;
-
-  // Use a separate projection for the prologue
-  const prologueProjection = d3.geoAlbersUsa();
-  const firstStep = geoData[0];
-  const allFeatures = Object.values(firstStep).flat();
-  const collection = { type: "FeatureCollection", features: allFeatures };
-  prologueProjection.fitSize([width, height], collection);
-  const prologuePath = d3.geoPath().projection(prologueProjection);
-
-  // Only render states (the 13 original colonies area)
-  const stateFeatures = firstStep["state"] || [];
-  svg
-    .selectAll("path")
-    .data(stateFeatures)
-    .enter()
-    .append("path")
-    .attr("d", prologuePath)
-    .attr("fill", ERA_COLORS.original)
-    .attr("stroke", "#f8f5f0")
-    .attr("stroke-width", 0.5)
-    .attr("opacity", 0.25);
 }
 
 function renderMap(svg, geoData, stepIndex) {
@@ -143,48 +117,84 @@ function updateMapYear(stepIndex) {
   const yearEl = document.getElementById("map-year");
   if (stepIndex >= 0 && stepIndex < STEPS.length) {
     yearEl.textContent = STEPS[stepIndex].year;
+    yearEl.style.opacity = "0.2";
+  } else {
+    yearEl.textContent = "";
+    yearEl.style.opacity = "0";
   }
 }
 
-function updateTimeline(stepIndex) {
-  const fill = document.getElementById("timeline-fill");
-  const pct = ((stepIndex + 1) / STEPS.length) * 100;
-  fill.style.height = `${pct}%`;
+function updateNavUI() {
+  const currentEl = document.getElementById("nav-current");
+  const prevBtn = document.getElementById("btn-prev");
+  const nextBtn = document.getElementById("btn-next");
+
+  // Update page counter (1-indexed for display)
+  currentEl.textContent = currentPage + 2; // -1 becomes 1, 0 becomes 2, etc.
+
+  // Update button states
+  prevBtn.disabled = currentPage <= -1;
+  nextBtn.disabled = currentPage >= STEPS.length - 1;
 }
 
-function setupScrollObserver() {
-  const steps = document.querySelectorAll(".step");
+function goToPage(newPage) {
+  // Clamp to valid range
+  newPage = Math.max(-1, Math.min(newPage, STEPS.length - 1));
+
+  if (newPage === currentPage) return;
+
+  const pages = document.querySelectorAll(".page");
   const svg = d3.select("#map");
 
-  const observer = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        const stepEl = entry.target;
-        const stepIndex = parseInt(stepEl.dataset.step, 10);
+  // Remove active class from all pages
+  pages.forEach((p) => p.classList.remove("is-active"));
 
-        if (entry.isIntersecting) {
-          stepEl.classList.add("is-active");
-
-          if (stepIndex !== currentStep) {
-            currentStep = stepIndex;
-            renderMap(svg, geoDataByStep, stepIndex);
-            updateMapYear(stepIndex);
-            updateTimeline(stepIndex);
-          }
-        } else {
-          stepEl.classList.remove("is-active");
-        }
-      }
-    },
-    {
-      rootMargin: "-30% 0px -30% 0px",
-      threshold: 0.1,
-    }
-  );
-
-  for (const step of steps) {
-    observer.observe(step);
+  // Find and activate the new page
+  const targetPage = document.querySelector(`.page[data-step="${newPage}"]`);
+  if (targetPage) {
+    targetPage.classList.add("is-active");
   }
+
+  // Update map if we're on a map step (not intro)
+  if (newPage >= 0) {
+    renderMap(svg, geoDataByStep, newPage);
+    updateMapYear(newPage);
+  } else {
+    // Intro page - show initial state faintly or clear
+    updateMapYear(-1);
+    // Optionally render step 0 with low opacity for intro
+    svg.selectAll("path").transition().duration(400).attr("opacity", 0.15);
+  }
+
+  currentPage = newPage;
+  updateNavUI();
+
+  // Hide keyboard hint after first navigation
+  const hint = document.getElementById("keyboard-hint");
+  if (hint) hint.classList.add("is-hidden");
+}
+
+function setupNavigation() {
+  const prevBtn = document.getElementById("btn-prev");
+  const nextBtn = document.getElementById("btn-next");
+
+  // Button clicks
+  prevBtn.addEventListener("click", () => goToPage(currentPage - 1));
+  nextBtn.addEventListener("click", () => goToPage(currentPage + 1));
+
+  // Keyboard navigation
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault();
+      goToPage(currentPage - 1);
+    } else if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === " ") {
+      e.preventDefault();
+      goToPage(currentPage + 1);
+    }
+  });
+
+  // Set total pages in UI
+  document.getElementById("nav-total").textContent = TOTAL_PAGES;
 }
 
 function handleResize() {
@@ -192,10 +202,9 @@ function handleResize() {
   fitProjection(svg, geoDataByStep);
 
   // Re-render current step
-  if (currentStep >= 0) {
-    // Remove all paths and re-render
+  if (currentPage >= 0) {
     svg.selectAll("path").remove();
-    renderMap(svg, geoDataByStep, currentStep);
+    renderMap(svg, geoDataByStep, currentPage);
   }
 }
 
@@ -205,16 +214,13 @@ async function init() {
   const svg = d3.select("#map");
   fitProjection(svg, geoDataByStep);
 
-  // Render prologue background map
-  renderPrologueMap(geoDataByStep);
-
-  // Render initial state (first step)
+  // Render initial map (step 0) with low opacity for intro background
   renderMap(svg, geoDataByStep, 0);
-  currentStep = 0;
-  updateMapYear(0);
+  svg.selectAll("path").attr("opacity", 0.15);
 
-  // Set up scroll-driven transitions
-  setupScrollObserver();
+  // Set up navigation
+  setupNavigation();
+  updateNavUI();
 
   // Handle resize
   window.addEventListener("resize", debounce(handleResize, 200));

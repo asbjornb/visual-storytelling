@@ -7,34 +7,34 @@
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <!-- Prologue: full-screen intro -->
-    <section class="prologue" id="prologue">
-      <div class="prologue-content">
-        <h1>The United States</h1>
-        <p class="prologue-subtitle">A Story of Territorial Expansion</p>
-        <blockquote>
-          "...that these United Colonies are, and of right ought to be, free and
-          independent States."
-          <cite>Declaration of Independence, 1776</cite>
-        </blockquote>
-        <p class="scroll-hint">Scroll to begin</p>
-      </div>
-      <div class="prologue-map" id="prologue-map"></div>
-    </section>
-
-    <!-- Scrollytelling body -->
-    <div class="scrolly">
-      <div class="scrolly-map" id="scrolly-map">
+    <!-- Main visualization container -->
+    <div class="viewer">
+      <!-- Map background -->
+      <div class="viewer-map" id="viewer-map">
         <svg id="map"></svg>
         <div class="map-year" id="map-year"></div>
       </div>
 
-      <div class="scrolly-text">
-        <section class="step" data-step="0">
-          <div class="step-content">
-            <span class="step-year">1783</span>
+      <!-- Content panel overlay -->
+      <div class="content-panel" id="content-panel">
+        <!-- Step 0: Prologue/Intro -->
+        <article class="page page--intro is-active" data-step="-1">
+          <div class="page-content">
+            <h1>The United States</h1>
+            <p class="page-subtitle">A Story of Territorial Expansion</p>
+            <blockquote>
+              "...that these United Colonies are, and of right ought to be, free
+              and independent States."
+              <cite>Declaration of Independence, 1776</cite>
+            </blockquote>
+          </div>
+        </article>
+
+        <article class="page" data-step="0">
+          <div class="page-content">
+            <span class="page-year">1783</span>
             <h2>Treaty of Paris</h2>
-            <p class="step-subtitle">Birth of the United States</p>
+            <p class="page-subtitle">Birth of the United States</p>
             <p>
               By winning the Revolutionary War, the United States secured
               recognition of its independence and gained control of land east of
@@ -47,13 +47,13 @@
               <cite>Declaration of Independence, 1776</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="1">
-          <div class="step-content">
-            <span class="step-year">1803</span>
+        <article class="page" data-step="1">
+          <div class="page-content">
+            <span class="page-year">1803</span>
             <h2>Louisiana Purchase</h2>
-            <div class="step-stats">
+            <div class="page-stats">
               <span class="stat"><strong>$15M</strong> price</span>
               <span class="stat"><strong>828,000</strong> sq mi</span>
             </div>
@@ -69,13 +69,13 @@
               <cite>Napol&eacute;on Bonaparte, 1803</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="2">
-          <div class="step-content">
-            <span class="step-year">1818</span>
+        <article class="page" data-step="2">
+          <div class="page-content">
+            <span class="page-year">1818</span>
             <h2>Red River Basin</h2>
-            <p class="step-subtitle">British Cession</p>
+            <p class="page-subtitle">British Cession</p>
             <p>
               The Convention of 1818 fixed the U.S.&ndash;Canada boundary at the
               49th parallel from the Great Lakes to the Rockies. Britain ceded
@@ -88,14 +88,14 @@
               <cite>Convention of 1818</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="3">
-          <div class="step-content">
-            <span class="step-year">1819</span>
+        <article class="page" data-step="3">
+          <div class="page-content">
+            <span class="page-year">1819</span>
             <h2>Florida Acquisition</h2>
-            <p class="step-subtitle">Adams&ndash;On&iacute;s Treaty</p>
-            <div class="step-stats">
+            <p class="page-subtitle">Adams&ndash;On&iacute;s Treaty</p>
+            <div class="page-stats">
               <span class="stat"><strong>$5M</strong> in assumed claims</span>
             </div>
             <p>
@@ -109,13 +109,13 @@
               <cite>Secretary of State John Quincy Adams</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="4">
-          <div class="step-content">
-            <span class="step-year">1845</span>
+        <article class="page" data-step="4">
+          <div class="page-content">
+            <span class="page-year">1845</span>
             <h2>Annexation of Texas</h2>
-            <div class="step-stats">
+            <div class="page-stats">
               <span class="stat"><strong>389,000</strong> sq mi</span>
             </div>
             <p>
@@ -129,11 +129,11 @@
               <cite>Texas President Anson Jones, 1846</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="5">
-          <div class="step-content">
-            <span class="step-year">1846</span>
+        <article class="page" data-step="5">
+          <div class="page-content">
+            <span class="page-year">1846</span>
             <h2>Oregon Treaty</h2>
             <p>
               The U.S. and Great Britain peacefully divided the Oregon Country at
@@ -147,14 +147,14 @@
               <cite>Senator Thomas Hart Benton</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="6">
-          <div class="step-content">
-            <span class="step-year">1848</span>
+        <article class="page" data-step="6">
+          <div class="page-content">
+            <span class="page-year">1848</span>
             <h2>Mexican Cession</h2>
-            <p class="step-subtitle">Treaty of Guadalupe Hidalgo</p>
-            <div class="step-stats">
+            <p class="page-subtitle">Treaty of Guadalupe Hidalgo</p>
+            <div class="page-stats">
               <span class="stat"><strong>$15M</strong> price</span>
               <span class="stat"><strong>525,000</strong> sq mi</span>
             </div>
@@ -170,13 +170,13 @@
               <cite>President James K. Polk, 1846</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="7">
-          <div class="step-content">
-            <span class="step-year">1853</span>
+        <article class="page" data-step="7">
+          <div class="page-content">
+            <span class="page-year">1853</span>
             <h2>Gadsden Purchase</h2>
-            <div class="step-stats">
+            <div class="page-stats">
               <span class="stat"><strong>$10M</strong> price</span>
               <span class="stat"><strong>30,000</strong> sq mi</span>
             </div>
@@ -192,13 +192,13 @@
               <cite>Senator Solomon W. Downs, 1854</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="8">
-          <div class="step-content">
-            <span class="step-year">1867</span>
+        <article class="page" data-step="8">
+          <div class="page-content">
+            <span class="page-year">1867</span>
             <h2>Alaska Purchase</h2>
-            <div class="step-stats">
+            <div class="page-stats">
               <span class="stat"><strong>$7.2M</strong> price</span>
               <span class="stat"><strong>586,000</strong> sq mi</span>
               <span class="stat"><strong>2&cent;</strong> per acre</span>
@@ -213,13 +213,13 @@
               <cite>Critics of the purchase, 1867</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="9">
-          <div class="step-content">
-            <span class="step-year">1898</span>
+        <article class="page" data-step="9">
+          <div class="page-content">
+            <span class="page-year">1898</span>
             <h2>Spanish&ndash;American War</h2>
-            <p class="step-subtitle">
+            <p class="page-subtitle">
               Puerto Rico &middot; Guam &middot; Philippines
             </p>
             <p>
@@ -232,20 +232,18 @@
               <cite>Secretary of State John Hay, 1898</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="10">
-          <div class="step-content">
-            <span class="step-year">1899&ndash;1959</span>
+        <article class="page" data-step="10">
+          <div class="page-content">
+            <span class="page-year">1899&ndash;1959</span>
             <h2>Pacific &amp; Caribbean</h2>
-            <p class="step-subtitle">
+            <p class="page-subtitle">
               American Samoa &middot; US Virgin Islands &middot; Northern
               Marianas
             </p>
-            <div class="step-stats">
-              <span class="stat"
-                ><strong>$25M</strong> for Virgin Islands</span
-              >
+            <div class="page-stats">
+              <span class="stat"><strong>$25M</strong> for Virgin Islands</span>
             </div>
             <p>
               The early 20th century brought American Samoa (1900), the U.S.
@@ -259,13 +257,13 @@
               <cite>Queen Lili&lsquo;uokalani, 1893</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step step--epilogue" data-step="11">
-          <div class="step-content">
-            <span class="step-year">2025&ndash;26</span>
+        <article class="page page--epilogue" data-step="11">
+          <div class="page-content">
+            <span class="page-year">2025&ndash;26</span>
             <h2>Renewed &ldquo;Manifest Destiny&rdquo;?</h2>
-            <p class="step-disclaimer">
+            <p class="page-disclaimer">
               Contemporary rhetoric &mdash; no actual territorial changes
             </p>
             <p>
@@ -281,17 +279,31 @@
               <cite>Donald Trump, 2025</cite>
             </blockquote>
           </div>
-        </section>
-
-        <!-- Spacer so last step can be centered -->
-        <div class="step-spacer"></div>
+        </article>
       </div>
-    </div>
 
-    <!-- Timeline progress -->
-    <div class="timeline" id="timeline">
-      <div class="timeline-track">
-        <div class="timeline-fill" id="timeline-fill"></div>
+      <!-- Navigation controls -->
+      <nav class="nav-controls" id="nav-controls">
+        <button class="nav-btn nav-btn--prev" id="btn-prev" aria-label="Previous">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <div class="nav-progress">
+          <span class="nav-current" id="nav-current">1</span>
+          <span class="nav-sep">/</span>
+          <span class="nav-total" id="nav-total">13</span>
+        </div>
+        <button class="nav-btn nav-btn--next" id="btn-next" aria-label="Next">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </nav>
+
+      <!-- Keyboard hint -->
+      <div class="keyboard-hint" id="keyboard-hint">
+        Use arrow keys to navigate
       </div>
     </div>
 

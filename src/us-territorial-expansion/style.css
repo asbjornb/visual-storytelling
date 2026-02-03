@@ -43,8 +43,10 @@
   --font-display: "Playfair Display", Georgia, serif;
 }
 
-html {
-  scroll-behavior: smooth;
+html,
+body {
+  height: 100%;
+  overflow: hidden;
 }
 
 body {
@@ -52,111 +54,24 @@ body {
   background: var(--bg);
   color: var(--fg);
   line-height: 1.6;
-  overflow-x: hidden;
 }
 
-/* ── Prologue ─────────────────────────────────────────── */
+/* ── Main viewer container ────────────────────────────── */
 
-.prologue {
+.viewer {
   position: relative;
+  width: 100%;
   height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
 }
 
-.prologue-map {
+.viewer-map {
   position: absolute;
   inset: 0;
-  opacity: 0.15;
   z-index: 0;
 }
 
-.prologue-map svg {
-  width: 100%;
-  height: 100%;
-}
-
-.prologue-content {
-  position: relative;
-  z-index: 1;
-  text-align: center;
-  max-width: 640px;
-  padding: 2rem;
-}
-
-.prologue h1 {
-  font-family: var(--font-display);
-  font-size: clamp(2.5rem, 6vw, 4.5rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin-bottom: 0.25rem;
-  color: var(--fg);
-}
-
-.prologue-subtitle {
-  font-size: 1.15rem;
-  color: var(--fg-muted);
-  margin-bottom: 2.5rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  font-weight: 500;
-}
-
-.prologue blockquote {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 1.2rem;
-  color: var(--accent);
-  border: none;
-  padding: 0;
-  margin-bottom: 1rem;
-}
-
-.prologue blockquote cite {
-  display: block;
-  font-family: var(--font-body);
-  font-style: normal;
-  font-size: 0.85rem;
-  color: var(--fg-muted);
-  margin-top: 0.5rem;
-}
-
-.scroll-hint {
-  margin-top: 3rem;
-  font-size: 0.8rem;
-  color: var(--fg-muted);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-/* ── Scrollytelling layout ────────────────────────────── */
-
-.scrolly {
-  position: relative;
-}
-
-.scrolly-map {
-  position: sticky;
-  top: 0;
-  width: 100%;
-  height: 100vh;
-  z-index: 0;
-}
-
-.scrolly-map svg {
+.viewer-map svg {
   width: 100%;
   height: 100%;
 }
@@ -175,39 +90,97 @@ body {
   transition: opacity 0.4s;
 }
 
-.scrolly-text {
-  position: relative;
+/* ── Content panel ────────────────────────────────────── */
+
+.content-panel {
+  position: absolute;
+  inset: 0;
   z-index: 1;
-  pointer-events: none;
-}
-
-/* ── Steps ────────────────────────────────────────────── */
-
-.step {
-  min-height: 100vh;
   display: flex;
   align-items: center;
   padding: 2rem;
+  pointer-events: none;
 }
 
-.step-content {
+/* ── Pages ────────────────────────────────────────────── */
+
+.page {
+  position: absolute;
+  left: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: 400px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.page.is-active {
+  opacity: 1;
   pointer-events: auto;
-  max-width: 380px;
+}
+
+.page-content {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 2rem;
-  opacity: 0.15;
-  transform: translateY(20px);
-  transition: opacity 0.5s ease, transform 0.5s ease;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
 }
 
-.step.is-active .step-content {
-  opacity: 1;
-  transform: translateY(0);
+/* ── Intro page special styling ───────────────────────── */
+
+.page--intro {
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 560px;
+  text-align: center;
 }
 
-.step-year {
+.page--intro.is-active {
+  transform: translate(-50%, -50%);
+}
+
+.page--intro h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.25rem;
+  color: var(--fg);
+}
+
+.page--intro .page-subtitle {
+  font-size: 1.1rem;
+  color: var(--fg-muted);
+  margin-bottom: 2rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.page--intro blockquote {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.15rem;
+  color: var(--accent);
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.page--intro blockquote cite {
+  display: block;
+  font-family: var(--font-body);
+  font-style: normal;
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+  margin-top: 0.5rem;
+}
+
+/* ── Regular page content ─────────────────────────────── */
+
+.page-year {
   display: inline-block;
   font-family: var(--font-display);
   font-size: 0.9rem;
@@ -217,7 +190,7 @@ body {
   margin-bottom: 0.5rem;
 }
 
-.step h2 {
+.page h2 {
   font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 700;
@@ -225,13 +198,13 @@ body {
   line-height: 1.2;
 }
 
-.step-subtitle {
+.page-subtitle {
   color: var(--fg-muted);
   font-size: 0.9rem;
   margin-bottom: 0.75rem;
 }
 
-.step-stats {
+.page-stats {
   display: flex;
   gap: 1rem;
   margin-bottom: 0.75rem;
@@ -252,13 +225,13 @@ body {
   font-weight: 600;
 }
 
-.step p {
+.page p {
   font-size: 0.95rem;
   margin-bottom: 0.75rem;
   color: var(--fg);
 }
 
-.step blockquote {
+.page blockquote {
   font-family: var(--font-display);
   font-style: italic;
   font-size: 0.9rem;
@@ -268,7 +241,7 @@ body {
   margin-top: 0.75rem;
 }
 
-.step blockquote cite {
+.page blockquote cite {
   display: block;
   font-family: var(--font-body);
   font-style: normal;
@@ -279,21 +252,21 @@ body {
 
 /* ── Epilogue special styling ─────────────────────────── */
 
-.step--epilogue .step-content {
+.page--epilogue .page-content {
   border-color: #c9a8a8;
   background: rgba(255, 250, 248, 0.98);
 }
 
-.step--epilogue .step-year {
+.page--epilogue .page-year {
   color: var(--era-modern);
 }
 
-.step--epilogue blockquote {
+.page--epilogue blockquote {
   color: var(--era-modern);
   border-left-color: #c9a8a8;
 }
 
-.step-disclaimer {
+.page-disclaimer {
   font-size: 0.75rem;
   color: var(--era-modern);
   text-transform: uppercase;
@@ -302,41 +275,95 @@ body {
   font-weight: 500;
 }
 
-/* ── Step spacer ──────────────────────────────────────── */
+/* ── Navigation controls ──────────────────────────────── */
 
-.step-spacer {
-  height: 50vh;
-}
-
-/* ── Timeline indicator ───────────────────────────────── */
-
-.timeline {
+.nav-controls {
   position: fixed;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 10;
-  height: 200px;
-  width: 3px;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  padding: 0.5rem 0.75rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
-.timeline-track {
-  width: 100%;
-  height: 100%;
-  background: var(--border);
-  border-radius: 2px;
-  position: relative;
+.nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, opacity 0.2s;
 }
 
-.timeline-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 0%;
-  background: var(--accent);
-  border-radius: 2px;
-  transition: height 0.3s ease;
+.nav-btn:hover:not(:disabled) {
+  background: rgba(61, 74, 92, 0.1);
+}
+
+.nav-btn:active:not(:disabled) {
+  background: rgba(61, 74, 92, 0.15);
+}
+
+.nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.nav-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.nav-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--fg-muted);
+  min-width: 60px;
+  justify-content: center;
+}
+
+.nav-current {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.nav-sep {
+  opacity: 0.5;
+}
+
+/* ── Keyboard hint ────────────────────────────────────── */
+
+.keyboard-hint {
+  position: fixed;
+  bottom: 6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99;
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  transition: opacity 0.4s;
+}
+
+.keyboard-hint.is-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* ── Map paths ────────────────────────────────────────── */
@@ -377,18 +404,33 @@ body {
 /* ── Responsive ───────────────────────────────────────── */
 
 @media (min-width: 768px) {
-  .step {
-    padding-left: 4rem;
+  .page:not(.page--intro) {
+    left: 4rem;
   }
 }
 
 @media (max-width: 767px) {
-  .step {
-    align-items: flex-end;
-    padding-bottom: 4rem;
+  .page:not(.page--intro) {
+    left: 1rem;
+    right: 1rem;
+    max-width: none;
+    top: auto;
+    bottom: 7rem;
+    transform: none;
   }
 
-  .step-content {
+  .page--intro {
+    left: 1rem;
+    right: 1rem;
+    max-width: none;
+    transform: translateY(-50%);
+  }
+
+  .page--intro.is-active {
+    transform: translateY(-50%);
+  }
+
+  .page-content {
     max-width: 100%;
   }
 
@@ -399,7 +441,11 @@ body {
     font-size: 2.5rem;
   }
 
-  .timeline {
+  .nav-controls {
+    bottom: 1rem;
+  }
+
+  .keyboard-hint {
     display: none;
   }
 }
