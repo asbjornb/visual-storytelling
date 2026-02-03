@@ -48,8 +48,9 @@ async function loadAllGeoJSON() {
 }
 
 function fitProjection(svg, geoData) {
-  const width = svg.node().clientWidth;
-  const height = svg.node().clientHeight;
+  const container = svg.node().parentNode;
+  const width = container.clientWidth;
+  const height = container.clientHeight;
 
   // Use the final step (most territory) to fit projection
   const finalData = geoData[geoData.length - 1];
