@@ -9,17 +9,35 @@
 }
 
 :root {
-  --bg: #0a0a0a;
-  --bg-card: #111;
-  --fg: #e0ddd5;
-  --fg-muted: #807d75;
-  --accent: #c8a96e;
-  --accent-dim: #6e5c38;
-  --state-fill: #3a6b4e;
-  --territory-fill: #2d5440;
-  --other-fill: #1a1a1a;
-  --new-fill: #c8a96e;
-  --border: #222;
+  /* Light theme - warm paper background */
+  --bg: #f8f5f0;
+  --bg-card: rgba(255, 253, 248, 0.95);
+  --fg: #2a2d34;
+  --fg-muted: #6b6e75;
+
+  /* Primary accent - deep navy for UI elements */
+  --accent: #3d4a5c;
+  --accent-dim: #2a3440;
+
+  /* Map base fills - restrained neutrals */
+  --state-fill: #c8c3b8;
+  --territory-fill: #d4cfc4;
+  --other-fill: #e8e4dc;
+  --new-fill: #3d4a5c;
+  --border: #d4cfc4;
+
+  /* Era accent colors - muted, intentional */
+  --era-original: #9a958a;      /* Warm gray for original states */
+  --era-louisiana: #a85a4a;     /* Oxide red */
+  --era-redriver: #5d8a87;      /* Dusty teal */
+  --era-florida: #758556;       /* Olive */
+  --era-texas: #b07a3e;         /* Burnt ochre */
+  --era-oregon: #637592;        /* Slate blue */
+  --era-mexican: #8b5a4a;       /* Muted oxide */
+  --era-gadsden: #6b7a5a;       /* Muted olive */
+  --era-alaska: #4a7c7a;        /* Deep teal */
+  --era-pacific: #5a6b8a;       /* Slate */
+  --era-modern: #8b4a4a;        /* Muted warning red */
 
   --font-body: "Inter", system-ui, sans-serif;
   --font-display: "Playfair Display", Georgia, serif;
@@ -223,8 +241,8 @@ body {
 .stat {
   font-size: 0.85rem;
   color: var(--fg-muted);
-  background: rgba(200, 169, 110, 0.08);
-  border: 1px solid rgba(200, 169, 110, 0.15);
+  background: rgba(61, 74, 92, 0.06);
+  border: 1px solid rgba(61, 74, 92, 0.12);
   padding: 0.25rem 0.6rem;
   border-radius: 4px;
 }
@@ -262,22 +280,22 @@ body {
 /* ── Epilogue special styling ─────────────────────────── */
 
 .step--epilogue .step-content {
-  border-color: #442a2a;
-  background: #130e0e;
+  border-color: #c9a8a8;
+  background: rgba(255, 250, 248, 0.98);
 }
 
 .step--epilogue .step-year {
-  color: #d46a6a;
+  color: var(--era-modern);
 }
 
 .step--epilogue blockquote {
-  color: #d46a6a;
-  border-left-color: #6a2a2a;
+  color: var(--era-modern);
+  border-left-color: #c9a8a8;
 }
 
 .step-disclaimer {
   font-size: 0.75rem;
-  color: #d46a6a;
+  color: var(--era-modern);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 0.75rem;
@@ -326,14 +344,14 @@ body {
 .map-state {
   fill: var(--state-fill);
   stroke: var(--bg);
-  stroke-width: 0.5;
+  stroke-width: 0.8;
   transition: fill 0.8s ease, d 0.8s ease;
 }
 
 .map-territory {
   fill: var(--territory-fill);
   stroke: var(--bg);
-  stroke-width: 0.5;
+  stroke-width: 0.8;
   transition: fill 0.8s ease, d 0.8s ease;
 }
 
@@ -344,7 +362,7 @@ body {
 }
 
 .map-disputed {
-  fill: #2a2520;
+  fill: #e0d8cc;
   stroke: var(--accent-dim);
   stroke-width: 0.5;
   stroke-dasharray: 3 2;

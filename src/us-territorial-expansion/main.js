@@ -1,19 +1,34 @@
 import * as d3 from "d3";
 
+// Era accent colors - matches CSS custom properties
+const ERA_COLORS = {
+  original: "#9a958a",    // Warm gray for original states
+  louisiana: "#a85a4a",   // Oxide red
+  redriver: "#5d8a87",    // Dusty teal
+  florida: "#758556",     // Olive
+  texas: "#b07a3e",       // Burnt ochre
+  oregon: "#637592",      // Slate blue
+  mexican: "#8b5a4a",     // Muted oxide
+  gadsden: "#6b7a5a",     // Muted olive
+  alaska: "#4a7c7a",      // Deep teal
+  pacific: "#5a6b8a",     // Slate
+  modern: "#8b4a4a",      // Muted warning red
+};
+
 // Timeline steps: maps to GeoJSON files
 const STEPS = [
-  { year: "1783", file: "1789-original-states.geojson", label: "Treaty of Paris" },
-  { year: "1803", file: "1803-louisiana-purchase.geojson", label: "Louisiana Purchase" },
-  { year: "1818", file: "1818-red-river-basin.geojson", label: "Red River Basin" },
-  { year: "1819", file: "1819-florida.geojson", label: "Florida" },
-  { year: "1845", file: "1845-texas.geojson", label: "Texas" },
-  { year: "1846", file: "1846-oregon.geojson", label: "Oregon" },
-  { year: "1848", file: "1848-mexican-cession.geojson", label: "Mexican Cession" },
-  { year: "1853", file: "1853-gadsden.geojson", label: "Gadsden Purchase" },
-  { year: "1867", file: "1867-alaska.geojson", label: "Alaska" },
-  { year: "1898", file: "1898-spanish-american-war.geojson", label: "Spanish-American War" },
-  { year: "1899–1959", file: "1900-samoa.geojson", label: "Pacific & Caribbean" },
-  { year: "2025–26", file: "1959-final.geojson", label: "Modern Rhetoric" },
+  { year: "1783", file: "1789-original-states.geojson", label: "Treaty of Paris", era: "original" },
+  { year: "1803", file: "1803-louisiana-purchase.geojson", label: "Louisiana Purchase", era: "louisiana" },
+  { year: "1818", file: "1818-red-river-basin.geojson", label: "Red River Basin", era: "redriver" },
+  { year: "1819", file: "1819-florida.geojson", label: "Florida", era: "florida" },
+  { year: "1845", file: "1845-texas.geojson", label: "Texas", era: "texas" },
+  { year: "1846", file: "1846-oregon.geojson", label: "Oregon", era: "oregon" },
+  { year: "1848", file: "1848-mexican-cession.geojson", label: "Mexican Cession", era: "mexican" },
+  { year: "1853", file: "1853-gadsden.geojson", label: "Gadsden Purchase", era: "gadsden" },
+  { year: "1867", file: "1867-alaska.geojson", label: "Alaska", era: "alaska" },
+  { year: "1898", file: "1898-spanish-american-war.geojson", label: "Spanish-American War", era: "pacific" },
+  { year: "1899–1959", file: "1900-samoa.geojson", label: "Pacific & Caribbean", era: "pacific" },
+  { year: "2025–26", file: "1959-final.geojson", label: "Modern Rhetoric", era: "modern" },
 ];
 
 const CATEGORY_CLASS = {
@@ -83,16 +98,18 @@ function renderPrologueMap(geoData) {
     .enter()
     .append("path")
     .attr("d", prologuePath)
-    .attr("fill", "#c8a96e")
-    .attr("stroke", "#0a0a0a")
+    .attr("fill", ERA_COLORS.original)
+    .attr("stroke", "#f8f5f0")
     .attr("stroke-width", 0.5)
-    .attr("opacity", 0.6);
+    .attr("opacity", 0.25);
 }
 
 function renderMap(svg, geoData, stepIndex) {
   const data = geoData[stepIndex];
   if (!data) return;
 
+  const era = STEPS[stepIndex].era;
+  const eraColor = ERA_COLORS[era] || ERA_COLORS.original;
   const categories = ["other_country", "none", "disputed", "territory", "state"];
 
   for (const cat of categories) {
@@ -101,18 +118,20 @@ function renderMap(svg, geoData, stepIndex) {
 
     const sel = svg.selectAll(`.${className}`).data(features, (d, i) => `${cat}-${i}`);
 
-    // Enter
+    // Enter - new territories get the current era color
     sel
       .enter()
       .append("path")
       .attr("class", className)
       .attr("d", path)
       .attr("opacity", 0)
+      .attr("fill", (cat === "state" || cat === "territory") ? eraColor : null)
+      .attr("stroke", "#f8f5f0")
       .transition()
       .duration(800)
       .attr("opacity", 1);
 
-    // Update
+    // Update - keep existing colors, just update path geometry
     sel.transition().duration(800).attr("d", path);
 
     // Exit
