@@ -4,6 +4,9 @@
  * This approach guarantees no gaps or overlaps because US state boundaries
  * tile perfectly - they share exact vertices at borders.
  *
+ * For sub-state acquisitions (Red River Basin, Gadsden Purchase), we extract
+ * them via geometric differencing and subtract them from their parent territories.
+ *
  * Usage: node scripts/build-acquisitions-from-states.js
  * Prerequisites: npm install -g mapshaper
  */
@@ -18,7 +21,6 @@ const DATA_DIR = join(__dirname, "../public/data/us-territorial-expansion");
 const TEMP_DIR = join(__dirname, "../.temp-acquisitions");
 
 // Map each US state/territory to its acquisition era
-// Based on historical acquisition dates
 const STATE_TO_ERA = {
   // Original 13 colonies + territory from Treaty of Paris 1783
   CT: "original", DE: "original", GA: "original", MD: "original",
@@ -26,52 +28,44 @@ const STATE_TO_ERA = {
   NC: "original", PA: "original", RI: "original", SC: "original",
   VA: "original", VT: "original", KY: "original", TN: "original",
   OH: "original", ME: "original", WV: "original",
-  // Parts of these were original territory
   IN: "original", IL: "original", MI: "original", WI: "original",
   AL: "original", MS: "original",
 
   // Louisiana Purchase 1803
   LA: "louisiana", AR: "louisiana", MO: "louisiana", IA: "louisiana",
-  MN: "louisiana", // Eastern MN was Louisiana Purchase
-  ND: "louisiana", SD: "louisiana", NE: "louisiana", KS: "louisiana",
-  OK: "louisiana", // Most of OK was Louisiana Purchase
-  CO: "louisiana", // Eastern CO
-  WY: "louisiana", // Eastern WY
-  MT: "louisiana", // Eastern MT
+  MN: "louisiana", ND: "louisiana", SD: "louisiana", NE: "louisiana",
+  KS: "louisiana", OK: "louisiana", CO: "louisiana", WY: "louisiana",
+  MT: "louisiana",
 
-  // Florida 1819 (Adams-Onis Treaty)
+  // Florida 1819
   FL: "florida",
 
-  // Texas Annexation 1845
+  // Texas 1845
   TX: "texas",
 
-  // Oregon Treaty 1846
+  // Oregon 1846
   OR: "oregon", WA: "oregon", ID: "oregon",
 
   // Mexican Cession 1848
-  CA: "mexican", NV: "mexican", UT: "mexican",
-  AZ: "mexican", // Northern AZ
-  NM: "mexican", // Northern NM
+  CA: "mexican", NV: "mexican", UT: "mexican", AZ: "mexican", NM: "mexican",
 
-  // Gadsden Purchase 1853
-  // Southern parts of AZ and NM - but we'll assign whole states to Mexican Cession
-  // since state boundaries don't match Gadsden exactly
-
-  // Alaska Purchase 1867
+  // Alaska 1867
   AK: "alaska",
 
-  // Hawaii Annexation 1898
+  // Hawaii 1898
   HI: "hawaii",
 };
 
-// Era metadata for output
+// Era metadata
 const ERA_INFO = {
   original: { step: 0, label: "Original States (1783)" },
   louisiana: { step: 1, label: "Louisiana Purchase (1803)" },
+  redriver: { step: 2, label: "Red River Basin (1818)" },
   florida: { step: 3, label: "Florida (1819)" },
   texas: { step: 4, label: "Texas (1845)" },
   oregon: { step: 5, label: "Oregon Territory (1846)" },
   mexican: { step: 6, label: "Mexican Cession (1848)" },
+  gadsden: { step: 7, label: "Gadsden Purchase (1853)" },
   alaska: { step: 8, label: "Alaska (1867)" },
   hawaii: { step: 9, label: "Hawaii (1898)" },
 };
@@ -109,6 +103,24 @@ function run(cmd) {
   }
 }
 
+function loadGeometry(file) {
+  try {
+    const result = JSON.parse(readFileSync(file, "utf-8"));
+    if (result.type === "FeatureCollection" && result.features?.length > 0) {
+      return result.features[0].geometry;
+    } else if (result.type === "GeometryCollection" && result.geometries?.length > 0) {
+      return result.geometries[0];
+    } else if (result.type === "Feature") {
+      return result.geometry;
+    } else if (result.type === "Polygon" || result.type === "MultiPolygon") {
+      return result;
+    }
+  } catch (e) {
+    console.error(`  Error loading ${file}: ${e.message}`);
+  }
+  return null;
+}
+
 function main() {
   console.log("Building acquisitions from state boundaries...\n");
 
@@ -118,191 +130,125 @@ function main() {
   }
   mkdirSync(TEMP_DIR, { recursive: true });
 
-  // Load the 1959 final state data
-  const statesFile = join(DATA_DIR, "1959-final.geojson");
-  const statesData = JSON.parse(readFileSync(statesFile, "utf-8"));
+  const filterExpr = 'CATEGORY == "state" || CATEGORY == "territory"';
 
-  console.log(`Loaded ${statesData.features.length} features from 1959-final.geojson`);
+  // ─────────────────────────────────────────────────────────────
+  // Step 1: Extract sub-state acquisitions via geometric differencing
+  // ─────────────────────────────────────────────────────────────
 
-  // Add era property to each state
-  let unknownStates = [];
-  statesData.features.forEach(feature => {
-    const stateCode = feature.properties.STATE;
-    const era = STATE_TO_ERA[stateCode];
-    if (era) {
-      feature.properties.era = era;
-    } else if (feature.properties.CATEGORY === "state" || feature.properties.CATEGORY === "territory") {
-      unknownStates.push(stateCode);
-    }
-  });
+  // Red River Basin (1818) - strip along 49th parallel
+  console.log("Extracting Red River Basin (geometric diff)...");
+  const redriverFile = join(TEMP_DIR, "redriver.geojson");
+  {
+    const file1803 = join(DATA_DIR, "1803-louisiana-purchase.geojson");
+    const file1818 = join(DATA_DIR, "1818-red-river-basin.geojson");
+    const d1803 = join(TEMP_DIR, "d1803.geojson");
+    const d1818 = join(TEMP_DIR, "d1818.geojson");
 
-  if (unknownStates.length > 0) {
-    console.log(`Warning: Unknown states: ${[...new Set(unknownStates)].join(", ")}`);
+    run(`mapshaper "${file1803}" -filter '${filterExpr}' -dissolve -o "${d1803}" force`);
+    run(`mapshaper "${file1818}" -filter '${filterExpr}' -dissolve -o "${d1818}" force`);
+    run(`mapshaper "${d1803}" "${d1818}" combine-files -snap interval=0.01 -target 2 ` +
+        `-erase target=2 source=1 -filter-slivers min-area=100km2 ` +
+        `-clip bbox=-105,48,-90,50 -o "${redriverFile}" force`);
   }
 
-  // Write tagged states to temp file
+  // Gadsden Purchase (1853) - southern AZ/NM strip
+  console.log("Extracting Gadsden Purchase (geometric diff)...");
+  const gadsdenFile = join(TEMP_DIR, "gadsden.geojson");
+  {
+    const file1848 = join(DATA_DIR, "1848-mexican-cession.geojson");
+    const file1853 = join(DATA_DIR, "1853-gadsden.geojson");
+    const d1848 = join(TEMP_DIR, "d1848.geojson");
+    const d1853 = join(TEMP_DIR, "d1853.geojson");
+
+    run(`mapshaper "${file1848}" -filter '${filterExpr}' -dissolve -o "${d1848}" force`);
+    run(`mapshaper "${file1853}" -filter '${filterExpr}' -dissolve -o "${d1853}" force`);
+    run(`mapshaper "${d1848}" "${d1853}" combine-files -snap interval=0.01 -target 2 ` +
+        `-erase target=2 source=1 -filter-slivers min-area=100km2 ` +
+        `-clip bbox=-115,31,-106,34 -o "${gadsdenFile}" force`);
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Step 2: Build state-based acquisitions
+  // ─────────────────────────────────────────────────────────────
+
+  // Load and tag states
+  const statesFile = join(DATA_DIR, "1959-final.geojson");
+  const statesData = JSON.parse(readFileSync(statesFile, "utf-8"));
+  console.log(`\nLoaded ${statesData.features.length} features from 1959-final.geojson`);
+
+  statesData.features.forEach(feature => {
+    const era = STATE_TO_ERA[feature.properties.STATE];
+    if (era) feature.properties.era = era;
+  });
+
   const taggedFile = join(TEMP_DIR, "states-tagged.geojson");
   writeFileSync(taggedFile, JSON.stringify(statesData));
 
-  // Dissolve by era using mapshaper
+  // ─────────────────────────────────────────────────────────────
+  // Step 3: Dissolve by era, subtracting sub-state acquisitions
+  // ─────────────────────────────────────────────────────────────
+
   const acquisitions = [];
+  const stateBasedEras = ["original", "louisiana", "florida", "texas", "oregon", "mexican", "alaska", "hawaii"];
 
-  for (const [era, info] of Object.entries(ERA_INFO)) {
+  for (const era of stateBasedEras) {
     console.log(`Processing ${era}...`);
+    const info = ERA_INFO[era];
+    const eraFile = join(TEMP_DIR, `${era}-raw.geojson`);
+    const eraFinalFile = join(TEMP_DIR, `${era}.geojson`);
 
-    const eraFile = join(TEMP_DIR, `${era}.geojson`);
-
-    // Filter to this era and dissolve
-    const cmd = `mapshaper "${taggedFile}" -filter 'era === "${era}"' -dissolve -o "${eraFile}" force`;
-
-    if (!run(cmd)) {
-      console.log(`  Failed to process ${era}`);
+    // Dissolve states for this era
+    if (!run(`mapshaper "${taggedFile}" -filter 'era === "${era}"' -dissolve -o "${eraFile}" force`)) {
       continue;
     }
 
-    // Load result
-    try {
-      const result = JSON.parse(readFileSync(eraFile, "utf-8"));
-      let geometry = null;
+    // Subtract sub-state acquisitions from parent territories
+    let finalFile = eraFile;
+    if (era === "louisiana" && existsSync(redriverFile)) {
+      // Subtract Red River Basin from Louisiana
+      console.log("  Subtracting Red River Basin...");
+      run(`mapshaper "${eraFile}" "${redriverFile}" combine-files -target 1 ` +
+          `-erase target=1 source=2 -o "${eraFinalFile}" force`);
+      finalFile = eraFinalFile;
+    } else if (era === "mexican" && existsSync(gadsdenFile)) {
+      // Subtract Gadsden from Mexican Cession
+      console.log("  Subtracting Gadsden Purchase...");
+      run(`mapshaper "${eraFile}" "${gadsdenFile}" combine-files -target 1 ` +
+          `-erase target=1 source=2 -o "${eraFinalFile}" force`);
+      finalFile = eraFinalFile;
+    }
 
-      if (result.type === "FeatureCollection" && result.features?.length > 0) {
-        geometry = result.features[0].geometry;
-      } else if (result.type === "GeometryCollection" && result.geometries?.length > 0) {
-        geometry = result.geometries[0];
-      } else if (result.type === "Feature") {
-        geometry = result.geometry;
-      } else if (result.type === "Polygon" || result.type === "MultiPolygon") {
-        geometry = result;
-      }
-
-      if (geometry && geometry.coordinates?.length > 0) {
-        // Rewind for D3 spherical geometry
-        geometry = rewindGeometry(geometry);
-
-        acquisitions.push({
-          type: "Feature",
-          properties: {
-            era,
-            step: info.step,
-            label: info.label,
-          },
-          geometry,
-        });
-        console.log(`  Added ${era}`);
-      } else {
-        console.log(`  No geometry for ${era}`);
-      }
-    } catch (e) {
-      console.log(`  Error reading ${era}: ${e.message}`);
+    const geometry = loadGeometry(finalFile);
+    if (geometry && geometry.coordinates?.length > 0) {
+      acquisitions.push({
+        type: "Feature",
+        properties: { era, step: info.step, label: info.label },
+        geometry: rewindGeometry(geometry),
+      });
+      console.log(`  Added ${era}`);
     }
   }
 
-  // Extract Red River Basin via geometric differencing
-  // (1818 British cession along 49th parallel - doesn't align with state boundaries)
-  console.log("Processing redriver (geometric diff)...");
-  try {
-    const file1803 = join(DATA_DIR, "1803-louisiana-purchase.geojson");
-    const file1818 = join(DATA_DIR, "1818-red-river-basin.geojson");
-    const dissolved1803 = join(TEMP_DIR, "1803-dissolved.geojson");
-    const dissolved1818 = join(TEMP_DIR, "1818-dissolved.geojson");
-    const redriverFile = join(TEMP_DIR, "redriver.geojson");
-
-    // Dissolve both files to single polygons
-    const filterExpr = 'CATEGORY == "state" || CATEGORY == "territory"';
-    run(`mapshaper "${file1803}" -filter '${filterExpr}' -dissolve -o "${dissolved1803}" force`);
-    run(`mapshaper "${file1818}" -filter '${filterExpr}' -dissolve -o "${dissolved1818}" force`);
-
-    // Compute difference (1818 - 1803) with geographic filter for Red River region
-    const redriverCmd = `mapshaper "${dissolved1803}" "${dissolved1818}" combine-files ` +
-      `-snap interval=0.01 -target 2 -erase target=2 source=1 ` +
-      `-filter-slivers min-area=100km2 -clip bbox=-105,48,-90,50 -o "${redriverFile}" force`;
-
-    if (run(redriverCmd)) {
-      const result = JSON.parse(readFileSync(redriverFile, "utf-8"));
-      let geometry = null;
-
-      if (result.type === "GeometryCollection" && result.geometries?.length > 0) {
-        geometry = result.geometries[0];
-      } else if (result.type === "FeatureCollection" && result.features?.length > 0) {
-        geometry = result.features[0].geometry;
-      } else if (result.type === "Polygon" || result.type === "MultiPolygon") {
-        geometry = result;
-      }
-
-      if (geometry && geometry.coordinates?.length > 0) {
-        geometry = rewindGeometry(geometry);
-        acquisitions.push({
-          type: "Feature",
-          properties: { era: "redriver", step: 2, label: "Red River Basin (1818)" },
-          geometry,
-        });
-        console.log("  Added redriver");
-      } else {
-        console.log("  No geometry for redriver");
-      }
+  // Add sub-state acquisitions
+  for (const [era, file] of [["redriver", redriverFile], ["gadsden", gadsdenFile]]) {
+    const geometry = loadGeometry(file);
+    if (geometry && geometry.coordinates?.length > 0) {
+      const info = ERA_INFO[era];
+      acquisitions.push({
+        type: "Feature",
+        properties: { era, step: info.step, label: info.label },
+        geometry: rewindGeometry(geometry),
+      });
+      console.log(`Added ${era}`);
     }
-  } catch (e) {
-    console.log(`  Error extracting redriver: ${e.message}`);
-  }
-
-  // Extract Gadsden Purchase via geometric differencing
-  // (Can't use state-based approach since it doesn't align with state boundaries)
-  console.log("Processing gadsden (geometric diff)...");
-  try {
-    const file1848 = join(DATA_DIR, "1848-mexican-cession.geojson");
-    const file1853 = join(DATA_DIR, "1853-gadsden.geojson");
-    const dissolved1848 = join(TEMP_DIR, "1848-dissolved.geojson");
-    const dissolved1853 = join(TEMP_DIR, "1853-dissolved.geojson");
-    const gadsdenFile = join(TEMP_DIR, "gadsden.geojson");
-
-    // Dissolve both files to single polygons
-    const filterExpr = 'CATEGORY == "state" || CATEGORY == "territory"';
-    run(`mapshaper "${file1848}" -filter '${filterExpr}' -dissolve -o "${dissolved1848}" force`);
-    run(`mapshaper "${file1853}" -filter '${filterExpr}' -dissolve -o "${dissolved1853}" force`);
-
-    // Compute difference (1853 - 1848) with geographic filter for Gadsden region
-    const gadsdenCmd = `mapshaper "${dissolved1848}" "${dissolved1853}" combine-files ` +
-      `-snap interval=0.01 -target 2 -erase target=2 source=1 ` +
-      `-filter-slivers min-area=100km2 -clip bbox=-115,31,-106,34 -o "${gadsdenFile}" force`;
-
-    if (run(gadsdenCmd)) {
-      const result = JSON.parse(readFileSync(gadsdenFile, "utf-8"));
-      let geometry = null;
-
-      if (result.type === "GeometryCollection" && result.geometries?.length > 0) {
-        geometry = result.geometries[0];
-      } else if (result.type === "FeatureCollection" && result.features?.length > 0) {
-        geometry = result.features[0].geometry;
-      } else if (result.type === "Polygon" || result.type === "MultiPolygon") {
-        geometry = result;
-      }
-
-      if (geometry && geometry.coordinates?.length > 0) {
-        geometry = rewindGeometry(geometry);
-        acquisitions.push({
-          type: "Feature",
-          properties: { era: "gadsden", step: 7, label: "Gadsden Purchase (1853)" },
-          geometry,
-        });
-        console.log("  Added gadsden");
-      } else {
-        console.log("  No geometry for gadsden");
-      }
-    }
-  } catch (e) {
-    console.log(`  Error extracting gadsden: ${e.message}`);
   }
 
   // Sort by step
   acquisitions.sort((a, b) => a.properties.step - b.properties.step);
 
-  // Build output
-  const output = {
-    type: "FeatureCollection",
-    features: acquisitions,
-  };
-
   // Write output
+  const output = { type: "FeatureCollection", features: acquisitions };
   const outputPath = join(DATA_DIR, "acquisitions.geojson");
   writeFileSync(outputPath, JSON.stringify(output));
   console.log(`\nWrote ${acquisitions.length} acquisitions to ${outputPath}`);
