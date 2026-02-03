@@ -18,22 +18,25 @@ import { fileURLToPath } from "url";
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Ensure polygon rings have correct winding order for D3/GeoJSON:
- * - Exterior rings: counterclockwise (CCW)
- * - Holes: clockwise (CW)
+ * Ensure polygon rings have correct winding order for D3's SPHERICAL geometry.
+ *
+ * IMPORTANT: D3's spherical interpretation differs from planar GeoJSON!
+ * For polygons smaller than a hemisphere (all our acquisitions):
+ * - Exterior rings: CLOCKWISE (CW) - opposite of planar GeoJSON convention
+ * - Holes: counterclockwise (CCW)
  *
  * Uses the shoelace formula to calculate signed area.
  * Positive area = CW, Negative area = CCW
  */
-function rewindRing(ring, shouldBeCCW) {
+function rewindRing(ring, shouldBeCW) {
   // Calculate signed area using shoelace formula
   let area = 0;
   for (let i = 0; i < ring.length - 1; i++) {
     area += (ring[i + 1][0] - ring[i][0]) * (ring[i + 1][1] + ring[i][1]);
   }
-  const isCCW = area < 0;
+  const isCW = area > 0;
 
-  if (isCCW !== shouldBeCCW) {
+  if (isCW !== shouldBeCW) {
     return ring.slice().reverse();
   }
   return ring;
@@ -41,7 +44,7 @@ function rewindRing(ring, shouldBeCCW) {
 
 function rewindPolygon(coords) {
   return coords.map((ring, i) => {
-    // First ring is exterior (should be CCW), rest are holes (should be CW)
+    // For D3 spherical: exterior ring (i=0) should be CW, holes should be CCW
     return rewindRing(ring, i === 0);
   });
 }
