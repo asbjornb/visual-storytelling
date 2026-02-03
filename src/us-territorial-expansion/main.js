@@ -266,6 +266,9 @@ function renderMapStep(svg, geoData, stepIndex, options = {}) {
 
     if (sel.empty()) return;
 
+    // Interrupt any existing transition before starting a new one
+    sel.interrupt();
+
     if (featureStep > stepIndex) {
       // Future acquisition - hidden
       sel.transition()

@@ -14,6 +14,54 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
 // ─────────────────────────────────────────────────────────────
+// Geometry utilities
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Ensure polygon rings have correct winding order for D3/GeoJSON:
+ * - Exterior rings: counterclockwise (CCW)
+ * - Holes: clockwise (CW)
+ *
+ * Uses the shoelace formula to calculate signed area.
+ * Positive area = CW, Negative area = CCW
+ */
+function rewindRing(ring, shouldBeCCW) {
+  // Calculate signed area using shoelace formula
+  let area = 0;
+  for (let i = 0; i < ring.length - 1; i++) {
+    area += (ring[i + 1][0] - ring[i][0]) * (ring[i + 1][1] + ring[i][1]);
+  }
+  const isCCW = area < 0;
+
+  if (isCCW !== shouldBeCCW) {
+    return ring.slice().reverse();
+  }
+  return ring;
+}
+
+function rewindPolygon(coords) {
+  return coords.map((ring, i) => {
+    // First ring is exterior (should be CCW), rest are holes (should be CW)
+    return rewindRing(ring, i === 0);
+  });
+}
+
+function rewindGeometry(geometry) {
+  if (geometry.type === "Polygon") {
+    return {
+      type: "Polygon",
+      coordinates: rewindPolygon(geometry.coordinates),
+    };
+  } else if (geometry.type === "MultiPolygon") {
+    return {
+      type: "MultiPolygon",
+      coordinates: geometry.coordinates.map((poly) => rewindPolygon(poly)),
+    };
+  }
+  return geometry;
+}
+
+// ─────────────────────────────────────────────────────────────
 // Manual acquisition polygons for territories that can't be extracted
 // from the source data via geometric differencing.
 // ─────────────────────────────────────────────────────────────
@@ -221,6 +269,9 @@ function geoJSONToFeature(geojson, properties) {
     return null;
   }
 
+  // Ensure correct winding order for D3's spherical interpretation
+  geometry = rewindGeometry(geometry);
+
   return {
     type: "Feature",
     properties,
@@ -257,7 +308,12 @@ function main() {
     if (step.manual) {
       const manualFeature = MANUAL_ACQUISITIONS[step.era];
       if (manualFeature) {
-        acquisitions.push(manualFeature);
+        // Rewind geometry for D3 compatibility
+        const rewoundFeature = {
+          ...manualFeature,
+          geometry: rewindGeometry(manualFeature.geometry),
+        };
+        acquisitions.push(rewoundFeature);
         console.log("  Using manual polygon\n");
       } else {
         console.log("  ERROR: Manual polygon not found for " + step.era + "\n");
