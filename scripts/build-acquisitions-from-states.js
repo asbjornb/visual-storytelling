@@ -197,6 +197,54 @@ function main() {
     }
   }
 
+  // Extract Red River Basin via geometric differencing
+  // (1818 British cession along 49th parallel - doesn't align with state boundaries)
+  console.log("Processing redriver (geometric diff)...");
+  try {
+    const file1803 = join(DATA_DIR, "1803-louisiana-purchase.geojson");
+    const file1818 = join(DATA_DIR, "1818-red-river-basin.geojson");
+    const dissolved1803 = join(TEMP_DIR, "1803-dissolved.geojson");
+    const dissolved1818 = join(TEMP_DIR, "1818-dissolved.geojson");
+    const redriverFile = join(TEMP_DIR, "redriver.geojson");
+
+    // Dissolve both files to single polygons
+    const filterExpr = 'CATEGORY == "state" || CATEGORY == "territory"';
+    run(`mapshaper "${file1803}" -filter '${filterExpr}' -dissolve -o "${dissolved1803}" force`);
+    run(`mapshaper "${file1818}" -filter '${filterExpr}' -dissolve -o "${dissolved1818}" force`);
+
+    // Compute difference (1818 - 1803) with geographic filter for Red River region
+    const redriverCmd = `mapshaper "${dissolved1803}" "${dissolved1818}" combine-files ` +
+      `-snap interval=0.01 -target 2 -erase target=2 source=1 ` +
+      `-filter-slivers min-area=100km2 -clip bbox=-105,48,-90,50 -o "${redriverFile}" force`;
+
+    if (run(redriverCmd)) {
+      const result = JSON.parse(readFileSync(redriverFile, "utf-8"));
+      let geometry = null;
+
+      if (result.type === "GeometryCollection" && result.geometries?.length > 0) {
+        geometry = result.geometries[0];
+      } else if (result.type === "FeatureCollection" && result.features?.length > 0) {
+        geometry = result.features[0].geometry;
+      } else if (result.type === "Polygon" || result.type === "MultiPolygon") {
+        geometry = result;
+      }
+
+      if (geometry && geometry.coordinates?.length > 0) {
+        geometry = rewindGeometry(geometry);
+        acquisitions.push({
+          type: "Feature",
+          properties: { era: "redriver", step: 2, label: "Red River Basin (1818)" },
+          geometry,
+        });
+        console.log("  Added redriver");
+      } else {
+        console.log("  No geometry for redriver");
+      }
+    }
+  } catch (e) {
+    console.log(`  Error extracting redriver: ${e.message}`);
+  }
+
   // Extract Gadsden Purchase via geometric differencing
   // (Can't use state-based approach since it doesn't align with state boundaries)
   console.log("Processing gadsden (geometric diff)...");
