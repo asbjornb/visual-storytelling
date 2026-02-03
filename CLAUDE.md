@@ -64,7 +64,8 @@ Scroll-driven visual story of how the United States grew from 1776 to present da
 - Illustrations supplement the map, showing the human element (treaty signings, etc.)
 
 **Map implementation:**
-- Uses `geoConicEqualArea` projection to show full North America (Alaska, Canada, Mexico, Greenland)
+- Uses `geoConicEqualArea` projection to show the Americas from Greenland to Panama
+- Context countries: Canada, Mexico, Greenland, Central America (Belize through Panama), Caribbean (Cuba, Jamaica, Haiti, Dominican Republic, Bahamas)
 - Context countries loaded from Natural Earth 50m TopoJSON (`world-countries-50m.json`)
 - Pacific territories (Hawaii, Guam, Samoa, etc.) are not shown on the main map due to geographic distance
 
@@ -80,6 +81,12 @@ Scroll-driven visual story of how the United States grew from 1776 to present da
      - Find alternative data source with pre-separated acquisition boundaries
    - Once data exists, rendering is straightforward: render all acquisitions once, animate fill colors per step
 
-2. **Pacific territory insets**
+2. **Progressive zoom** (planned)
+   - Early slides (1783-1853): Zoom in on eastern/central US where the action is
+   - Later slides (Alaska, Pacific): Pull back to show full continental view
+   - Final slide (2025-26 rhetoric): Full Americas view showing Greenland, Canada, Panama
+   - Implementation: Adjust projection scale/translate per step, animate between zoom levels
+
+3. **Pacific territory insets**
    - Add small inset maps for Hawaii, Guam, American Samoa, Virgin Islands
    - These are too far from continental US to show on the main projection
