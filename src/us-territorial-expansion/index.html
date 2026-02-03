@@ -7,34 +7,37 @@
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <!-- Prologue: full-screen intro -->
-    <section class="prologue" id="prologue">
-      <div class="prologue-content">
-        <h1>The United States</h1>
-        <p class="prologue-subtitle">A Story of Territorial Expansion</p>
-        <blockquote>
-          "...that these United Colonies are, and of right ought to be, free and
-          independent States."
-          <cite>Declaration of Independence, 1776</cite>
-        </blockquote>
-        <p class="scroll-hint">Scroll to begin</p>
-      </div>
-      <div class="prologue-map" id="prologue-map"></div>
-    </section>
-
-    <!-- Scrollytelling body -->
-    <div class="scrolly">
-      <div class="scrolly-map" id="scrolly-map">
+    <!-- Main visualization container -->
+    <div class="viewer" id="viewer">
+      <!-- Map layer -->
+      <div class="map-layer" id="map-layer">
         <svg id="map"></svg>
-        <div class="map-year" id="map-year"></div>
       </div>
 
-      <div class="scrolly-text">
-        <section class="step" data-step="0">
-          <div class="step-content">
-            <span class="step-year">1783</span>
+      <!-- Pages container -->
+      <div class="pages" id="pages">
+
+        <!-- INTRO -->
+        <article class="page page--intro is-active" data-page="0" data-type="intro">
+          <div class="page-overlay">
+            <h1>The United States</h1>
+            <p class="page-tagline">A Story of Territorial Expansion</p>
+            <p class="page-prompt">1776 &ndash; 2026</p>
+          </div>
+        </article>
+
+        <!-- TREATY OF PARIS -->
+        <article class="page page--transition" data-page="1" data-type="transition" data-step="0">
+          <div class="page-overlay">
+            <span class="page-year">1783</span>
             <h2>Treaty of Paris</h2>
-            <p class="step-subtitle">Birth of the United States</p>
+          </div>
+        </article>
+        <article class="page page--story" data-page="2" data-type="story" data-step="0">
+          <div class="page-map-thumb" id="thumb-0"></div>
+          <div class="page-story">
+            <span class="page-year">1783</span>
+            <h2>Birth of a Nation</h2>
             <p>
               By winning the Revolutionary War, the United States secured
               recognition of its independence and gained control of land east of
@@ -47,35 +50,50 @@
               <cite>Declaration of Independence, 1776</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="1">
-          <div class="step-content">
-            <span class="step-year">1803</span>
+        <!-- LOUISIANA PURCHASE -->
+        <article class="page page--transition" data-page="3" data-type="transition" data-step="1">
+          <div class="page-overlay">
+            <span class="page-year">1803</span>
             <h2>Louisiana Purchase</h2>
-            <div class="step-stats">
+          </div>
+        </article>
+        <article class="page page--story" data-page="4" data-type="story" data-step="1">
+          <div class="page-map-thumb" id="thumb-1"></div>
+          <div class="page-story">
+            <span class="page-year">1803</span>
+            <h2>Jefferson's Gamble</h2>
+            <div class="page-stats">
               <span class="stat"><strong>$15M</strong> price</span>
               <span class="stat"><strong>828,000</strong> sq mi</span>
+              <span class="stat"><strong>3&cent;</strong> per acre</span>
             </div>
             <p>
               President Thomas Jefferson purchased the vast Louisiana Territory
-              from France, nearly doubling the country's size. It stretched from
-              the Mississippi River to the Rocky Mountains.
+              from France, nearly doubling the country's size. Napoleon, needing
+              funds for his European wars, sold the land for a bargain.
             </p>
             <blockquote>
-              "The sale of Louisiana assures forever the power of the United
-              States, and I have given England a rival who will sooner or later
-              humble her pride."
-              <cite>Napol&eacute;on Bonaparte, 1803</cite>
+              "The sale assures forever the power of the United States, and I
+              have given England a rival who will sooner or later humble her pride."
+              <cite>Napol&eacute;on Bonaparte</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="2">
-          <div class="step-content">
-            <span class="step-year">1818</span>
+        <!-- RED RIVER BASIN -->
+        <article class="page page--transition" data-page="5" data-type="transition" data-step="2">
+          <div class="page-overlay">
+            <span class="page-year">1818</span>
             <h2>Red River Basin</h2>
-            <p class="step-subtitle">British Cession</p>
+          </div>
+        </article>
+        <article class="page page--story" data-page="6" data-type="story" data-step="2">
+          <div class="page-map-thumb" id="thumb-2"></div>
+          <div class="page-story">
+            <span class="page-year">1818</span>
+            <h2>The 49th Parallel</h2>
             <p>
               The Convention of 1818 fixed the U.S.&ndash;Canada boundary at the
               49th parallel from the Great Lakes to the Rockies. Britain ceded
@@ -83,145 +101,187 @@
               Minnesota and North Dakota.
             </p>
             <blockquote>
-              "...the line of 49 degrees shall be the boundary... as far west as
-              the Stony Mountains."
+              "...the line of 49 degrees shall be the boundary."
               <cite>Convention of 1818</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="3">
-          <div class="step-content">
-            <span class="step-year">1819</span>
-            <h2>Florida Acquisition</h2>
-            <p class="step-subtitle">Adams&ndash;On&iacute;s Treaty</p>
-            <div class="step-stats">
+        <!-- FLORIDA -->
+        <article class="page page--transition" data-page="7" data-type="transition" data-step="3">
+          <div class="page-overlay">
+            <span class="page-year">1819</span>
+            <h2>Florida</h2>
+          </div>
+        </article>
+        <article class="page page--story" data-page="8" data-type="story" data-step="3">
+          <div class="page-map-thumb" id="thumb-3"></div>
+          <div class="page-story">
+            <span class="page-year">1819</span>
+            <h2>Adams&ndash;On&iacute;s Treaty</h2>
+            <div class="page-stats">
               <span class="stat"><strong>$5M</strong> in assumed claims</span>
             </div>
             <p>
               Spain ceded East and West Florida to the United States. The treaty
               also settled the western boundary of the Louisiana Purchase and saw
-              Spain give up its claim to the Pacific Northwest.
+              Spain relinquish its claim to the Pacific Northwest.
             </p>
             <blockquote>
-              "Spain must either control Florida or cede it to the United
-              States."
+              "Spain must either control Florida or cede it to the United States."
               <cite>Secretary of State John Quincy Adams</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="4">
-          <div class="step-content">
-            <span class="step-year">1845</span>
-            <h2>Annexation of Texas</h2>
-            <div class="step-stats">
+        <!-- TEXAS -->
+        <article class="page page--transition" data-page="9" data-type="transition" data-step="4">
+          <div class="page-overlay">
+            <span class="page-year">1845</span>
+            <h2>Texas</h2>
+          </div>
+        </article>
+        <article class="page page--story" data-page="10" data-type="story" data-step="4">
+          <div class="page-map-thumb" id="thumb-4"></div>
+          <div class="page-story">
+            <span class="page-year">1845</span>
+            <h2>The Lone Star Joins</h2>
+            <div class="page-stats">
               <span class="stat"><strong>389,000</strong> sq mi</span>
             </div>
             <p>
               The independent Republic of Texas became the 28th state. Texas had
               won independence from Mexico in 1836, and its annexation extended
-              the U.S. to the Rio Grande&mdash;setting the stage for war with
-              Mexico.
+              the U.S. to the Rio Grande&mdash;setting the stage for war with Mexico.
             </p>
             <blockquote>
               "The Republic of Texas is no more."
               <cite>Texas President Anson Jones, 1846</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="5">
-          <div class="step-content">
-            <span class="step-year">1846</span>
-            <h2>Oregon Treaty</h2>
+        <!-- OREGON -->
+        <article class="page page--transition" data-page="11" data-type="transition" data-step="5">
+          <div class="page-overlay">
+            <span class="page-year">1846</span>
+            <h2>Oregon Country</h2>
+          </div>
+        </article>
+        <article class="page page--story" data-page="12" data-type="story" data-step="5">
+          <div class="page-map-thumb" id="thumb-5"></div>
+          <div class="page-story">
+            <span class="page-year">1846</span>
+            <h2>Window on the Pacific</h2>
             <p>
               The U.S. and Great Britain peacefully divided the Oregon Country at
-              the 49th parallel, giving America a window on the Pacific Ocean.
-              Expansionists had cried &ldquo;54&deg;40&prime; or
-              Fight!&rdquo;&mdash;but the compromise at 49&deg; avoided war.
+              the 49th parallel. Expansionists had cried "54&deg;40' or
+              Fight!"&mdash;but the compromise avoided war.
             </p>
             <blockquote>
-              "The Country is ours. The tide of civilization must and will roll
-              over it."
+              "The Country is ours. The tide of civilization must and will roll over it."
               <cite>Senator Thomas Hart Benton</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="6">
-          <div class="step-content">
-            <span class="step-year">1848</span>
+        <!-- MEXICAN CESSION -->
+        <article class="page page--transition" data-page="13" data-type="transition" data-step="6">
+          <div class="page-overlay">
+            <span class="page-year">1848</span>
             <h2>Mexican Cession</h2>
-            <p class="step-subtitle">Treaty of Guadalupe Hidalgo</p>
-            <div class="step-stats">
+          </div>
+        </article>
+        <article class="page page--story" data-page="14" data-type="story" data-step="6">
+          <div class="page-map-thumb" id="thumb-6"></div>
+          <div class="page-story">
+            <span class="page-year">1848</span>
+            <h2>Sea to Shining Sea</h2>
+            <div class="page-stats">
               <span class="stat"><strong>$15M</strong> price</span>
               <span class="stat"><strong>525,000</strong> sq mi</span>
             </div>
             <p>
-              The Mexican&ndash;American War ended with Mexico ceding an enormous
-              territory: all of present-day California, Nevada, Utah, most of
-              Arizona and New Mexico, and parts of Colorado and Wyoming. America
-              now spanned the continent.
+              The Mexican&ndash;American War ended with Mexico ceding California,
+              Nevada, Utah, and parts of four other states. America now spanned
+              the continent.
             </p>
             <blockquote>
-              "We must conquer Mexico... but not for territorial aggrandizement;
-              no&mdash;for peace, and security."
-              <cite>President James K. Polk, 1846</cite>
+              "We take nothing by conquest. Thank God."
+              <cite>General Ulysses S. Grant (sarcastically)</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="7">
-          <div class="step-content">
-            <span class="step-year">1853</span>
+        <!-- GADSDEN -->
+        <article class="page page--transition" data-page="15" data-type="transition" data-step="7">
+          <div class="page-overlay">
+            <span class="page-year">1853</span>
             <h2>Gadsden Purchase</h2>
-            <div class="step-stats">
+          </div>
+        </article>
+        <article class="page page--story" data-page="16" data-type="story" data-step="7">
+          <div class="page-map-thumb" id="thumb-7"></div>
+          <div class="page-story">
+            <span class="page-year">1853</span>
+            <h2>The Railroad Route</h2>
+            <div class="page-stats">
               <span class="stat"><strong>$10M</strong> price</span>
               <span class="stat"><strong>30,000</strong> sq mi</span>
             </div>
             <p>
-              A final adjustment to the continental border: a strip of land in
-              southern Arizona and New Mexico, purchased from Mexico for a
-              southern transcontinental railroad route.
+              A strip of land in southern Arizona and New Mexico, purchased from
+              Mexico for a southern transcontinental railroad route. The last
+              territorial addition to the contiguous United States.
             </p>
             <blockquote>
-              "The territory which we acquire is scarcely habitable, but for the
-              great object of a railroad to the Pacific, its value is
-              inestimable."
-              <cite>Senator Solomon W. Downs, 1854</cite>
+              "For the great object of a railroad to the Pacific, its value is inestimable."
+              <cite>Senator Solomon W. Downs</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="8">
-          <div class="step-content">
-            <span class="step-year">1867</span>
-            <h2>Alaska Purchase</h2>
-            <div class="step-stats">
+        <!-- ALASKA -->
+        <article class="page page--transition" data-page="17" data-type="transition" data-step="8">
+          <div class="page-overlay">
+            <span class="page-year">1867</span>
+            <h2>Alaska</h2>
+          </div>
+        </article>
+        <article class="page page--story" data-page="18" data-type="story" data-step="8">
+          <div class="page-map-thumb" id="thumb-8"></div>
+          <div class="page-story">
+            <span class="page-year">1867</span>
+            <h2>Seward's Folly</h2>
+            <div class="page-stats">
               <span class="stat"><strong>$7.2M</strong> price</span>
               <span class="stat"><strong>586,000</strong> sq mi</span>
               <span class="stat"><strong>2&cent;</strong> per acre</span>
             </div>
             <p>
               Secretary of State William Seward bought Alaska from Russia.
-              Critics called it &ldquo;Seward's Folly&rdquo;&mdash;a frozen
-              wasteland. It would later prove rich in gold and oil.
+              Critics mocked it as a frozen wasteland. It would later prove rich
+              in gold, oil, and strategic value.
             </p>
             <blockquote>
               "...a polar bear garden."
-              <cite>Critics of the purchase, 1867</cite>
+              <cite>Critics of the purchase</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="9">
-          <div class="step-content">
-            <span class="step-year">1898</span>
+        <!-- SPANISH-AMERICAN WAR -->
+        <article class="page page--transition" data-page="19" data-type="transition" data-step="9">
+          <div class="page-overlay">
+            <span class="page-year">1898</span>
             <h2>Spanish&ndash;American War</h2>
-            <p class="step-subtitle">
-              Puerto Rico &middot; Guam &middot; Philippines
-            </p>
+          </div>
+        </article>
+        <article class="page page--story" data-page="20" data-type="story" data-step="9">
+          <div class="page-map-thumb" id="thumb-9"></div>
+          <div class="page-story">
+            <span class="page-year">1898</span>
+            <h2>Empire Abroad</h2>
             <p>
               Victory over Spain brought overseas territories: Puerto Rico, Guam,
               and the Philippines. Hawaii was also annexed the same year. The
@@ -229,70 +289,82 @@
             </p>
             <blockquote>
               "It has been a splendid little war."
-              <cite>Secretary of State John Hay, 1898</cite>
+              <cite>Secretary of State John Hay</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step" data-step="10">
-          <div class="step-content">
-            <span class="step-year">1899&ndash;1959</span>
+        <!-- PACIFIC & CARIBBEAN -->
+        <article class="page page--transition" data-page="21" data-type="transition" data-step="10">
+          <div class="page-overlay">
+            <span class="page-year">1899&ndash;1959</span>
             <h2>Pacific &amp; Caribbean</h2>
-            <p class="step-subtitle">
-              American Samoa &middot; US Virgin Islands &middot; Northern
-              Marianas
-            </p>
-            <div class="step-stats">
-              <span class="stat"
-                ><strong>$25M</strong> for Virgin Islands</span
-              >
+          </div>
+        </article>
+        <article class="page page--story" data-page="22" data-type="story" data-step="10">
+          <div class="page-map-thumb" id="thumb-10"></div>
+          <div class="page-story">
+            <span class="page-year">1899&ndash;1959</span>
+            <h2>Island Territories</h2>
+            <div class="page-stats">
+              <span class="stat"><strong>$25M</strong> for Virgin Islands</span>
             </div>
             <p>
-              The early 20th century brought American Samoa (1900), the U.S.
-              Virgin Islands purchased from Denmark during WWI (1917), and
-              post-WWII trust territories in the Pacific. Alaska and Hawaii
+              American Samoa (1900), the U.S. Virgin Islands (1917), and Pacific
+              trust territories rounded out American expansion. Alaska and Hawaii
               became the 49th and 50th states in 1959.
             </p>
             <blockquote>
-              "I yield my authority&hellip; to avoid any collision of armed
-              forces and perhaps the loss of life."
-              <cite>Queen Lili&lsquo;uokalani, 1893</cite>
+              "I yield my authority&hellip; to avoid the loss of life."
+              <cite>Queen Lili'uokalani, 1893</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <section class="step step--epilogue" data-step="11">
-          <div class="step-content">
-            <span class="step-year">2025&ndash;26</span>
-            <h2>Renewed &ldquo;Manifest Destiny&rdquo;?</h2>
-            <p class="step-disclaimer">
-              Contemporary rhetoric &mdash; no actual territorial changes
-            </p>
+        <!-- MODERN -->
+        <article class="page page--transition page--epilogue" data-page="23" data-type="transition" data-step="11">
+          <div class="page-overlay">
+            <span class="page-year">2025&ndash;26</span>
+            <h2>Modern Rhetoric</h2>
+          </div>
+        </article>
+        <article class="page page--story page--epilogue" data-page="24" data-type="story" data-step="11">
+          <div class="page-map-thumb" id="thumb-11"></div>
+          <div class="page-story">
+            <span class="page-year">2025&ndash;26</span>
+            <h2>Manifest Destiny Redux?</h2>
+            <p class="page-disclaimer">Contemporary rhetoric &mdash; no actual territorial changes</p>
             <p>
-              In his second term, President Trump vowed to &ldquo;take back the
-              Panama Canal,&rdquo; renewed interest in acquiring Greenland, and
-              floated the idea of Canada as the 51st state. Denmark's Prime
-              Minister retorted &ldquo;Greenland is not for sale.&rdquo;
+              President Trump vowed to "take back" the Panama Canal, renewed
+              interest in Greenland, and floated making Canada the 51st state.
+              Denmark's Prime Minister: "Greenland is not for sale."
             </p>
             <blockquote>
-              "The United States will once again consider itself a growing
-              nation&hellip; one that expands our territory&hellip; We will
-              pursue our Manifest Destiny into the stars&hellip;."
+              "We will pursue our Manifest Destiny into the stars."
               <cite>Donald Trump, 2025</cite>
             </blockquote>
           </div>
-        </section>
+        </article>
 
-        <!-- Spacer so last step can be centered -->
-        <div class="step-spacer"></div>
       </div>
-    </div>
 
-    <!-- Timeline progress -->
-    <div class="timeline" id="timeline">
-      <div class="timeline-track">
-        <div class="timeline-fill" id="timeline-fill"></div>
-      </div>
+      <!-- Edge navigation arrows -->
+      <button class="edge-nav edge-nav--prev" id="edge-prev" aria-label="Previous">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      <button class="edge-nav edge-nav--next" id="edge-next" aria-label="Next">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+
+      <!-- Timeline navigation -->
+      <nav class="timeline" id="timeline" aria-label="Page navigation">
+        <!-- Bars generated by JS -->
+      </nav>
+
     </div>
 
     <script type="module" src="./main.js"></script>

@@ -1,34 +1,34 @@
 import * as d3 from "d3";
 
-// Era accent colors - matches CSS custom properties
+// Era accent colors
 const ERA_COLORS = {
-  original: "#9a958a",    // Warm gray for original states
-  louisiana: "#a85a4a",   // Oxide red
-  redriver: "#5d8a87",    // Dusty teal
-  florida: "#758556",     // Olive
-  texas: "#b07a3e",       // Burnt ochre
-  oregon: "#637592",      // Slate blue
-  mexican: "#8b5a4a",     // Muted oxide
-  gadsden: "#6b7a5a",     // Muted olive
-  alaska: "#4a7c7a",      // Deep teal
-  pacific: "#5a6b8a",     // Slate
-  modern: "#8b4a4a",      // Muted warning red
+  original: "#9a958a",
+  louisiana: "#a85a4a",
+  redriver: "#5d8a87",
+  florida: "#758556",
+  texas: "#b07a3e",
+  oregon: "#637592",
+  mexican: "#8b5a4a",
+  gadsden: "#6b7a5a",
+  alaska: "#4a7c7a",
+  pacific: "#5a6b8a",
+  modern: "#8b4a4a",
 };
 
-// Timeline steps: maps to GeoJSON files
-const STEPS = [
-  { year: "1783", file: "1789-original-states.geojson", label: "Treaty of Paris", era: "original" },
-  { year: "1803", file: "1803-louisiana-purchase.geojson", label: "Louisiana Purchase", era: "louisiana" },
-  { year: "1818", file: "1818-red-river-basin.geojson", label: "Red River Basin", era: "redriver" },
-  { year: "1819", file: "1819-florida.geojson", label: "Florida", era: "florida" },
-  { year: "1845", file: "1845-texas.geojson", label: "Texas", era: "texas" },
-  { year: "1846", file: "1846-oregon.geojson", label: "Oregon", era: "oregon" },
-  { year: "1848", file: "1848-mexican-cession.geojson", label: "Mexican Cession", era: "mexican" },
-  { year: "1853", file: "1853-gadsden.geojson", label: "Gadsden Purchase", era: "gadsden" },
-  { year: "1867", file: "1867-alaska.geojson", label: "Alaska", era: "alaska" },
-  { year: "1898", file: "1898-spanish-american-war.geojson", label: "Spanish-American War", era: "pacific" },
-  { year: "1899–1959", file: "1900-samoa.geojson", label: "Pacific & Caribbean", era: "pacific" },
-  { year: "2025–26", file: "1959-final.geojson", label: "Modern Rhetoric", era: "modern" },
+// Map step definitions (GeoJSON files)
+const MAP_STEPS = [
+  { year: "1783", file: "1789-original-states.geojson", era: "original" },
+  { year: "1803", file: "1803-louisiana-purchase.geojson", era: "louisiana" },
+  { year: "1818", file: "1818-red-river-basin.geojson", era: "redriver" },
+  { year: "1819", file: "1819-florida.geojson", era: "florida" },
+  { year: "1845", file: "1845-texas.geojson", era: "texas" },
+  { year: "1846", file: "1846-oregon.geojson", era: "oregon" },
+  { year: "1848", file: "1848-mexican-cession.geojson", era: "mexican" },
+  { year: "1853", file: "1853-gadsden.geojson", era: "gadsden" },
+  { year: "1867", file: "1867-alaska.geojson", era: "alaska" },
+  { year: "1898", file: "1898-spanish-american-war.geojson", era: "pacific" },
+  { year: "1899–1959", file: "1900-samoa.geojson", era: "pacific" },
+  { year: "2025–26", file: "1959-final.geojson", era: "modern" },
 ];
 
 const CATEGORY_CLASS = {
@@ -39,17 +39,53 @@ const CATEGORY_CLASS = {
   none: "map-none",
 };
 
-let geoDataByStep = [];
-let currentStep = -1;
+const DESKTOP_BREAKPOINT = 900;
 
-// Projection: Albers USA handles Alaska/Hawaii insets
+// State
+let geoDataByStep = [];
+let currentPage = 0;
+let totalPages = 0;
+let pageElements = [];
+let touchStartX = 0;
+let touchStartY = 0;
+
+// D3 setup
 const projection = d3.geoAlbersUsa();
 const path = d3.geoPath().projection(projection);
 
+// ─────────────────────────────────────────────────────────────
+// Responsive helpers
+// ─────────────────────────────────────────────────────────────
+
+function isDesktop() {
+  return window.innerWidth >= DESKTOP_BREAKPOINT;
+}
+
+// Get pages that should be navigable (desktop skips transition pages)
+function getNavigablePages() {
+  if (isDesktop()) {
+    // Desktop: only intro and story pages
+    return pageElements.filter((el) => {
+      const type = el.dataset.type;
+      return type === "intro" || type === "story";
+    });
+  }
+  // Mobile: all pages
+  return pageElements;
+}
+
+function getNavigableIndices() {
+  const navigable = getNavigablePages();
+  return navigable.map((el) => pageElements.indexOf(el));
+}
+
+// ─────────────────────────────────────────────────────────────
+// Data loading
+// ─────────────────────────────────────────────────────────────
+
 async function loadAllGeoJSON() {
-  const promises = STEPS.map((s) =>
+  const promises = MAP_STEPS.map((s) =>
     d3.json(`/data/us-territorial-expansion/${s.file}`).then((geojson) => {
-      // Separate features by category
       const byCategory = {};
       for (const feature of geojson.features) {
         const cat = feature.properties.CATEGORY || "none";
@@ -62,53 +98,53 @@ async function loadAllGeoJSON() {
   return Promise.all(promises);
 }
 
+// ─────────────────────────────────────────────────────────────
+// Map rendering
+// ─────────────────────────────────────────────────────────────
+
+// Store base dimensions for viewBox
+let baseWidth = 0;
+let baseHeight = 0;
+
 function fitProjection(svg, geoData) {
   const container = svg.node().parentNode;
-  const width = container.clientWidth;
-  const height = container.clientHeight;
+  // Always use full viewport size for projection (not thumbnail size)
+  const width = window.innerWidth;
+  const height = window.innerHeight;
 
-  // Use the final step (most territory) to fit projection
+  // Store base dimensions for viewBox
+  baseWidth = width;
+  baseHeight = height;
+
   const finalData = geoData[geoData.length - 1];
   const allFeatures = Object.values(finalData).flat();
   const collection = { type: "FeatureCollection", features: allFeatures };
 
-  projection.fitSize([width, height], collection);
+  // On desktop, offset map to the right to leave room for side panel
+  if (isDesktop()) {
+    const panelWidth = 480; // Space for side panel
+    const mapWidth = width - panelWidth;
+    projection.fitSize([mapWidth, height], collection);
+    // Shift projection to the right
+    const [tx, ty] = projection.translate();
+    projection.translate([tx + panelWidth, ty]);
+  } else {
+    projection.fitSize([width, height], collection);
+  }
+
   path.projection(projection);
+
+  // Set viewBox so SVG scales when container shrinks (thumbnail mode)
+  svg.attr("viewBox", `0 0 ${width} ${height}`);
+  svg.attr("preserveAspectRatio", "xMidYMid meet");
 }
 
-function renderPrologueMap(geoData) {
-  const container = d3.select("#prologue-map");
-  const svg = container.append("svg");
-  const width = container.node().clientWidth;
-  const height = container.node().clientHeight;
-
-  // Use a separate projection for the prologue
-  const prologueProjection = d3.geoAlbersUsa();
-  const firstStep = geoData[0];
-  const allFeatures = Object.values(firstStep).flat();
-  const collection = { type: "FeatureCollection", features: allFeatures };
-  prologueProjection.fitSize([width, height], collection);
-  const prologuePath = d3.geoPath().projection(prologueProjection);
-
-  // Only render states (the 13 original colonies area)
-  const stateFeatures = firstStep["state"] || [];
-  svg
-    .selectAll("path")
-    .data(stateFeatures)
-    .enter()
-    .append("path")
-    .attr("d", prologuePath)
-    .attr("fill", ERA_COLORS.original)
-    .attr("stroke", "#f8f5f0")
-    .attr("stroke-width", 0.5)
-    .attr("opacity", 0.25);
-}
-
-function renderMap(svg, geoData, stepIndex) {
+function renderMap(svg, geoData, stepIndex, options = {}) {
+  const { opacity = 1, duration = 800 } = options;
   const data = geoData[stepIndex];
   if (!data) return;
 
-  const era = STEPS[stepIndex].era;
+  const era = MAP_STEPS[stepIndex].era;
   const eraColor = ERA_COLORS[era] || ERA_COLORS.original;
   const categories = ["other_country", "none", "disputed", "territory", "state"];
 
@@ -118,7 +154,6 @@ function renderMap(svg, geoData, stepIndex) {
 
     const sel = svg.selectAll(`.${className}`).data(features, (d, i) => `${cat}-${i}`);
 
-    // Enter - new territories get the current era color
     sel
       .enter()
       .append("path")
@@ -128,95 +163,304 @@ function renderMap(svg, geoData, stepIndex) {
       .attr("fill", (cat === "state" || cat === "territory") ? eraColor : null)
       .attr("stroke", "#f8f5f0")
       .transition()
-      .duration(800)
-      .attr("opacity", 1);
+      .duration(duration)
+      .attr("opacity", opacity);
 
-    // Update - keep existing colors, just update path geometry
-    sel.transition().duration(800).attr("d", path);
-
-    // Exit
-    sel.exit().transition().duration(400).attr("opacity", 0).remove();
+    sel.transition().duration(duration).attr("d", path).attr("opacity", opacity);
+    sel.exit().transition().duration(duration / 2).attr("opacity", 0).remove();
   }
 }
 
-function updateMapYear(stepIndex) {
-  const yearEl = document.getElementById("map-year");
-  if (stepIndex >= 0 && stepIndex < STEPS.length) {
-    yearEl.textContent = STEPS[stepIndex].year;
-  }
+// ─────────────────────────────────────────────────────────────
+// Page navigation
+// ─────────────────────────────────────────────────────────────
+
+function getPageInfo(pageEl) {
+  return {
+    type: pageEl.dataset.type,
+    step: pageEl.dataset.step !== undefined ? parseInt(pageEl.dataset.step) : null,
+  };
 }
 
-function updateTimeline(stepIndex) {
-  const fill = document.getElementById("timeline-fill");
-  const pct = ((stepIndex + 1) / STEPS.length) * 100;
-  fill.style.height = `${pct}%`;
-}
+function goToPage(newPage) {
+  newPage = Math.max(0, Math.min(newPage, totalPages - 1));
+  if (newPage === currentPage) return;
 
-function setupScrollObserver() {
-  const steps = document.querySelectorAll(".step");
   const svg = d3.select("#map");
+  const mapLayer = document.getElementById("map-layer");
+  const desktop = isDesktop();
 
-  const observer = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        const stepEl = entry.target;
-        const stepIndex = parseInt(stepEl.dataset.step, 10);
+  // Update page visibility
+  pageElements.forEach((el, i) => {
+    el.classList.toggle("is-active", i === newPage);
+  });
 
-        if (entry.isIntersecting) {
-          stepEl.classList.add("is-active");
+  // Get new page info
+  const pageEl = pageElements[newPage];
+  const { type, step } = getPageInfo(pageEl);
 
-          if (stepIndex !== currentStep) {
-            currentStep = stepIndex;
-            renderMap(svg, geoDataByStep, stepIndex);
-            updateMapYear(stepIndex);
-            updateTimeline(stepIndex);
-          }
-        } else {
-          stepEl.classList.remove("is-active");
-        }
-      }
-    },
-    {
-      rootMargin: "-30% 0px -30% 0px",
-      threshold: 0.1,
+  // Update map based on page type
+  if (type === "intro") {
+    mapLayer.classList.remove("is-thumbnail");
+    renderMap(svg, geoDataByStep, 0, { opacity: 0.15, duration: 600 });
+  } else if (type === "transition") {
+    mapLayer.classList.remove("is-thumbnail");
+    renderMap(svg, geoDataByStep, step, { opacity: 1, duration: 800 });
+  } else if (type === "story") {
+    // On desktop: keep map full size with side panel
+    // On mobile: thumbnail mode
+    if (desktop) {
+      mapLayer.classList.remove("is-thumbnail");
+    } else {
+      mapLayer.classList.add("is-thumbnail");
     }
-  );
+    renderMap(svg, geoDataByStep, step, { opacity: 1, duration: desktop ? 800 : 400 });
+  }
 
-  for (const step of steps) {
-    observer.observe(step);
+  currentPage = newPage;
+  updateTimeline();
+  updateEdgeNav();
+}
+
+function nextPage() {
+  const indices = getNavigableIndices();
+  const currentIdx = indices.indexOf(currentPage);
+  if (currentIdx < indices.length - 1) {
+    goToPage(indices[currentIdx + 1]);
   }
 }
+
+function prevPage() {
+  const indices = getNavigableIndices();
+  const currentIdx = indices.indexOf(currentPage);
+  if (currentIdx > 0) {
+    goToPage(indices[currentIdx - 1]);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Edge navigation arrows
+// ─────────────────────────────────────────────────────────────
+
+function setupEdgeNav() {
+  const prevBtn = document.getElementById("edge-prev");
+  const nextBtn = document.getElementById("edge-next");
+
+  prevBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    prevPage();
+  });
+
+  nextBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    nextPage();
+  });
+
+  updateEdgeNav();
+}
+
+function updateEdgeNav() {
+  const prevBtn = document.getElementById("edge-prev");
+  const nextBtn = document.getElementById("edge-next");
+  const indices = getNavigableIndices();
+  const currentIdx = indices.indexOf(currentPage);
+
+  prevBtn.classList.toggle("is-hidden", currentIdx <= 0);
+  nextBtn.classList.toggle("is-hidden", currentIdx >= indices.length - 1);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Timeline navigation
+// ─────────────────────────────────────────────────────────────
+
+function buildTimeline() {
+  const timeline = document.getElementById("timeline");
+  timeline.innerHTML = "";
+
+  const desktop = isDesktop();
+  const navigableIndices = getNavigableIndices();
+
+  pageElements.forEach((pageEl, i) => {
+    const { type } = getPageInfo(pageEl);
+
+    // On desktop, skip transition pages in timeline (except intro)
+    if (desktop && type === "transition") {
+      return;
+    }
+
+    const bar = document.createElement("button");
+    bar.className = "timeline-bar";
+    bar.dataset.page = i;
+
+    if (type === "intro") {
+      bar.classList.add("timeline-bar--intro");
+    }
+    // On mobile, transition pages are taller
+    if (!desktop && (type === "transition" || type === "intro")) {
+      bar.classList.add("timeline-bar--tall");
+    }
+
+    bar.addEventListener("click", () => goToPage(i));
+    timeline.appendChild(bar);
+  });
+
+  updateTimeline();
+}
+
+function updateTimeline() {
+  const bars = document.querySelectorAll(".timeline-bar");
+  bars.forEach((bar) => {
+    const pageIdx = parseInt(bar.dataset.page);
+    bar.classList.toggle("is-active", pageIdx === currentPage);
+    bar.setAttribute("aria-current", pageIdx === currentPage ? "page" : "false");
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Swipe navigation
+// ─────────────────────────────────────────────────────────────
+
+function setupSwipe() {
+  const viewer = document.getElementById("viewer");
+
+  viewer.addEventListener("touchstart", (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  viewer.addEventListener("touchend", (e) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      if (deltaX < 0) {
+        nextPage();
+      } else {
+        prevPage();
+      }
+    }
+  }, { passive: true });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Keyboard navigation
+// ─────────────────────────────────────────────────────────────
+
+function setupKeyboard() {
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === " ") {
+      e.preventDefault();
+      nextPage();
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault();
+      prevPage();
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Click navigation (click sides of screen)
+// ─────────────────────────────────────────────────────────────
+
+function setupClickNav() {
+  const viewer = document.getElementById("viewer");
+
+  viewer.addEventListener("click", (e) => {
+    if (e.target.closest(".timeline, .edge-nav, button, a, .page-story")) return;
+
+    const rect = viewer.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const threshold = rect.width * 0.25;
+
+    if (x < threshold) {
+      prevPage();
+    } else if (x > rect.width - threshold) {
+      nextPage();
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Resize handling
+// ─────────────────────────────────────────────────────────────
+
+let lastWasDesktop = null;
 
 function handleResize() {
   const svg = d3.select("#map");
+  const desktop = isDesktop();
+
+  // Refit projection
   fitProjection(svg, geoDataByStep);
 
-  // Re-render current step
-  if (currentStep >= 0) {
-    // Remove all paths and re-render
-    svg.selectAll("path").remove();
-    renderMap(svg, geoDataByStep, currentStep);
+  // If viewport mode changed, rebuild timeline and adjust current page
+  if (lastWasDesktop !== desktop) {
+    // If switching to desktop and on a transition page, move to next story page
+    if (desktop) {
+      const { type } = getPageInfo(pageElements[currentPage]);
+      if (type === "transition") {
+        const nextStory = pageElements.findIndex((el, i) =>
+          i > currentPage && el.dataset.type === "story"
+        );
+        if (nextStory !== -1) {
+          currentPage = nextStory;
+          pageElements.forEach((el, i) => {
+            el.classList.toggle("is-active", i === currentPage);
+          });
+        }
+      }
+    }
+
+    buildTimeline();
+    lastWasDesktop = desktop;
   }
+
+  // Re-render current map state
+  const pageEl = pageElements[currentPage];
+  const { type, step } = getPageInfo(pageEl);
+  const mapLayer = document.getElementById("map-layer");
+
+  svg.selectAll("path").remove();
+
+  if (type === "intro") {
+    mapLayer.classList.remove("is-thumbnail");
+    renderMap(svg, geoDataByStep, 0, { opacity: 0.15, duration: 0 });
+  } else if (step !== null) {
+    if (desktop || type === "transition") {
+      mapLayer.classList.remove("is-thumbnail");
+    } else {
+      mapLayer.classList.add("is-thumbnail");
+    }
+    renderMap(svg, geoDataByStep, step, { opacity: 1, duration: 0 });
+  }
+
+  updateEdgeNav();
 }
+
+// ─────────────────────────────────────────────────────────────
+// Initialization
+// ─────────────────────────────────────────────────────────────
 
 async function init() {
   geoDataByStep = await loadAllGeoJSON();
 
+  pageElements = Array.from(document.querySelectorAll(".page"));
+  totalPages = pageElements.length;
+  lastWasDesktop = isDesktop();
+
   const svg = d3.select("#map");
   fitProjection(svg, geoDataByStep);
 
-  // Render prologue background map
-  renderPrologueMap(geoDataByStep);
+  renderMap(svg, geoDataByStep, 0, { opacity: 0.15 });
 
-  // Render initial state (first step)
-  renderMap(svg, geoDataByStep, 0);
-  currentStep = 0;
-  updateMapYear(0);
+  buildTimeline();
+  setupEdgeNav();
+  setupSwipe();
+  setupKeyboard();
+  setupClickNav();
 
-  // Set up scroll-driven transitions
-  setupScrollObserver();
-
-  // Handle resize
   window.addEventListener("resize", debounce(handleResize, 200));
 }
 
