@@ -118,14 +118,14 @@ function renderMap(svg, geoData, stepIndex) {
 
     const sel = svg.selectAll(`.${className}`).data(features, (d, i) => `${cat}-${i}`);
 
-    // Enter - new territories get the current era color
+    // Enter - new territories get the current era color (use .style for CSS specificity)
     sel
       .enter()
       .append("path")
       .attr("class", className)
       .attr("d", path)
       .attr("opacity", 0)
-      .attr("fill", (cat === "state" || cat === "territory") ? eraColor : null)
+      .style("fill", (cat === "state" || cat === "territory") ? eraColor : null)
       .attr("stroke", "#faf7f5")
       .transition()
       .duration(800)
