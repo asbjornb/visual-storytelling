@@ -34,9 +34,24 @@ const MAP_STEPS = [
 
 // Context country IDs from Natural Earth (for filtering TopoJSON)
 const CONTEXT_COUNTRY_IDS = [
+  // North America
   124, // Canada
   484, // Mexico
   304, // Greenland
+  // Central America
+  84,  // Belize
+  320, // Guatemala
+  340, // Honduras
+  222, // El Salvador
+  558, // Nicaragua
+  188, // Costa Rica
+  591, // Panama
+  // Caribbean
+  44,  // Bahamas
+  192, // Cuba
+  388, // Jamaica
+  332, // Haiti
+  214, // Dominican Republic
 ];
 
 const CATEGORY_CLASS = {
@@ -67,12 +82,12 @@ let currentMapStep = -1;
 // D3 setup - North America projection
 // ─────────────────────────────────────────────────────────────
 
-// Use Conic Equal Area projection that can show all of North America
-// including Alaska, Canada, Greenland, and Mexico
+// Use Conic Equal Area projection that can show North America,
+// Central America, Caribbean, and Greenland
 const projection = d3.geoConicEqualArea()
-  .parallels([29.5, 45.5])  // Standard parallels for North America
-  .rotate([96, 0])          // Center longitude
-  .center([0, 38]);         // Center latitude
+  .parallels([20, 50])      // Wider parallels for extended latitude range
+  .rotate([90, 0])          // Center longitude (shifted east to include Caribbean)
+  .center([0, 35]);         // Center latitude (shifted south for Central America)
 
 const path = d3.geoPath().projection(projection);
 
