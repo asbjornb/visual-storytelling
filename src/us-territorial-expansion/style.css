@@ -9,35 +9,35 @@
 }
 
 :root {
-  /* Light theme - warm paper background */
-  --bg: #f8f5f0;
-  --bg-card: rgba(255, 253, 248, 0.95);
-  --fg: #2a2d34;
-  --fg-muted: #6b6e75;
+  /* Light theme - warm cream with hint of blush */
+  --bg: #faf7f5;
+  --bg-card: rgba(255, 252, 250, 0.96);
+  --fg: #2d3142;
+  --fg-muted: #6b7084;
 
   /* Primary accent - deep navy for UI elements */
   --accent: #3d4a5c;
-  --accent-dim: #2a3440;
+  --accent-dim: #2d3748;
 
-  /* Map base fills - restrained neutrals */
-  --state-fill: #c8c3b8;
-  --territory-fill: #d4cfc4;
-  --other-fill: #e8e4dc;
+  /* Map base fills - soft warm neutrals */
+  --state-fill: #d8d4cf;
+  --territory-fill: #e0dcd7;
+  --other-fill: #edebe8;
   --new-fill: #3d4a5c;
-  --border: #d4cfc4;
+  --border: #ddd9d4;
 
-  /* Era accent colors - muted, intentional */
-  --era-original: #9a958a;      /* Warm gray for original states */
-  --era-louisiana: #a85a4a;     /* Oxide red */
-  --era-redriver: #5d8a87;      /* Dusty teal */
-  --era-florida: #758556;       /* Olive */
-  --era-texas: #b07a3e;         /* Burnt ochre */
-  --era-oregon: #637592;        /* Slate blue */
-  --era-mexican: #8b5a4a;       /* Muted oxide */
-  --era-gadsden: #6b7a5a;       /* Muted olive */
-  --era-alaska: #4a7c7a;        /* Deep teal */
-  --era-pacific: #5a6b8a;       /* Slate */
-  --era-modern: #8b4a4a;        /* Muted warning red */
+  /* Era accent colors - candy-inspired, sophisticated */
+  --era-original: #b8a89a;      /* Warm taupe anchor */
+  --era-louisiana: #e07860;     /* Coral */
+  --era-redriver: #5fb8a8;      /* Seafoam */
+  --era-florida: #d4848a;       /* Dusty rose */
+  --era-texas: #e89860;         /* Peachy orange */
+  --era-oregon: #7888c0;        /* Periwinkle */
+  --era-mexican: #c87058;       /* Terracotta */
+  --era-gadsden: #88a878;       /* Sage */
+  --era-alaska: #68a8d0;        /* Sky blue */
+  --era-pacific: #9080b0;       /* Soft violet */
+  --era-modern: #b85878;        /* Berry */
 
   --font-body: "Inter", system-ui, sans-serif;
   --font-display: "Playfair Display", Georgia, serif;
@@ -280,8 +280,8 @@ body {
 /* ── Epilogue special styling ─────────────────────────── */
 
 .step--epilogue .step-content {
-  border-color: #c9a8a8;
-  background: rgba(255, 250, 248, 0.98);
+  border-color: #d4a8b8;
+  background: rgba(255, 250, 252, 0.98);
 }
 
 .step--epilogue .step-year {
@@ -290,7 +290,7 @@ body {
 
 .step--epilogue blockquote {
   color: var(--era-modern);
-  border-left-color: #c9a8a8;
+  border-left-color: #d4a8b8;
 }
 
 .step-disclaimer {

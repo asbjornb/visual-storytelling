@@ -1,18 +1,18 @@
 import * as d3 from "d3";
 
-// Era accent colors - matches CSS custom properties
+// Era accent colors - candy-inspired, sophisticated
 const ERA_COLORS = {
-  original: "#9a958a",    // Warm gray for original states
-  louisiana: "#a85a4a",   // Oxide red
-  redriver: "#5d8a87",    // Dusty teal
-  florida: "#758556",     // Olive
-  texas: "#b07a3e",       // Burnt ochre
-  oregon: "#637592",      // Slate blue
-  mexican: "#8b5a4a",     // Muted oxide
-  gadsden: "#6b7a5a",     // Muted olive
-  alaska: "#4a7c7a",      // Deep teal
-  pacific: "#5a6b8a",     // Slate
-  modern: "#8b4a4a",      // Muted warning red
+  original: "#b8a89a",    // Warm taupe anchor
+  louisiana: "#e07860",   // Coral
+  redriver: "#5fb8a8",    // Seafoam
+  florida: "#d4848a",     // Dusty rose
+  texas: "#e89860",       // Peachy orange
+  oregon: "#7888c0",      // Periwinkle
+  mexican: "#c87058",     // Terracotta
+  gadsden: "#88a878",     // Sage
+  alaska: "#68a8d0",      // Sky blue
+  pacific: "#9080b0",     // Soft violet
+  modern: "#b85878",      // Berry
 };
 
 // Timeline steps: maps to GeoJSON files
@@ -99,7 +99,7 @@ function renderPrologueMap(geoData) {
     .append("path")
     .attr("d", prologuePath)
     .attr("fill", ERA_COLORS.original)
-    .attr("stroke", "#f8f5f0")
+    .attr("stroke", "#faf7f5")
     .attr("stroke-width", 0.5)
     .attr("opacity", 0.25);
 }
@@ -126,7 +126,7 @@ function renderMap(svg, geoData, stepIndex) {
       .attr("d", path)
       .attr("opacity", 0)
       .attr("fill", (cat === "state" || cat === "territory") ? eraColor : null)
-      .attr("stroke", "#f8f5f0")
+      .attr("stroke", "#faf7f5")
       .transition()
       .duration(800)
       .attr("opacity", 1);
