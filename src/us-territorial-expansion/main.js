@@ -1,12 +1,22 @@
 import * as d3 from "d3";
+import * as topojson from "topojson-client";
+
+// ─────────────────────────────────────────────────────────────
+// Colors
+// ─────────────────────────────────────────────────────────────
 
 // US territory color - cool blue-gray
 const US_COLOR = "#b8c4d0";
 
-// Non-US areas - dim warm gray
-const NON_US_COLOR = "#e8e4dc";
+// Non-US context countries - dim warm gray
+const CONTEXT_COLOR = "#e8e4dc";
 
-// Map step definitions (GeoJSON files)
+// Ocean/background - handled by CSS
+
+// ─────────────────────────────────────────────────────────────
+// Map step definitions
+// ─────────────────────────────────────────────────────────────
+
 const MAP_STEPS = [
   { year: "1783", file: "1789-original-states.geojson", era: "original" },
   { year: "1803", file: "1803-louisiana-purchase.geojson", era: "louisiana" },
@@ -22,27 +32,53 @@ const MAP_STEPS = [
   { year: "2025–26", file: "1959-final.geojson", era: "modern" },
 ];
 
+// Context country IDs from Natural Earth (for filtering TopoJSON)
+const CONTEXT_COUNTRY_IDS = [
+  124, // Canada
+  484, // Mexico
+  304, // Greenland
+];
+
 const CATEGORY_CLASS = {
   state: "map-state",
   territory: "map-territory",
   other_country: "map-other",
   disputed: "map-disputed",
   none: "map-none",
+  seceded_state: "map-seceded",
 };
 
 const DESKTOP_BREAKPOINT = 900;
 
+// ─────────────────────────────────────────────────────────────
 // State
+// ─────────────────────────────────────────────────────────────
+
 let geoDataByStep = [];
+let contextCountries = null;
 let currentPage = 0;
 let totalPages = 0;
 let pageElements = [];
 let touchStartX = 0;
 let touchStartY = 0;
+let currentMapStep = -1;
 
-// D3 setup
-const projection = d3.geoAlbersUsa();
+// ─────────────────────────────────────────────────────────────
+// D3 setup - North America projection
+// ─────────────────────────────────────────────────────────────
+
+// Use Conic Equal Area projection that can show all of North America
+// including Alaska, Canada, Greenland, and Mexico
+const projection = d3.geoConicEqualArea()
+  .parallels([29.5, 45.5])  // Standard parallels for North America
+  .rotate([96, 0])          // Center longitude
+  .center([0, 38]);         // Center latitude
+
 const path = d3.geoPath().projection(projection);
+
+// Store base dimensions for viewBox
+let baseWidth = 0;
+let baseHeight = 0;
 
 // ─────────────────────────────────────────────────────────────
 // Responsive helpers
@@ -52,16 +88,13 @@ function isDesktop() {
   return window.innerWidth >= DESKTOP_BREAKPOINT;
 }
 
-// Get pages that should be navigable (desktop skips transition pages)
 function getNavigablePages() {
   if (isDesktop()) {
-    // Desktop: only intro and story pages
     return pageElements.filter((el) => {
       const type = el.dataset.type;
       return type === "intro" || type === "story";
     });
   }
-  // Mobile: all pages
   return pageElements;
 }
 
@@ -89,63 +122,101 @@ async function loadAllGeoJSON() {
   return Promise.all(promises);
 }
 
+async function loadContextCountries() {
+  const topo = await d3.json("/data/us-territorial-expansion/world-countries-50m.json");
+
+  // Convert TopoJSON to GeoJSON and filter to just the countries we want
+  const allCountries = topojson.feature(topo, topo.objects.countries);
+
+  const filtered = {
+    type: "FeatureCollection",
+    features: allCountries.features.filter(f =>
+      CONTEXT_COUNTRY_IDS.includes(parseInt(f.id))
+    )
+  };
+
+  return filtered;
+}
+
 // ─────────────────────────────────────────────────────────────
 // Map rendering
 // ─────────────────────────────────────────────────────────────
 
-// Store base dimensions for viewBox
-let baseWidth = 0;
-let baseHeight = 0;
-
 function fitProjection(svg, geoData) {
-  const container = svg.node().parentNode;
-  // Always use full viewport size for projection (not thumbnail size)
   const width = window.innerWidth;
   const height = window.innerHeight;
 
-  // Store base dimensions for viewBox
   baseWidth = width;
   baseHeight = height;
 
+  // Use the final US territory data plus context countries for bounds
   const finalData = geoData[geoData.length - 1];
-  const allFeatures = Object.values(finalData).flat();
+  const usFeatures = Object.values(finalData).flat();
+
+  // Combine US features with context countries for fitting
+  const allFeatures = contextCountries
+    ? [...usFeatures, ...contextCountries.features]
+    : usFeatures;
+
   const collection = { type: "FeatureCollection", features: allFeatures };
 
   // On desktop, offset map to the right to leave room for side panel
   if (isDesktop()) {
-    const panelWidth = 480; // Space for side panel
+    const panelWidth = 480;
     const mapWidth = width - panelWidth;
-    projection.fitSize([mapWidth, height], collection);
-    // Shift projection to the right
+    projection.fitSize([mapWidth, height * 0.95], collection);
     const [tx, ty] = projection.translate();
     projection.translate([tx + panelWidth, ty]);
   } else {
-    projection.fitSize([width, height], collection);
+    projection.fitSize([width, height * 0.95], collection);
   }
 
   path.projection(projection);
 
-  // Set viewBox so SVG scales when container shrinks (thumbnail mode)
   svg.attr("viewBox", `0 0 ${width} ${height}`);
   svg.attr("preserveAspectRatio", "xMidYMid meet");
 }
 
-function renderMap(svg, geoData, stepIndex, options = {}) {
+function initializeMap(svg) {
+  // Clear any existing content
+  svg.selectAll("*").remove();
+
+  // Create layer groups in correct z-order (bottom to top)
+  svg.append("g").attr("class", "layer-context");
+  svg.append("g").attr("class", "layer-us");
+
+  // Render context countries (static, never changes)
+  if (contextCountries) {
+    svg.select(".layer-context")
+      .selectAll(".context-country")
+      .data(contextCountries.features)
+      .enter()
+      .append("path")
+      .attr("class", "context-country")
+      .attr("d", path)
+      .attr("fill", CONTEXT_COLOR)
+      .attr("stroke", "#f8f5f0")
+      .attr("stroke-width", 0.5);
+  }
+}
+
+function renderMapStep(svg, geoData, stepIndex, options = {}) {
   const { opacity = 1, duration = 800 } = options;
   const data = geoData[stepIndex];
   if (!data) return;
 
-  const categories = ["other_country", "none", "disputed", "territory", "state"];
-  const isUSCategory = (cat) => cat === "state" || cat === "territory";
+  const categories = ["other_country", "none", "disputed", "territory", "state", "seceded_state"];
+  const isUSCategory = (cat) => cat === "state" || cat === "territory" || cat === "seceded_state";
+
+  const usLayer = svg.select(".layer-us");
 
   for (const cat of categories) {
     const features = data[cat] || [];
     const className = CATEGORY_CLASS[cat] || "map-none";
 
-    const sel = svg.selectAll(`.${className}`).data(features, (d, i) => `${cat}-${i}`);
+    const sel = usLayer.selectAll(`.${className}`).data(features, (d, i) => `${cat}-${i}`);
 
-    // US territory = blue-gray, non-US = dim
-    const fillColor = isUSCategory(cat) ? US_COLOR : NON_US_COLOR;
+    const fillColor = isUSCategory(cat) ? US_COLOR : CONTEXT_COLOR;
 
     // Enter: new DOM elements
     sel
@@ -155,12 +226,13 @@ function renderMap(svg, geoData, stepIndex, options = {}) {
       .attr("d", path)
       .attr("opacity", 0)
       .attr("stroke", "#f8f5f0")
+      .attr("stroke-width", 0.5)
       .attr("fill", fillColor)
       .transition()
       .duration(duration)
       .attr("opacity", opacity);
 
-    // Update: existing DOM elements - transition to new era color
+    // Update: existing DOM elements
     sel
       .transition()
       .duration(duration)
@@ -170,6 +242,22 @@ function renderMap(svg, geoData, stepIndex, options = {}) {
 
     sel.exit().transition().duration(duration / 2).attr("opacity", 0).remove();
   }
+
+  currentMapStep = stepIndex;
+}
+
+function updateMapOpacity(svg, opacity, duration = 600) {
+  svg.select(".layer-us")
+    .selectAll("path")
+    .transition()
+    .duration(duration)
+    .attr("opacity", opacity);
+
+  svg.select(".layer-context")
+    .selectAll("path")
+    .transition()
+    .duration(duration)
+    .attr("opacity", opacity);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -191,31 +279,35 @@ function goToPage(newPage) {
   const mapLayer = document.getElementById("map-layer");
   const desktop = isDesktop();
 
-  // Update page visibility
   pageElements.forEach((el, i) => {
     el.classList.toggle("is-active", i === newPage);
   });
 
-  // Get new page info
   const pageEl = pageElements[newPage];
   const { type, step } = getPageInfo(pageEl);
 
-  // Update map based on page type
   if (type === "intro") {
     mapLayer.classList.remove("is-thumbnail");
-    renderMap(svg, geoDataByStep, 0, { opacity: 0.15, duration: 600 });
+    // Keep current map step, just dim it
+    updateMapOpacity(svg, 0.15, 600);
   } else if (type === "transition") {
     mapLayer.classList.remove("is-thumbnail");
-    renderMap(svg, geoDataByStep, step, { opacity: 1, duration: 800 });
+    if (step !== currentMapStep) {
+      renderMapStep(svg, geoDataByStep, step, { opacity: 1, duration: 800 });
+    } else {
+      updateMapOpacity(svg, 1, 600);
+    }
   } else if (type === "story") {
-    // On desktop: keep map full size with side panel
-    // On mobile: thumbnail mode
     if (desktop) {
       mapLayer.classList.remove("is-thumbnail");
     } else {
       mapLayer.classList.add("is-thumbnail");
     }
-    renderMap(svg, geoDataByStep, step, { opacity: 1, duration: desktop ? 800 : 400 });
+    if (step !== currentMapStep) {
+      renderMapStep(svg, geoDataByStep, step, { opacity: 1, duration: desktop ? 800 : 400 });
+    } else {
+      updateMapOpacity(svg, 1, desktop ? 800 : 400);
+    }
   }
 
   currentPage = newPage;
@@ -279,12 +371,10 @@ function buildTimeline() {
   timeline.innerHTML = "";
 
   const desktop = isDesktop();
-  const navigableIndices = getNavigableIndices();
 
   pageElements.forEach((pageEl, i) => {
     const { type } = getPageInfo(pageEl);
 
-    // On desktop, skip transition pages in timeline (except intro)
     if (desktop && type === "transition") {
       return;
     }
@@ -296,7 +386,6 @@ function buildTimeline() {
     if (type === "intro") {
       bar.classList.add("timeline-bar--intro");
     }
-    // On mobile, transition pages are taller
     if (!desktop && (type === "transition" || type === "intro")) {
       bar.classList.add("timeline-bar--tall");
     }
@@ -362,7 +451,7 @@ function setupKeyboard() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Click navigation (click sides of screen)
+// Click navigation
 // ─────────────────────────────────────────────────────────────
 
 function setupClickNav() {
@@ -393,12 +482,9 @@ function handleResize() {
   const svg = d3.select("#map");
   const desktop = isDesktop();
 
-  // Refit projection
   fitProjection(svg, geoDataByStep);
 
-  // If viewport mode changed, rebuild timeline and adjust current page
   if (lastWasDesktop !== desktop) {
-    // If switching to desktop and on a transition page, move to next story page
     if (desktop) {
       const { type } = getPageInfo(pageElements[currentPage]);
       if (type === "transition") {
@@ -418,23 +504,24 @@ function handleResize() {
     lastWasDesktop = desktop;
   }
 
-  // Re-render current map state
+  // Re-render paths with new projection
   const pageEl = pageElements[currentPage];
   const { type, step } = getPageInfo(pageEl);
   const mapLayer = document.getElementById("map-layer");
 
-  svg.selectAll("path").remove();
+  // Re-initialize and re-render
+  initializeMap(svg);
 
   if (type === "intro") {
     mapLayer.classList.remove("is-thumbnail");
-    renderMap(svg, geoDataByStep, 0, { opacity: 0.15, duration: 0 });
+    renderMapStep(svg, geoDataByStep, 0, { opacity: 0.15, duration: 0 });
   } else if (step !== null) {
     if (desktop || type === "transition") {
       mapLayer.classList.remove("is-thumbnail");
     } else {
       mapLayer.classList.add("is-thumbnail");
     }
-    renderMap(svg, geoDataByStep, step, { opacity: 1, duration: 0 });
+    renderMapStep(svg, geoDataByStep, step, { opacity: 1, duration: 0 });
   }
 
   updateEdgeNav();
@@ -445,7 +532,11 @@ function handleResize() {
 // ─────────────────────────────────────────────────────────────
 
 async function init() {
-  geoDataByStep = await loadAllGeoJSON();
+  // Load data in parallel
+  [geoDataByStep, contextCountries] = await Promise.all([
+    loadAllGeoJSON(),
+    loadContextCountries()
+  ]);
 
   pageElements = Array.from(document.querySelectorAll(".page"));
   totalPages = pageElements.length;
@@ -454,7 +545,11 @@ async function init() {
   const svg = d3.select("#map");
   fitProjection(svg, geoDataByStep);
 
-  renderMap(svg, geoDataByStep, 0, { opacity: 0.15 });
+  // Initialize map layers and render context countries once
+  initializeMap(svg);
+
+  // Render initial US state
+  renderMapStep(svg, geoDataByStep, 0, { opacity: 0.15, duration: 0 });
 
   buildTimeline();
   setupEdgeNav();

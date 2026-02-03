@@ -62,3 +62,24 @@ Scroll-driven visual story of how the United States grew from 1776 to present da
 - Each acquisition gets a distinct color, building up a "quilt" of territory
 - Text panels with narrative, quotes, and data callouts (price, area) per section
 - Illustrations supplement the map, showing the human element (treaty signings, etc.)
+
+**Map implementation:**
+- Uses `geoConicEqualArea` projection to show full North America (Alaska, Canada, Mexico, Greenland)
+- Context countries loaded from Natural Earth 50m TopoJSON (`world-countries-50m.json`)
+- Pacific territories (Hawaii, Guam, Samoa, etc.) are not shown on the main map due to geographic distance
+
+**Roadmap / Future improvements:**
+
+1. **Per-acquisition highlighting** (planned)
+   - Currently: All US territory uses the same color, with the whole shape growing each step
+   - Goal: Highlight newly-acquired territory in a distinct "candy" color, then fade to established US color
+   - Blocker: Current GeoJSON data has merged polygons per category (state, territory). Need individual polygons per acquisition with `era` tags
+   - Data options:
+     - Compute geometric differences between consecutive step files
+     - Manual tracing from historical maps
+     - Find alternative data source with pre-separated acquisition boundaries
+   - Once data exists, rendering is straightforward: render all acquisitions once, animate fill colors per step
+
+2. **Pacific territory insets**
+   - Add small inset maps for Hawaii, Guam, American Samoa, Virgin Islands
+   - These are too far from continental US to show on the main projection
