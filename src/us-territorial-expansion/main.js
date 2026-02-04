@@ -69,6 +69,20 @@ const RHETORIC_TARGETS = [
   { name: "Panama", lat: 9, lon: -80 },
 ];
 
+// Acquisition labels for overview map - approximate centroid positions
+const ACQUISITION_LABELS = [
+  { era: "original", year: "1783", lat: 38, lon: -79 },
+  { era: "louisiana", year: "1803", lat: 42, lon: -100 },
+  { era: "redriver", year: "1818", lat: 48.5, lon: -97 },
+  { era: "florida", year: "1819", lat: 28.5, lon: -82.5 },
+  { era: "texas", year: "1845", lat: 31.5, lon: -99.5 },
+  { era: "oregon", year: "1846", lat: 45.5, lon: -120 },
+  { era: "mexican", year: "1848", lat: 36, lon: -117 },
+  { era: "gadsden", year: "1853", lat: 32, lon: -110.5 },
+  { era: "alaska", year: "1867", lat: 64, lon: -152 },
+  { era: "hawaii", year: "1898", lat: 21, lon: -157 }, // Won't render (off map)
+];
+
 // Context country IDs from Natural Earth (for filtering TopoJSON)
 const CONTEXT_COUNTRY_IDS = [
   // North America
@@ -292,7 +306,7 @@ function getNavigablePages() {
   if (isDesktop()) {
     return pageElements.filter((el) => {
       const type = el.dataset.type;
-      return type === "intro" || type === "story";
+      return type === "intro" || type === "story" || type === "overview";
     });
   }
   return pageElements;
@@ -417,6 +431,30 @@ function initializeMap(svg) {
       .attr("opacity", 0)
       .text("?");
   });
+
+  // Render acquisition year labels for overview map
+  ACQUISITION_LABELS.forEach((label) => {
+    const coords = projection([label.lon, label.lat]);
+    if (!coords) return;
+    const [x, y] = coords;
+    // Skip if coordinates are outside visible area
+    if (x < 0 || x > baseWidth || y < 0 || y > baseHeight) return;
+
+    labelsLayer.append("text")
+      .attr("class", `acquisition-label acquisition-label-${label.era}`)
+      .attr("x", x)
+      .attr("y", y)
+      .attr("text-anchor", "middle")
+      .attr("dominant-baseline", "middle")
+      .attr("font-size", "14px")
+      .attr("font-weight", "600")
+      .attr("fill", "#2a2d34")
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 2.5)
+      .attr("paint-order", "stroke")
+      .attr("opacity", 0)
+      .text(label.year);
+  });
 }
 
 function renderMapStep(svg, geoData, stepIndex, options = {}) {
@@ -475,7 +513,53 @@ function renderMapStep(svg, geoData, stepIndex, options = {}) {
     .duration(duration)
     .attr("opacity", stepIndex === MODERN_STEP ? opacity : 0);
 
+  // Hide acquisition labels during regular steps
+  labelsLayer.selectAll(".acquisition-label")
+    .interrupt()
+    .transition()
+    .duration(duration)
+    .attr("opacity", 0);
+
   currentMapStep = stepIndex;
+}
+
+function renderOverviewMap(svg, options = {}) {
+  const { opacity = 1, duration = 800 } = options;
+
+  if (!acquisitionsData) return;
+
+  const acqLayer = svg.select(".layer-acquisitions");
+  const labelsLayer = svg.select(".layer-labels");
+
+  // Show all acquisitions in their candy colors (not established)
+  acquisitionsData.features.forEach((feature) => {
+    const era = feature.properties.era;
+    const sel = acqLayer.select(`.acquisition-${era}`);
+
+    if (sel.empty()) return;
+
+    sel.interrupt();
+    sel.transition()
+      .duration(duration)
+      .attr("opacity", opacity)
+      .attr("fill", ERA_COLORS[era] || ESTABLISHED_COLOR);
+  });
+
+  // Hide rhetoric labels
+  labelsLayer.selectAll(".rhetoric-label")
+    .interrupt()
+    .transition()
+    .duration(duration)
+    .attr("opacity", 0);
+
+  // Show acquisition year labels
+  labelsLayer.selectAll(".acquisition-label")
+    .interrupt()
+    .transition()
+    .duration(duration)
+    .attr("opacity", opacity);
+
+  currentMapStep = -2; // Special value for overview mode
 }
 
 function updateMapOpacity(svg, opacity, duration = 600) {
@@ -550,6 +634,9 @@ function goToPage(newPage) {
     } else {
       updateMapOpacity(svg, 1, 600);
     }
+  } else if (type === "overview") {
+    mapLayer.classList.remove("is-thumbnail");
+    renderOverviewMap(svg, { opacity: 1, duration: 800 });
   } else if (type === "story") {
     if (desktop) {
       mapLayer.classList.remove("is-thumbnail");
@@ -823,6 +910,9 @@ function handleResize() {
   if (type === "intro") {
     mapLayer.classList.remove("is-thumbnail");
     renderMapStep(svg, geoDataByStep, 0, { opacity: 0.15, duration: 0, animate: false });
+  } else if (type === "overview") {
+    mapLayer.classList.remove("is-thumbnail");
+    renderOverviewMap(svg, { opacity: 1, duration: 0 });
   } else if (step !== null) {
     if (desktop || type === "transition") {
       mapLayer.classList.remove("is-thumbnail");

@@ -539,6 +539,27 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   OVERVIEW PAGE STYLING
+   ═══════════════════════════════════════════════════════════ */
+
+.page--overview .page-overlay {
+  max-width: 500px;
+}
+
+.page--overview h2 {
+  font-size: clamp(1.75rem, 5vw, 2.75rem);
+  margin-bottom: 0.5rem;
+}
+
+.page-subtitle {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  color: var(--fg-muted);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* ═══════════════════════════════════════════════════════════
    NOTES PAGE STYLING
    ═══════════════════════════════════════════════════════════ */
 
