@@ -487,6 +487,22 @@ function setupClickNav() {
   });
 }
 
+function setupNotesLink() {
+  // Handle click on "See notes" link in intro
+  const notesLink = document.querySelector('.page-note a[href="#notes"]');
+  if (notesLink) {
+    notesLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      // Navigate to the notes page (last page)
+      const notesPage = document.getElementById("notes");
+      if (notesPage) {
+        const pageIndex = parseInt(notesPage.dataset.page);
+        goToPage(pageIndex);
+      }
+    });
+  }
+}
+
 // ─────────────────────────────────────────────────────────────
 // Resize handling
 // ─────────────────────────────────────────────────────────────
@@ -571,6 +587,7 @@ async function init() {
   setupSwipe();
   setupKeyboard();
   setupClickNav();
+  setupNotesLink();
 
   window.addEventListener("resize", debounce(handleResize, 200));
 }

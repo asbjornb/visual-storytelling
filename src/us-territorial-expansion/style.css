@@ -145,6 +145,23 @@ body {
   opacity: 0.7;
 }
 
+.page--intro .page-note {
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+  margin-top: 2rem;
+  opacity: 0.8;
+}
+
+.page--intro .page-note a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.page--intro .page-note a:hover {
+  opacity: 0.8;
+}
+
 /* ═══════════════════════════════════════════════════════════
    TRANSITION PAGE (full map + minimal overlay)
    ═══════════════════════════════════════════════════════════ */
@@ -301,6 +318,96 @@ body {
   letter-spacing: 0.08em;
   margin-bottom: 0.75rem;
   font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NOTES PAGE STYLING
+   ═══════════════════════════════════════════════════════════ */
+
+.page--notes .page-story {
+  max-width: 600px;
+}
+
+.page-story--notes h2 {
+  margin-bottom: 1.25rem;
+}
+
+.page-story--notes h3 {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-muted);
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.page-story--notes h3:first-of-type {
+  margin-top: 0;
+}
+
+.page-story--notes p {
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.notes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem 0;
+  font-size: 0.85rem;
+}
+
+.notes-list li {
+  position: relative;
+  padding-left: 1rem;
+  margin-bottom: 0.5rem;
+  color: var(--fg);
+}
+
+.notes-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+.notes-list strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.notes-list--sources li {
+  margin-bottom: 0.4rem;
+}
+
+.notes-list a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.notes-list a:hover {
+  opacity: 0.8;
+}
+
+.notes-data-credit {
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.notes-data-credit a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.notes-data-credit a:hover {
+  opacity: 0.8;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -554,6 +661,23 @@ body {
 
   .page-story blockquote {
     font-size: 0.85rem;
+  }
+
+  /* Notes page on mobile */
+  .page--notes .page-story {
+    margin-top: 2rem;
+    max-height: calc(100vh - 8rem);
+    overflow-y: auto;
+  }
+
+  .page-story--notes p,
+  .notes-list {
+    font-size: 0.8rem;
+  }
+
+  .page--intro .page-note {
+    margin-top: 1.5rem;
+    font-size: 0.7rem;
   }
 
   /* Edge arrows smaller on mobile */
