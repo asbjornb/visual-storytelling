@@ -48,6 +48,14 @@ const MAP_STEPS = [
   { year: "2025–26", file: "1959-final.geojson", era: "modern" },
 ];
 
+// Modern expansion rhetoric targets - coordinates for question mark labels
+// These appear on the final "Modern Rhetoric" slide (step 11)
+const RHETORIC_TARGETS = [
+  { name: "Greenland", lat: 72, lon: -40 },
+  { name: "Canada", lat: 56, lon: -106 },
+  { name: "Panama", lat: 9, lon: -80 },
+];
+
 // Context country IDs from Natural Earth (for filtering TopoJSON)
 const CONTEXT_COUNTRY_IDS = [
   // North America
@@ -220,6 +228,7 @@ function initializeMap(svg) {
   // Create layer groups in correct z-order (bottom to top)
   svg.append("g").attr("class", "layer-context");
   svg.append("g").attr("class", "layer-acquisitions");
+  svg.append("g").attr("class", "layer-labels");
 
   // Render context countries (static, never changes)
   if (contextCountries) {
@@ -249,6 +258,26 @@ function initializeMap(svg) {
       .attr("stroke-width", 0.5)
       .attr("opacity", 0);
   }
+
+  // Render question mark labels for modern expansion rhetoric targets
+  const labelsLayer = svg.select(".layer-labels");
+  RHETORIC_TARGETS.forEach((target) => {
+    const [x, y] = projection([target.lon, target.lat]);
+    labelsLayer.append("text")
+      .attr("class", `rhetoric-label rhetoric-label-${target.name.toLowerCase()}`)
+      .attr("x", x)
+      .attr("y", y)
+      .attr("text-anchor", "middle")
+      .attr("dominant-baseline", "middle")
+      .attr("font-size", "48px")
+      .attr("font-weight", "bold")
+      .attr("fill", "#e63946")
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 2)
+      .attr("paint-order", "stroke")
+      .attr("opacity", 0)
+      .text("?");
+  });
 }
 
 function renderMapStep(svg, geoData, stepIndex, options = {}) {
@@ -290,6 +319,16 @@ function renderMapStep(svg, geoData, stepIndex, options = {}) {
     }
   });
 
+  // Show/hide question mark labels for modern expansion rhetoric
+  // Only visible on the final "modern" step (step 11)
+  const MODERN_STEP = MAP_STEPS.length - 1;
+  const labelsLayer = svg.select(".layer-labels");
+  labelsLayer.selectAll(".rhetoric-label")
+    .interrupt()
+    .transition()
+    .duration(duration)
+    .attr("opacity", stepIndex === MODERN_STEP ? opacity : 0);
+
   currentMapStep = stepIndex;
 }
 
@@ -313,6 +352,16 @@ function updateMapOpacity(svg, opacity, duration = 600) {
     .transition()
     .duration(duration)
     .attr("opacity", opacity);
+
+  // Update question mark labels opacity (if visible on modern step)
+  const MODERN_STEP = MAP_STEPS.length - 1;
+  if (currentMapStep === MODERN_STEP) {
+    svg.select(".layer-labels")
+      .selectAll(".rhetoric-label")
+      .transition()
+      .duration(duration)
+      .attr("opacity", opacity);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
