@@ -145,6 +145,86 @@ body {
   opacity: 0.7;
 }
 
+/* Expandable note on intro */
+.page-note-wrapper {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.page-note-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.page-note-toggle:hover {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+
+.page-note-toggle[aria-expanded="true"] {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+
+.page-note-icon {
+  font-size: 0.85rem;
+}
+
+.page-note-content {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-align: left;
+  max-width: 340px;
+  margin-left: auto;
+  margin-right: auto;
+  animation: noteExpand 0.2s ease;
+}
+
+@keyframes noteExpand {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-note-content p {
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+  margin: 0 0 0.5rem 0;
+  line-height: 1.5;
+}
+
+.page-note-content p:last-child {
+  margin-bottom: 0;
+}
+
+.page-note-content em {
+  color: var(--accent);
+  font-style: normal;
+}
+
+.page-note-footer {
+  font-size: 0.7rem !important;
+  opacity: 0.7;
+  margin-top: 0.5rem !important;
+}
+
 /* ═══════════════════════════════════════════════════════════
    TRANSITION PAGE (full map + minimal overlay)
    ═══════════════════════════════════════════════════════════ */
@@ -178,6 +258,143 @@ body {
   color: var(--fg);
   line-height: 1.1;
   opacity: 0.85;
+}
+
+.page--transition .page-asterisk {
+  margin-top: 1.5rem;
+  opacity: 0.7;
+}
+
+.map-disclaimer {
+  position: fixed;
+  bottom: 4.5rem;
+  left: 3rem;
+  z-index: 95;
+  max-width: 600px;
+  font-size: 0.7rem;
+  color: var(--fg-muted);
+  text-align: left;
+  line-height: 1.4;
+}
+
+.map-disclaimer em {
+  color: var(--accent);
+  font-style: normal;
+}
+
+.map-disclaimer a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.map-disclaimer a:hover {
+  opacity: 0.7;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NOTES MODAL
+   ═══════════════════════════════════════════════════════════ */
+
+.notes-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.notes-modal.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.notes-modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 480px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  transform: translateY(8px);
+  transition: transform 0.25s ease;
+}
+
+.notes-modal.is-open .notes-modal-content {
+  transform: translateY(0);
+}
+
+.notes-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.notes-modal-header h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--fg);
+  margin: 0;
+}
+
+.notes-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--fg-muted);
+  cursor: pointer;
+  padding: 0;
+  margin: -0.25rem -0.25rem 0 0;
+}
+
+.notes-modal-close:hover {
+  color: var(--fg);
+}
+
+.notes-modal-body p {
+  font-size: 0.85rem;
+  color: var(--fg);
+  margin: 0 0 0.75rem 0;
+  line-height: 1.5;
+}
+
+.notes-modal-body ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.notes-modal-body li {
+  position: relative;
+  padding-left: 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--fg);
+  line-height: 1.5;
+}
+
+.notes-modal-body li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+.notes-modal-body strong {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -301,6 +518,114 @@ body {
   letter-spacing: 0.08em;
   margin-bottom: 0.75rem;
   font-weight: 500;
+}
+
+.page-asterisk {
+  font-size: 0.7rem;
+  color: var(--fg-muted);
+  margin-top: 1rem;
+  margin-bottom: 0;
+  opacity: 0.85;
+}
+
+.page-asterisk a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.page-asterisk a:hover {
+  opacity: 0.7;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NOTES PAGE STYLING
+   ═══════════════════════════════════════════════════════════ */
+
+.page--notes .page-story {
+  max-width: 600px;
+}
+
+.page-story--notes h2 {
+  margin-bottom: 1.25rem;
+}
+
+.page-story--notes h3 {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-muted);
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.page-story--notes h3:first-of-type {
+  margin-top: 0;
+}
+
+.page-story--notes p {
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.notes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem 0;
+  font-size: 0.85rem;
+}
+
+.notes-list li {
+  position: relative;
+  padding-left: 1rem;
+  margin-bottom: 0.5rem;
+  color: var(--fg);
+}
+
+.notes-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+.notes-list strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.notes-list--sources li {
+  margin-bottom: 0.4rem;
+}
+
+.notes-list a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.notes-list a:hover {
+  opacity: 0.8;
+}
+
+.notes-data-credit {
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.notes-data-credit a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.notes-data-credit a:hover {
+  opacity: 0.8;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -522,6 +847,14 @@ body {
     font-size: clamp(1.25rem, 5vw, 1.75rem);
   }
 
+  .map-disclaimer {
+    bottom: 3.5rem;
+    left: 1.5rem;
+    right: 1.5rem;
+    max-width: none;
+    font-size: 0.65rem;
+  }
+
   .page--story {
     padding: 1rem;
     padding-left: 2.75rem;
@@ -554,6 +887,36 @@ body {
 
   .page-story blockquote {
     font-size: 0.85rem;
+  }
+
+  /* Notes page on mobile */
+  .page--notes .page-story {
+    margin-top: 2rem;
+    max-height: calc(100vh - 8rem);
+    overflow-y: auto;
+  }
+
+  .page-story--notes p,
+  .notes-list {
+    font-size: 0.8rem;
+  }
+
+  .page-note-wrapper {
+    margin-top: 1.5rem;
+  }
+
+  .page-note-toggle {
+    font-size: 0.7rem;
+    padding: 0.35rem 0.6rem;
+  }
+
+  .page-note-content {
+    max-width: 300px;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .page-note-content p {
+    font-size: 0.7rem;
   }
 
   /* Edge arrows smaller on mobile */
