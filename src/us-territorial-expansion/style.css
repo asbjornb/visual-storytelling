@@ -539,6 +539,67 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   OVERVIEW PAGE STYLING
+   ═══════════════════════════════════════════════════════════ */
+
+.page--overview .page-overlay {
+  max-width: 500px;
+}
+
+.page--overview h2 {
+  font-size: clamp(1.75rem, 5vw, 2.75rem);
+  margin-bottom: 0.5rem;
+}
+
+.page-subtitle {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  color: var(--fg-muted);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ACQUISITION TOOLTIP
+   ═══════════════════════════════════════════════════════════ */
+
+.acquisition-tooltip {
+  position: absolute;
+  z-index: 150;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, -100%);
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  max-width: 220px;
+  text-align: center;
+}
+
+.acquisition-tooltip.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.acquisition-tooltip-name {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--fg);
+  margin-bottom: 0.15rem;
+}
+
+.acquisition-tooltip-detail {
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+  line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════
    NOTES PAGE STYLING
    ═══════════════════════════════════════════════════════════ */
 
