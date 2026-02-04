@@ -56,6 +56,53 @@ const RHETORIC_TARGETS = [
   { name: "Panama", lat: 9, lon: -80 },
 ];
 
+// Progressive zoom bounds - geographic extents for different phases
+// We zoom out progressively as more territory is added
+const ZOOM_BOUNDS = {
+  // Steps 0-7 (1783-1853): Focus on continental US acquisitions
+  continental: {
+    minLon: -128,
+    maxLon: -62,
+    minLat: 22,
+    maxLat: 52,
+  },
+  // Steps 8-10 (1867-1959): Include Alaska
+  alaska: {
+    minLon: -172,
+    maxLon: -62,
+    minLat: 22,
+    maxLat: 72,
+  },
+  // Step 11 (2025-26): Full Americas view for Greenland, Canada, Panama rhetoric
+  full: null, // Uses all context countries (default behavior)
+};
+
+// Map step index to zoom level
+function getZoomLevelForStep(stepIndex) {
+  if (stepIndex <= 7) return "continental";
+  if (stepIndex <= 10) return "alaska";
+  return "full";
+}
+
+// Create a GeoJSON polygon from bounds for projection fitting
+function boundsToFeature(bounds) {
+  if (!bounds) return null;
+  const { minLon, maxLon, minLat, maxLat } = bounds;
+  return {
+    type: "Feature",
+    geometry: {
+      type: "Polygon",
+      coordinates: [[
+        [minLon, minLat],
+        [maxLon, minLat],
+        [maxLon, maxLat],
+        [minLon, maxLat],
+        [minLon, minLat],
+      ]],
+    },
+  };
+}
+
 // Context country IDs from Natural Earth (for filtering TopoJSON)
 const CONTEXT_COUNTRY_IDS = [
   // North America
@@ -102,6 +149,7 @@ let pageElements = [];
 let touchStartX = 0;
 let touchStartY = 0;
 let currentMapStep = -1;
+let currentZoomLevel = "continental";
 
 // ─────────────────────────────────────────────────────────────
 // D3 setup - North America projection
@@ -186,23 +234,31 @@ async function loadAcquisitions() {
 // Map rendering
 // ─────────────────────────────────────────────────────────────
 
-function fitProjection(svg, geoData) {
+function getFeaturesForZoomLevel(zoomLevel, geoData) {
+  const bounds = ZOOM_BOUNDS[zoomLevel];
+
+  if (!bounds) {
+    // Full zoom: use all context countries + US territory
+    const finalData = geoData[geoData.length - 1];
+    const usFeatures = Object.values(finalData).flat();
+    return contextCountries
+      ? [...usFeatures, ...contextCountries.features]
+      : usFeatures;
+  }
+
+  // Use bounds polygon for fitting
+  return [boundsToFeature(bounds)];
+}
+
+function fitProjection(svg, geoData, zoomLevel = currentZoomLevel) {
   const width = window.innerWidth;
   const height = window.innerHeight;
 
   baseWidth = width;
   baseHeight = height;
 
-  // Use the final US territory data plus context countries for bounds
-  const finalData = geoData[geoData.length - 1];
-  const usFeatures = Object.values(finalData).flat();
-
-  // Combine US features with context countries for fitting
-  const allFeatures = contextCountries
-    ? [...usFeatures, ...contextCountries.features]
-    : usFeatures;
-
-  const collection = { type: "FeatureCollection", features: allFeatures };
+  const features = getFeaturesForZoomLevel(zoomLevel, geoData);
+  const collection = { type: "FeatureCollection", features };
 
   // On desktop, offset map to the right to leave room for side panel
   if (isDesktop()) {
@@ -219,6 +275,81 @@ function fitProjection(svg, geoData) {
 
   svg.attr("viewBox", `0 0 ${width} ${height}`);
   svg.attr("preserveAspectRatio", "xMidYMid meet");
+
+  currentZoomLevel = zoomLevel;
+}
+
+// Animate projection change between zoom levels
+function animateProjection(svg, geoData, targetZoomLevel, duration = 800) {
+  if (targetZoomLevel === currentZoomLevel) return Promise.resolve();
+
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const desktop = isDesktop();
+
+  // Get current projection parameters
+  const startScale = projection.scale();
+  const startTranslate = projection.translate();
+
+  // Calculate target projection parameters
+  const features = getFeaturesForZoomLevel(targetZoomLevel, geoData);
+  const collection = { type: "FeatureCollection", features };
+
+  // Create a temporary projection to compute target params
+  const tempProjection = d3.geoConicEqualArea()
+    .parallels([20, 50])
+    .rotate([90, 0])
+    .center([0, 35]);
+
+  if (desktop) {
+    const panelWidth = 480;
+    const mapWidth = width - panelWidth;
+    tempProjection.fitSize([mapWidth, height * 0.95], collection);
+    const [tx, ty] = tempProjection.translate();
+    tempProjection.translate([tx + panelWidth, ty]);
+  } else {
+    tempProjection.fitSize([width, height * 0.95], collection);
+  }
+
+  const endScale = tempProjection.scale();
+  const endTranslate = tempProjection.translate();
+
+  currentZoomLevel = targetZoomLevel;
+
+  // Animate using D3 transition
+  return new Promise((resolve) => {
+    const interpolateScale = d3.interpolate(startScale, endScale);
+    const interpolateTranslate = d3.interpolate(startTranslate, endTranslate);
+
+    d3.select({})
+      .transition()
+      .duration(duration)
+      .ease(d3.easeCubicInOut)
+      .tween("projection", () => {
+        return (t) => {
+          projection.scale(interpolateScale(t));
+          projection.translate(interpolateTranslate(t));
+
+          // Update all paths
+          svg.select(".layer-context")
+            .selectAll("path")
+            .attr("d", path);
+
+          svg.select(".layer-acquisitions")
+            .selectAll("path")
+            .attr("d", path);
+
+          // Update label positions
+          RHETORIC_TARGETS.forEach((target) => {
+            const [x, y] = projection([target.lon, target.lat]);
+            svg.select(`.rhetoric-label-${target.name.toLowerCase()}`)
+              .attr("x", x)
+              .attr("y", y);
+          });
+        };
+      })
+      .on("end", resolve);
+  });
 }
 
 function initializeMap(svg) {
@@ -393,6 +524,11 @@ function goToPage(newPage) {
   const pageEl = pageElements[newPage];
   const { type, step } = getPageInfo(pageEl);
 
+  // Determine target zoom level based on step
+  const targetZoom = step !== null ? getZoomLevelForStep(step) : currentZoomLevel;
+  const zoomChanging = targetZoom !== currentZoomLevel;
+  const duration = desktop ? 800 : 400;
+
   if (type === "intro") {
     mapLayer.classList.remove("is-thumbnail");
     // Keep current map step, just dim it
@@ -400,7 +536,11 @@ function goToPage(newPage) {
   } else if (type === "transition") {
     mapLayer.classList.remove("is-thumbnail");
     if (step !== currentMapStep) {
-      renderMapStep(svg, geoDataByStep, step, { opacity: 1, duration: 800 });
+      // Animate zoom if level is changing, then render step
+      if (zoomChanging) {
+        animateProjection(svg, geoDataByStep, targetZoom, duration);
+      }
+      renderMapStep(svg, geoDataByStep, step, { opacity: 1, duration });
     } else {
       updateMapOpacity(svg, 1, 600);
     }
@@ -411,9 +551,13 @@ function goToPage(newPage) {
       mapLayer.classList.add("is-thumbnail");
     }
     if (step !== currentMapStep) {
-      renderMapStep(svg, geoDataByStep, step, { opacity: 1, duration: desktop ? 800 : 400 });
+      // Animate zoom if level is changing, then render step
+      if (zoomChanging) {
+        animateProjection(svg, geoDataByStep, targetZoom, duration);
+      }
+      renderMapStep(svg, geoDataByStep, step, { opacity: 1, duration });
     } else {
-      updateMapOpacity(svg, 1, desktop ? 800 : 400);
+      updateMapOpacity(svg, 1, duration);
     }
   }
 
@@ -634,11 +778,16 @@ function handleResize() {
   const svg = d3.select("#map");
   const desktop = isDesktop();
 
-  fitProjection(svg, geoDataByStep);
+  // Get current page info to determine zoom level
+  const pageEl = pageElements[currentPage];
+  const { type, step } = getPageInfo(pageEl);
+
+  // Determine zoom level from current step
+  const zoomLevel = step !== null ? getZoomLevelForStep(step) : "continental";
+  fitProjection(svg, geoDataByStep, zoomLevel);
 
   if (lastWasDesktop !== desktop) {
     if (desktop) {
-      const { type } = getPageInfo(pageElements[currentPage]);
       if (type === "transition") {
         const nextStory = pageElements.findIndex((el, i) =>
           i > currentPage && el.dataset.type === "story"
@@ -657,8 +806,6 @@ function handleResize() {
   }
 
   // Re-render paths with new projection
-  const pageEl = pageElements[currentPage];
-  const { type, step } = getPageInfo(pageEl);
   const mapLayer = document.getElementById("map-layer");
 
   // Re-initialize and re-render
@@ -696,7 +843,9 @@ async function init() {
   lastWasDesktop = isDesktop();
 
   const svg = d3.select("#map");
-  fitProjection(svg, geoDataByStep);
+
+  // Start with continental zoom for first step (1783)
+  fitProjection(svg, geoDataByStep, "continental");
 
   // Initialize map layers and render context countries once
   initializeMap(svg);
