@@ -84,6 +84,20 @@ const RHETORIC_TARGETS = [
   { name: "Panama", lat: 9, lon: -80 },
 ];
 
+// Acquisition labels for overview map - approximate centroid positions
+const ACQUISITION_LABELS = [
+  { era: "original", year: "1783", lat: 38, lon: -79, name: "Treaty of Paris", detail: "Original 13 colonies + land to Mississippi" },
+  { era: "louisiana", year: "1803", lat: 42, lon: -100, name: "Louisiana Purchase", detail: "$15M · 828,000 sq mi · 3¢/acre" },
+  { era: "redriver", year: "1818", lat: 48.5, lon: -97, name: "Red River Basin", detail: "Convention of 1818 with Britain" },
+  { era: "florida", year: "1819", lat: 28.5, lon: -82.5, name: "Florida", detail: "Adams–Onís Treaty · $5M in claims" },
+  { era: "texas", year: "1845", lat: 31.5, lon: -99.5, name: "Texas Annexation", detail: "Former Republic of Texas · 389,000 sq mi" },
+  { era: "oregon", year: "1846", lat: 45.5, lon: -120, name: "Oregon Treaty", detail: "British cession at 49th parallel" },
+  { era: "mexican", year: "1848", lat: 36, lon: -117, name: "Mexican Cession", detail: "$15M · 525,000 sq mi" },
+  { era: "gadsden", year: "1853", lat: 32, lon: -110.5, name: "Gadsden Purchase", detail: "$10M · 30,000 sq mi" },
+  { era: "alaska", year: "1867", lat: 64, lon: -152, name: "Alaska Purchase", detail: "$7.2M · 586,000 sq mi · 2¢/acre" },
+  { era: "hawaii", year: "1898", lat: 21, lon: -157, name: "Hawaii", detail: "Annexed during Spanish-American War" },
+];
+
 // Context country IDs from Natural Earth (for filtering TopoJSON)
 const CONTEXT_COUNTRY_IDS = [
   // North America
@@ -312,7 +326,7 @@ function getNavigablePages() {
   if (isDesktop()) {
     return pageElements.filter((el) => {
       const type = el.dataset.type;
-      return type === "intro" || type === "story";
+      return type === "intro" || type === "story" || type === "overview";
     });
   }
   return pageElements;
@@ -441,6 +455,94 @@ function initializeMap(svg) {
       .attr("opacity", 0)
       .text("?");
   });
+
+  // Render acquisition year labels for overview map
+  ACQUISITION_LABELS.forEach((label) => {
+    const coords = projection([label.lon, label.lat]);
+    if (!coords) return;
+    const [x, y] = coords;
+    // Skip if coordinates are outside visible area
+    if (x < 0 || x > baseWidth || y < 0 || y > baseHeight) return;
+
+    labelsLayer.append("text")
+      .attr("class", `acquisition-label acquisition-label-${label.era}`)
+      .attr("x", x)
+      .attr("y", y)
+      .attr("text-anchor", "middle")
+      .attr("dominant-baseline", "middle")
+      .attr("font-size", "14px")
+      .attr("font-weight", "600")
+      .attr("fill", "#2a2d34")
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 2.5)
+      .attr("paint-order", "stroke")
+      .attr("opacity", 0)
+      .style("cursor", "pointer")
+      .style("pointer-events", "none") // Enabled only during overview
+      .datum(label) // Store label data for tooltip
+      .text(label.year)
+      .on("mouseenter", showTooltip)
+      .on("mouseleave", hideTooltip)
+      .on("click", showTooltip);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Tooltip for acquisition labels
+// ─────────────────────────────────────────────────────────────
+
+let tooltipEl = null;
+
+function ensureTooltip() {
+  if (!tooltipEl) {
+    tooltipEl = document.createElement("div");
+    tooltipEl.className = "acquisition-tooltip";
+    tooltipEl.innerHTML = `
+      <div class="acquisition-tooltip-name"></div>
+      <div class="acquisition-tooltip-detail"></div>
+    `;
+    document.getElementById("viewer").appendChild(tooltipEl);
+  }
+  return tooltipEl;
+}
+
+function showTooltip(event, d) {
+  const tooltip = ensureTooltip();
+  tooltip.querySelector(".acquisition-tooltip-name").textContent = d.name;
+  tooltip.querySelector(".acquisition-tooltip-detail").textContent = d.detail;
+
+  // Position tooltip near the label
+  const [x, y] = projection([d.lon, d.lat]);
+  const viewerRect = document.getElementById("viewer").getBoundingClientRect();
+
+  // Position above the label by default
+  let tooltipX = x;
+  let tooltipY = y - 12;
+
+  tooltip.classList.add("is-visible");
+  tooltip.style.left = `${tooltipX}px`;
+  tooltip.style.top = `${tooltipY}px`;
+
+  // Adjust if tooltip goes off-screen
+  requestAnimationFrame(() => {
+    const rect = tooltip.getBoundingClientRect();
+    if (rect.left < 10) {
+      tooltip.style.left = `${tooltipX + (10 - rect.left)}px`;
+    }
+    if (rect.right > viewerRect.width - 10) {
+      tooltip.style.left = `${tooltipX - (rect.right - viewerRect.width + 10)}px`;
+    }
+    if (rect.top < 10) {
+      // Show below instead
+      tooltip.style.top = `${y + 20}px`;
+    }
+  });
+}
+
+function hideTooltip() {
+  if (tooltipEl) {
+    tooltipEl.classList.remove("is-visible");
+  }
 }
 
 function renderMapStep(svg, geoData, stepIndex, options = {}) {
@@ -499,10 +601,65 @@ function renderMapStep(svg, geoData, stepIndex, options = {}) {
     .duration(duration)
     .attr("opacity", stepIndex === MODERN_STEP ? opacity : 0);
 
+  // Hide acquisition labels during regular steps and disable interaction
+  labelsLayer.selectAll(".acquisition-label")
+    .interrupt()
+    .style("pointer-events", "none")
+    .transition()
+    .duration(duration)
+    .attr("opacity", 0);
+
+  // Hide tooltip if visible
+  hideTooltip();
+
   // Update inlay maps for overseas territories
   updateInlaysForStep(stepIndex, options);
 
   currentMapStep = stepIndex;
+}
+
+function renderOverviewMap(svg, options = {}) {
+  const { opacity = 1, duration = 800, animate = true } = options;
+
+  if (!acquisitionsData) return;
+
+  // Always use full zoom for overview to show all territories
+  const shouldAnimate = animate && duration > 0;
+  applyZoomLevel("full", shouldAnimate, duration);
+
+  const acqLayer = svg.select(".layer-acquisitions");
+  const labelsLayer = svg.select(".layer-labels");
+
+  // Show all acquisitions in their candy colors (not established)
+  acquisitionsData.features.forEach((feature) => {
+    const era = feature.properties.era;
+    const sel = acqLayer.select(`.acquisition-${era}`);
+
+    if (sel.empty()) return;
+
+    sel.interrupt();
+    sel.transition()
+      .duration(duration)
+      .attr("opacity", opacity)
+      .attr("fill", ERA_COLORS[era] || ESTABLISHED_COLOR);
+  });
+
+  // Hide rhetoric labels
+  labelsLayer.selectAll(".rhetoric-label")
+    .interrupt()
+    .transition()
+    .duration(duration)
+    .attr("opacity", 0);
+
+  // Show acquisition year labels and enable interaction
+  labelsLayer.selectAll(".acquisition-label")
+    .interrupt()
+    .style("pointer-events", "auto")
+    .transition()
+    .duration(duration)
+    .attr("opacity", opacity);
+
+  currentMapStep = -2; // Special value for overview mode
 }
 
 function updateMapOpacity(svg, opacity, duration = 600) {
@@ -772,6 +929,9 @@ function goToPage(newPage) {
     } else {
       updateMapOpacity(svg, 1, 600);
     }
+  } else if (type === "overview") {
+    mapLayer.classList.remove("is-thumbnail");
+    renderOverviewMap(svg, { opacity: 1, duration: 800 });
   } else if (type === "story") {
     if (desktop) {
       mapLayer.classList.remove("is-thumbnail");
@@ -1050,6 +1210,9 @@ function handleResize() {
   if (type === "intro") {
     mapLayer.classList.remove("is-thumbnail");
     renderMapStep(svg, geoDataByStep, 0, { opacity: 0.15, duration: 0, animate: false });
+  } else if (type === "overview") {
+    mapLayer.classList.remove("is-thumbnail");
+    renderOverviewMap(svg, { opacity: 1, duration: 0, animate: false });
   } else if (step !== null) {
     if (desktop || type === "transition") {
       mapLayer.classList.remove("is-thumbnail");
