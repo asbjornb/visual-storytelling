@@ -37,11 +37,11 @@ const ERA_COLORS = {
 const ZOOM_LEVELS = {
   // Eastern US - original colonies through Louisiana Purchase and Florida
   // Scale multiplier relative to full view, center offset [lon, lat] from map center
-  east: { scale: 2.0, centerOffset: [12, 5] },
+  east: { scale: 3.0, centerOffset: [15, 3] },
   // Continental US - includes Texas, Oregon, Mexican cession, Gadsden
-  continental: { scale: 1.5, centerOffset: [5, 5] },
+  continental: { scale: 2.0, centerOffset: [8, 3] },
   // With Alaska - need to show the northwest
-  alaska: { scale: 1.15, centerOffset: [-5, 8] },
+  alaska: { scale: 1.3, centerOffset: [-8, 10] },
   // Full Americas - Greenland, Canada, Panama for modern rhetoric
   full: { scale: 1.0, centerOffset: [0, 0] },
 };
