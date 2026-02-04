@@ -738,10 +738,11 @@ function initializeInlayProjections() {
     .translate([inlayWidth / 2, inlayHeight / 2]);
   inlayPaths.pacific = d3.geoPath().projection(inlayProjections.pacific);
 
-  // Caribbean inlay projection (centered between Puerto Rico and Virgin Islands)
+  // Caribbean inlay projection (centered to show Puerto Rico and Virgin Islands)
+  // Puerto Rico: -67.26 to -65.62 lon, Virgin Islands: -65.08 to -64.56 lon
   inlayProjections.caribbean = d3.geoMercator()
-    .center([-65.8, 18.15])
-    .scale(5000)
+    .center([-66.0, 18.2])
+    .scale(2800)
     .translate([inlayWidth / 2, inlayHeight / 2]);
   inlayPaths.caribbean = d3.geoPath().projection(inlayProjections.caribbean);
 }
