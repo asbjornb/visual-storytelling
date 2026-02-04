@@ -56,25 +56,29 @@ const RHETORIC_TARGETS = [
   { name: "Panama", lat: 9, lon: -80 },
 ];
 
-// Progressive zoom bounds - geographic extents for different phases
-// We zoom out progressively as more territory is added
-const ZOOM_BOUNDS = {
-  // Steps 0-7 (1783-1853): Focus on continental US acquisitions
+// Progressive zoom levels - scale multipliers and focus points
+// We start zoomed in on relevant areas and pull back as territory expands
+const ZOOM_LEVELS = {
+  // Steps 0-7 (1783-1853): Focus on eastern/central US
   continental: {
-    minLon: -128,
-    maxLon: -62,
-    minLat: 22,
-    maxLat: 52,
+    scaleMultiplier: 2.0,
+    // Center on the eastern US (roughly Ohio River valley)
+    focusLon: -85,
+    focusLat: 38,
   },
-  // Steps 8-10 (1867-1959): Include Alaska
+  // Steps 8-10 (1867-1959): Show continental US + Alaska
   alaska: {
-    minLon: -172,
-    maxLon: -62,
-    minLat: 22,
-    maxLat: 72,
+    scaleMultiplier: 1.3,
+    // Center shifted northwest to include Alaska
+    focusLon: -115,
+    focusLat: 50,
   },
   // Step 11 (2025-26): Full Americas view for Greenland, Canada, Panama rhetoric
-  full: null, // Uses all context countries (default behavior)
+  full: {
+    scaleMultiplier: 1.0,
+    focusLon: null, // Use default fitSize center
+    focusLat: null,
+  },
 };
 
 // Map step index to zoom level
@@ -82,25 +86,6 @@ function getZoomLevelForStep(stepIndex) {
   if (stepIndex <= 7) return "continental";
   if (stepIndex <= 10) return "alaska";
   return "full";
-}
-
-// Create a GeoJSON polygon from bounds for projection fitting
-function boundsToFeature(bounds) {
-  if (!bounds) return null;
-  const { minLon, maxLon, minLat, maxLat } = bounds;
-  return {
-    type: "Feature",
-    geometry: {
-      type: "Polygon",
-      coordinates: [[
-        [minLon, minLat],
-        [maxLon, minLat],
-        [maxLon, maxLat],
-        [minLon, maxLat],
-        [minLon, minLat],
-      ]],
-    },
-  };
 }
 
 // Context country IDs from Natural Earth (for filtering TopoJSON)
@@ -234,22 +219,6 @@ async function loadAcquisitions() {
 // Map rendering
 // ─────────────────────────────────────────────────────────────
 
-function getFeaturesForZoomLevel(zoomLevel, geoData) {
-  const bounds = ZOOM_BOUNDS[zoomLevel];
-
-  if (!bounds) {
-    // Full zoom: use all context countries + US territory
-    const finalData = geoData[geoData.length - 1];
-    const usFeatures = Object.values(finalData).flat();
-    return contextCountries
-      ? [...usFeatures, ...contextCountries.features]
-      : usFeatures;
-  }
-
-  // Use bounds polygon for fitting
-  return [boundsToFeature(bounds)];
-}
-
 function fitProjection(svg, geoData, zoomLevel = currentZoomLevel) {
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -257,18 +226,45 @@ function fitProjection(svg, geoData, zoomLevel = currentZoomLevel) {
   baseWidth = width;
   baseHeight = height;
 
-  const features = getFeaturesForZoomLevel(zoomLevel, geoData);
-  const collection = { type: "FeatureCollection", features };
+  // Always fit to all features first (full view baseline)
+  const finalData = geoData[geoData.length - 1];
+  const usFeatures = Object.values(finalData).flat();
+  const allFeatures = contextCountries
+    ? [...usFeatures, ...contextCountries.features]
+    : usFeatures;
+  const collection = { type: "FeatureCollection", features: allFeatures };
 
-  // On desktop, offset map to the right to leave room for side panel
-  if (isDesktop()) {
-    const panelWidth = 480;
-    const mapWidth = width - panelWidth;
-    projection.fitSize([mapWidth, height * 0.95], collection);
+  const desktop = isDesktop();
+  const panelWidth = desktop ? 480 : 0;
+  const mapWidth = desktop ? width - panelWidth : width;
+
+  // Fit to full view first
+  projection.fitSize([mapWidth, height * 0.95], collection);
+
+  // Apply zoom level adjustments
+  const zoom = ZOOM_LEVELS[zoomLevel];
+  if (zoom && zoom.scaleMultiplier !== 1.0) {
+    const baseScale = projection.scale();
+    const newScale = baseScale * zoom.scaleMultiplier;
+    projection.scale(newScale);
+
+    // If we have a focus point, pan to center on it
+    if (zoom.focusLon !== null && zoom.focusLat !== null) {
+      const [fx, fy] = projection([zoom.focusLon, zoom.focusLat]);
+      const centerX = mapWidth / 2 + panelWidth;
+      const centerY = height / 2;
+      const [tx, ty] = projection.translate();
+      projection.translate([
+        tx + (centerX - fx),
+        ty + (centerY - fy)
+      ]);
+    }
+  }
+
+  // On desktop, ensure map is offset for side panel
+  if (desktop && (!zoom || zoom.focusLon === null)) {
     const [tx, ty] = projection.translate();
     projection.translate([tx + panelWidth, ty]);
-  } else {
-    projection.fitSize([width, height * 0.95], collection);
   }
 
   path.projection(projection);
@@ -286,14 +282,20 @@ function animateProjection(svg, geoData, targetZoomLevel, duration = 800) {
   const width = window.innerWidth;
   const height = window.innerHeight;
   const desktop = isDesktop();
+  const panelWidth = desktop ? 480 : 0;
+  const mapWidth = desktop ? width - panelWidth : width;
 
   // Get current projection parameters
   const startScale = projection.scale();
   const startTranslate = projection.translate();
 
-  // Calculate target projection parameters
-  const features = getFeaturesForZoomLevel(targetZoomLevel, geoData);
-  const collection = { type: "FeatureCollection", features };
+  // Calculate target projection parameters using same logic as fitProjection
+  const finalData = geoData[geoData.length - 1];
+  const usFeatures = Object.values(finalData).flat();
+  const allFeatures = contextCountries
+    ? [...usFeatures, ...contextCountries.features]
+    : usFeatures;
+  const collection = { type: "FeatureCollection", features: allFeatures };
 
   // Create a temporary projection to compute target params
   const tempProjection = d3.geoConicEqualArea()
@@ -301,14 +303,31 @@ function animateProjection(svg, geoData, targetZoomLevel, duration = 800) {
     .rotate([90, 0])
     .center([0, 35]);
 
-  if (desktop) {
-    const panelWidth = 480;
-    const mapWidth = width - panelWidth;
-    tempProjection.fitSize([mapWidth, height * 0.95], collection);
+  // Fit to full view first
+  tempProjection.fitSize([mapWidth, height * 0.95], collection);
+
+  // Apply zoom level adjustments
+  const zoom = ZOOM_LEVELS[targetZoomLevel];
+  if (zoom && zoom.scaleMultiplier !== 1.0) {
+    const baseScale = tempProjection.scale();
+    tempProjection.scale(baseScale * zoom.scaleMultiplier);
+
+    if (zoom.focusLon !== null && zoom.focusLat !== null) {
+      const [fx, fy] = tempProjection([zoom.focusLon, zoom.focusLat]);
+      const centerX = mapWidth / 2 + panelWidth;
+      const centerY = height / 2;
+      const [tx, ty] = tempProjection.translate();
+      tempProjection.translate([
+        tx + (centerX - fx),
+        ty + (centerY - fy)
+      ]);
+    }
+  }
+
+  // On desktop, ensure map is offset for side panel
+  if (desktop && (!zoom || zoom.focusLon === null)) {
     const [tx, ty] = tempProjection.translate();
     tempProjection.translate([tx + panelWidth, ty]);
-  } else {
-    tempProjection.fitSize([width, height * 0.95], collection);
   }
 
   const endScale = tempProjection.scale();
