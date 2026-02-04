@@ -27,20 +27,57 @@ const ERA_COLORS = {
   modern: ESTABLISHED_COLOR,
 };
 
-// Inlay configuration
-const INLAY_CONFIG = {
-  pacific: {
-    label: "Pacific Territories",
-    // Bounds to show Hawaii and surrounding area
-    center: [-157, 20],  // Center on Hawaii
-    scale: 2000,
+// Territory inlay configurations - each territory gets its own mini-map
+const TERRITORY_INLAYS = [
+  {
+    id: "hawaii",
+    label: "Hawaii",
+    center: [-157.5, 20.5],
+    scale: 1400,
+    step: 9,
+    era: "hawaii"
   },
-  caribbean: {
-    label: "Caribbean Territories",
-    center: [-66, 18],  // Center on Puerto Rico
-    scale: 4000,
+  {
+    id: "puerto-rico",
+    label: "Puerto Rico",
+    center: [-66.5, 18.2],
+    scale: 3800,
+    step: 9,
+    era: "hawaii"
   },
-};
+  {
+    id: "guam",
+    label: "Guam",
+    center: [144.75, 13.45],
+    scale: 18000,
+    step: 9,
+    era: "hawaii"
+  },
+  {
+    id: "american-samoa",
+    label: "Am. Samoa",
+    center: [-170.1, -14.28],
+    scale: 12000,
+    step: 10,
+    era: "pacific"
+  },
+  {
+    id: "us-virgin-islands",
+    label: "Virgin Is.",
+    center: [-64.8, 18.0],
+    scale: 18000,
+    step: 10,
+    era: "pacific"
+  },
+  {
+    id: "northern-mariana",
+    label: "N. Mariana Is.",
+    center: [145.7, 15.2],
+    scale: 8000,
+    step: 10,
+    era: "pacific"
+  },
+];
 
 // Ocean/background - handled by CSS
 
@@ -701,186 +738,130 @@ function updateMapOpacity(svg, opacity, duration = 600) {
 // Inlay maps for overseas territories
 // ─────────────────────────────────────────────────────────────
 
-function createInlayContainers() {
+function createInlayPanel() {
   const mapLayer = document.getElementById("map-layer");
 
-  // Create Pacific inlay (left side) - shows Hawaii
-  const pacificInlay = document.createElement("div");
-  pacificInlay.id = "inlay-pacific";
-  pacificInlay.className = "territory-inlay territory-inlay--pacific";
-  pacificInlay.innerHTML = `
-    <div class="inlay-label">Hawaii</div>
-    <svg id="inlay-pacific-svg"></svg>
-  `;
-  mapLayer.appendChild(pacificInlay);
+  // Create single panel container for all territory inlays
+  const panel = document.createElement("div");
+  panel.id = "territories-panel";
+  panel.className = "territories-panel";
 
-  // Create Caribbean inlay (right side) - shows Puerto Rico and Virgin Islands
-  const caribbeanInlay = document.createElement("div");
-  caribbeanInlay.id = "inlay-caribbean";
-  caribbeanInlay.className = "territory-inlay territory-inlay--caribbean";
-  caribbeanInlay.innerHTML = `
-    <div class="inlay-label">Caribbean</div>
-    <svg id="inlay-caribbean-svg"></svg>
-  `;
-  mapLayer.appendChild(caribbeanInlay);
-}
+  // Create header
+  const header = document.createElement("div");
+  header.className = "territories-panel-header";
+  header.textContent = "Overseas Territories";
+  panel.appendChild(header);
 
-function initializeInlayProjections() {
-  const inlayWidth = 140;
-  const inlayHeight = 100;
+  // Create grid container for mini-maps
+  const grid = document.createElement("div");
+  grid.className = "territories-grid";
 
-  // Pacific inlay projection (centered on Hawaii)
-  // Note: Shows only Hawaii; other Pacific territories (Guam, CNMI, American Samoa)
-  // are too geographically distant to show in the same view
-  inlayProjections.pacific = d3.geoMercator()
-    .center([-157.5, 20.5])
-    .scale(1200)
-    .translate([inlayWidth / 2, inlayHeight / 2]);
-  inlayPaths.pacific = d3.geoPath().projection(inlayProjections.pacific);
+  // Create a mini-map for each territory
+  TERRITORY_INLAYS.forEach(config => {
+    const cell = document.createElement("div");
+    cell.className = `territory-cell territory-cell--${config.id}`;
+    cell.dataset.step = config.step;
+    cell.dataset.era = config.era;
+    cell.innerHTML = `
+      <svg id="inlay-${config.id}" class="territory-svg"></svg>
+      <span class="territory-label">${config.label}</span>
+    `;
+    grid.appendChild(cell);
+  });
 
-  // Caribbean inlay projection (centered to show Puerto Rico and Virgin Islands)
-  // Puerto Rico: -67.26 to -65.62 lon, Virgin Islands: -65.08 to -64.56 lon
-  inlayProjections.caribbean = d3.geoMercator()
-    .center([-66.0, 18.2])
-    .scale(2800)
-    .translate([inlayWidth / 2, inlayHeight / 2]);
-  inlayPaths.caribbean = d3.geoPath().projection(inlayProjections.caribbean);
+  panel.appendChild(grid);
+  mapLayer.appendChild(panel);
 }
 
 function initializeInlays() {
   if (!overseasTerritories) return;
 
-  createInlayContainers();
-  initializeInlayProjections();
+  createInlayPanel();
 
-  const inlayWidth = 140;
-  const inlayHeight = 100;
+  const cellWidth = 70;
+  const cellHeight = 50;
 
-  // Initialize Pacific inlay
-  const pacificSvg = d3.select("#inlay-pacific-svg")
-    .attr("viewBox", `0 0 ${inlayWidth} ${inlayHeight}`)
-    .attr("preserveAspectRatio", "xMidYMid meet");
+  // Initialize each territory's mini-map
+  TERRITORY_INLAYS.forEach(config => {
+    const svg = d3.select(`#inlay-${config.id}`)
+      .attr("viewBox", `0 0 ${cellWidth} ${cellHeight}`)
+      .attr("preserveAspectRatio", "xMidYMid meet");
 
-  // Add background
-  pacificSvg.append("rect")
-    .attr("class", "inlay-ocean")
-    .attr("width", inlayWidth)
-    .attr("height", inlayHeight);
+    // Add ocean background
+    svg.append("rect")
+      .attr("class", "inlay-ocean")
+      .attr("width", cellWidth)
+      .attr("height", cellHeight);
 
-  // Add territory group
-  pacificSvg.append("g").attr("class", "inlay-territories");
+    // Create projection for this territory
+    const proj = d3.geoMercator()
+      .center(config.center)
+      .scale(config.scale)
+      .translate([cellWidth / 2, cellHeight / 2]);
 
-  // Initialize Caribbean inlay
-  const caribbeanSvg = d3.select("#inlay-caribbean-svg")
-    .attr("viewBox", `0 0 ${inlayWidth} ${inlayHeight}`)
-    .attr("preserveAspectRatio", "xMidYMid meet");
+    const pathGen = d3.geoPath().projection(proj);
 
-  // Add background
-  caribbeanSvg.append("rect")
-    .attr("class", "inlay-ocean")
-    .attr("width", inlayWidth)
-    .attr("height", inlayHeight);
+    // Find matching territory data
+    const territoryData = overseasTerritories.features.find(
+      f => f.properties.name.toLowerCase().replace(/\s+/g, "-") === config.id ||
+           f.properties.name === config.label.replace("Am. ", "American ").replace("N. ", "Northern ").replace(" Is.", " Islands")
+    );
 
-  // Add territory group
-  caribbeanSvg.append("g").attr("class", "inlay-territories");
-
-  // Render territories in each inlay
-  renderInlayTerritories();
-}
-
-function renderInlayTerritories() {
-  if (!overseasTerritories) return;
-
-  // Pacific inlay shows only Hawaii (other Pacific territories are too far away geographically)
-  // Guam, CNMI, and American Samoa span from -170° to +145° longitude - impossible to show together
-  const pacificTerritories = overseasTerritories.features.filter(
-    f => f.properties.region === "pacific" && f.properties.name === "Hawaii"
-  );
-
-  // Caribbean inlay shows Puerto Rico and Virgin Islands
-  const caribbeanTerritories = overseasTerritories.features.filter(
-    f => f.properties.region === "caribbean"
-  );
-
-  // Render Pacific territories (Hawaii)
-  d3.select("#inlay-pacific-svg .inlay-territories")
-    .selectAll(".inlay-territory")
-    .data(pacificTerritories, d => d.properties.name)
-    .enter()
-    .append("path")
-    .attr("class", d => `inlay-territory inlay-territory-${d.properties.name.toLowerCase().replace(/\s+/g, "-")}`)
-    .attr("d", inlayPaths.pacific)
-    .attr("fill", CONTEXT_COLOR)
-    .attr("stroke", "#fff")
-    .attr("stroke-width", 0.5)
-    .attr("opacity", 0)
-    .attr("data-step", d => d.properties.step)
-    .attr("data-era", d => d.properties.era);
-
-  // Render Caribbean territories (Puerto Rico, Virgin Islands)
-  d3.select("#inlay-caribbean-svg .inlay-territories")
-    .selectAll(".inlay-territory")
-    .data(caribbeanTerritories, d => d.properties.name)
-    .enter()
-    .append("path")
-    .attr("class", d => `inlay-territory inlay-territory-${d.properties.name.toLowerCase().replace(/\s+/g, "-")}`)
-    .attr("d", inlayPaths.caribbean)
-    .attr("fill", CONTEXT_COLOR)
-    .attr("stroke", "#fff")
-    .attr("stroke-width", 0.5)
-    .attr("opacity", 0)
-    .attr("data-step", d => d.properties.step)
-    .attr("data-era", d => d.properties.era);
+    if (territoryData) {
+      svg.append("path")
+        .datum(territoryData)
+        .attr("class", `inlay-territory inlay-territory-${config.id}`)
+        .attr("d", pathGen)
+        .attr("fill", CONTEXT_COLOR)
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 0.3)
+        .attr("data-step", config.step)
+        .attr("data-era", config.era);
+    }
+  });
 }
 
 function updateInlaysForStep(stepIndex, options = {}) {
   const { opacity = 1, duration = 800 } = options;
 
-  // Determine if inlays should be visible (step 9+ for overseas territories)
-  const OVERSEAS_START_STEP = 9; // Hawaii/Spanish-American War
-  const shouldShowInlays = stepIndex >= OVERSEAS_START_STEP;
+  // Determine if panel should be visible (step 9+ for overseas territories)
+  const OVERSEAS_START_STEP = 9;
+  const shouldShowPanel = stepIndex >= OVERSEAS_START_STEP;
 
-  // Fade in/out inlay containers
-  d3.selectAll(".territory-inlay")
+  // Fade in/out the panel
+  d3.select(".territories-panel")
     .transition()
     .duration(duration)
-    .style("opacity", shouldShowInlays ? 1 : 0)
-    .style("pointer-events", shouldShowInlays ? "auto" : "none");
+    .style("opacity", shouldShowPanel ? 1 : 0)
+    .style("pointer-events", shouldShowPanel ? "auto" : "none");
 
-  if (!shouldShowInlays) return;
+  if (!shouldShowPanel) return;
 
-  // Update individual territories based on their step
-  d3.selectAll(".inlay-territory").each(function() {
-    const el = d3.select(this);
-    const featureStep = parseInt(el.attr("data-step"));
-    const era = el.attr("data-era");
+  // Update each territory cell based on its step
+  TERRITORY_INLAYS.forEach(config => {
+    const cell = d3.select(`.territory-cell--${config.id}`);
+    const territory = d3.select(`.inlay-territory-${config.id}`);
 
-    el.interrupt();
+    cell.interrupt();
+    territory.interrupt();
 
-    if (featureStep > stepIndex) {
-      // Future - show as context color (dimmed)
-      el.transition()
-        .duration(duration / 2)
-        .attr("opacity", opacity)
-        .attr("fill", CONTEXT_COLOR);
-    } else if (featureStep === stepIndex) {
-      // Current step - show in candy color
-      el.transition()
-        .duration(duration)
-        .attr("opacity", opacity)
-        .attr("fill", ERA_COLORS[era] || ESTABLISHED_COLOR);
+    if (config.step > stepIndex) {
+      // Future - dim
+      cell.classed("is-future", true).classed("is-current", false).classed("is-past", false);
+      territory.transition().duration(duration / 2).attr("fill", CONTEXT_COLOR);
+    } else if (config.step === stepIndex) {
+      // Current - highlight
+      cell.classed("is-future", false).classed("is-current", true).classed("is-past", false);
+      territory.transition().duration(duration).attr("fill", ERA_COLORS[config.era] || ESTABLISHED_COLOR);
     } else {
-      // Past - show in established color
-      el.transition()
-        .duration(duration)
-        .attr("opacity", opacity)
-        .attr("fill", ESTABLISHED_COLOR);
+      // Past - established
+      cell.classed("is-future", false).classed("is-current", false).classed("is-past", true);
+      territory.transition().duration(duration).attr("fill", ESTABLISHED_COLOR);
     }
   });
 }
 
 function updateInlaysOpacity(opacity, duration = 600) {
-  // Only update if inlays are visible
   const OVERSEAS_START_STEP = 9;
   if (currentMapStep < OVERSEAS_START_STEP) return;
 
@@ -1204,7 +1185,7 @@ function handleResize() {
   initializeMap(svg);
 
   // Re-initialize inlays if they don't exist
-  if (!document.getElementById("inlay-pacific")) {
+  if (!document.getElementById("territories-panel")) {
     initializeInlays();
   }
 
