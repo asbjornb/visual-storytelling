@@ -592,9 +592,13 @@ function renderMapStep(svg, geoData, stepIndex, options = {}) {
 }
 
 function renderOverviewMap(svg, options = {}) {
-  const { opacity = 1, duration = 800 } = options;
+  const { opacity = 1, duration = 800, animate = true } = options;
 
   if (!acquisitionsData) return;
+
+  // Always use full zoom for overview to show all territories
+  const shouldAnimate = animate && duration > 0;
+  applyZoomLevel("full", shouldAnimate, duration);
 
   const acqLayer = svg.select(".layer-acquisitions");
   const labelsLayer = svg.select(".layer-labels");
@@ -981,7 +985,7 @@ function handleResize() {
     renderMapStep(svg, geoDataByStep, 0, { opacity: 0.15, duration: 0, animate: false });
   } else if (type === "overview") {
     mapLayer.classList.remove("is-thumbnail");
-    renderOverviewMap(svg, { opacity: 1, duration: 0 });
+    renderOverviewMap(svg, { opacity: 1, duration: 0, animate: false });
   } else if (step !== null) {
     if (desktop || type === "transition") {
       mapLayer.classList.remove("is-thumbnail");
