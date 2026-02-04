@@ -260,6 +260,11 @@ body {
   opacity: 0.85;
 }
 
+.page--transition .page-asterisk {
+  margin-top: 1.5rem;
+  opacity: 0.7;
+}
+
 /* ═══════════════════════════════════════════════════════════
    STORY PAGE (thumbnail map + content)
    ═══════════════════════════════════════════════════════════ */
