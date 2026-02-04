@@ -548,9 +548,10 @@ function renderMapStep(svg, geoData, stepIndex, options = {}) {
 
     if (featureStep > stepIndex) {
       // Future acquisition - show as context (same color as Canada/Mexico)
+      // Use full opacity so they look like regular land, not faded territory
       sel.transition()
         .duration(duration / 2)
-        .attr("opacity", opacity)
+        .attr("opacity", 1)
         .attr("fill", CONTEXT_COLOR);
     } else if (featureStep === stepIndex) {
       // Current step - show in candy color
