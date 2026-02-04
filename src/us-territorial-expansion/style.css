@@ -745,6 +745,128 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   TERRITORY INLAYS
+   ═══════════════════════════════════════════════════════════ */
+
+.territory-inlay {
+  position: absolute;
+  width: 140px;
+  height: 120px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.territory-inlay--pacific {
+  left: 1.5rem;
+  bottom: 6rem;
+}
+
+.territory-inlay--caribbean {
+  right: 1.5rem;
+  bottom: 6rem;
+}
+
+.inlay-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+  background: rgba(255, 253, 248, 0.9);
+  border-bottom: 1px solid var(--border);
+  z-index: 1;
+}
+
+.territory-inlay svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.inlay-ocean {
+  fill: #d4e5f7;
+}
+
+.inlay-territory {
+  transition: fill 0.6s ease;
+}
+
+/* Hide inlays in thumbnail mode on mobile */
+.map-layer.is-thumbnail .territory-inlay {
+  display: none;
+}
+
+/* Desktop adjustments */
+@media (min-width: 901px) {
+  .territory-inlay {
+    width: 160px;
+    height: 130px;
+  }
+
+  .territory-inlay--pacific {
+    left: 2rem;
+    bottom: 7rem;
+  }
+
+  .territory-inlay--caribbean {
+    right: 2rem;
+    bottom: 7rem;
+  }
+
+  .inlay-label {
+    font-size: 0.65rem;
+    padding: 0.3rem 0.6rem;
+  }
+}
+
+/* Hide inlays on small screens - they take too much space */
+@media (max-width: 600px) {
+  .territory-inlay {
+    width: 100px;
+    height: 90px;
+  }
+
+  .territory-inlay--pacific {
+    left: 1rem;
+    bottom: 4rem;
+  }
+
+  .territory-inlay--caribbean {
+    right: 1rem;
+    bottom: 4rem;
+  }
+
+  .inlay-label {
+    font-size: 0.5rem;
+    padding: 0.2rem 0.4rem;
+  }
+}
+
+/* Very small screens - stack inlays or hide */
+@media (max-width: 400px) {
+  .territory-inlay {
+    width: 80px;
+    height: 70px;
+  }
+
+  .inlay-label {
+    font-size: 0.45rem;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
    MAP PATHS
    ═══════════════════════════════════════════════════════════ */
 
