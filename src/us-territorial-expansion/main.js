@@ -270,10 +270,11 @@ function renderMapStep(svg, geoData, stepIndex, options = {}) {
     sel.interrupt();
 
     if (featureStep > stepIndex) {
-      // Future acquisition - hidden
+      // Future acquisition - show as context (same color as Canada/Mexico)
       sel.transition()
         .duration(duration / 2)
-        .attr("opacity", 0);
+        .attr("opacity", opacity)
+        .attr("fill", CONTEXT_COLOR);
     } else if (featureStep === stepIndex) {
       // Current step - show in candy color
       sel.transition()
@@ -293,14 +294,13 @@ function renderMapStep(svg, geoData, stepIndex, options = {}) {
 }
 
 function updateMapOpacity(svg, opacity, duration = 600) {
-  // Only update opacity of visible acquisitions (step <= currentMapStep)
+  // Update opacity of all acquisitions (all are now visible)
   if (acquisitionsData) {
     acquisitionsData.features.forEach((feature) => {
-      const featureStep = feature.properties.step;
       const era = feature.properties.era;
       const sel = svg.select(".layer-acquisitions").select(`.acquisition-${era}`);
 
-      if (!sel.empty() && featureStep <= currentMapStep) {
+      if (!sel.empty()) {
         sel.transition()
           .duration(duration)
           .attr("opacity", opacity);
