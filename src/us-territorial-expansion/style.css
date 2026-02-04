@@ -265,6 +265,38 @@ body {
   opacity: 0.7;
 }
 
+.map-disclaimer {
+  position: absolute;
+  bottom: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 420px;
+  padding: 0.6rem 1rem;
+  background: rgba(255, 253, 248, 0.92);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.map-disclaimer em {
+  color: var(--accent);
+  font-style: normal;
+}
+
+.map-disclaimer a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.map-disclaimer a:hover {
+  opacity: 0.7;
+}
+
 /* ═══════════════════════════════════════════════════════════
    STORY PAGE (thumbnail map + content)
    ═══════════════════════════════════════════════════════════ */
@@ -713,6 +745,13 @@ body {
 
   .page--transition h2 {
     font-size: clamp(1.25rem, 5vw, 1.75rem);
+  }
+
+  .map-disclaimer {
+    bottom: 4rem;
+    max-width: 90%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.7rem;
   }
 
   .page--story {
