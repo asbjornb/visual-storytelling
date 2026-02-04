@@ -268,14 +268,12 @@ body {
 .map-disclaimer {
   position: fixed;
   bottom: 4.5rem;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 3rem;
   z-index: 95;
   max-width: 600px;
-  width: 95%;
   font-size: 0.7rem;
   color: var(--fg-muted);
-  text-align: center;
+  text-align: left;
   line-height: 1.4;
 }
 
@@ -292,6 +290,111 @@ body {
 
 .map-disclaimer a:hover {
   opacity: 0.7;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NOTES MODAL
+   ═══════════════════════════════════════════════════════════ */
+
+.notes-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.notes-modal.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.notes-modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 480px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  transform: translateY(8px);
+  transition: transform 0.25s ease;
+}
+
+.notes-modal.is-open .notes-modal-content {
+  transform: translateY(0);
+}
+
+.notes-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.notes-modal-header h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--fg);
+  margin: 0;
+}
+
+.notes-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--fg-muted);
+  cursor: pointer;
+  padding: 0;
+  margin: -0.25rem -0.25rem 0 0;
+}
+
+.notes-modal-close:hover {
+  color: var(--fg);
+}
+
+.notes-modal-body p {
+  font-size: 0.85rem;
+  color: var(--fg);
+  margin: 0 0 0.75rem 0;
+  line-height: 1.5;
+}
+
+.notes-modal-body ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.notes-modal-body li {
+  position: relative;
+  padding-left: 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--fg);
+  line-height: 1.5;
+}
+
+.notes-modal-body li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+.notes-modal-body strong {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -746,6 +849,9 @@ body {
 
   .map-disclaimer {
     bottom: 3.5rem;
+    left: 1.5rem;
+    right: 1.5rem;
+    max-width: none;
     font-size: 0.65rem;
   }
 

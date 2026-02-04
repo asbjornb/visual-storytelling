@@ -290,6 +290,9 @@ function goToPage(newPage) {
   newPage = Math.max(0, Math.min(newPage, totalPages - 1));
   if (newPage === currentPage) return;
 
+  // Close notes modal if open
+  if (window.closeNotesModal) window.closeNotesModal();
+
   const svg = d3.select("#map");
   const mapLayer = document.getElementById("map-layer");
   const desktop = isDesktop();
@@ -487,18 +490,49 @@ function setupClickNav() {
   });
 }
 
-function setupNotesLinks() {
-  // Handle click on any link to #notes - navigate to the notes page
+function setupNotesModal() {
+  const modal = document.getElementById("notes-modal");
+  const closeBtn = document.getElementById("notes-modal-close");
+
+  if (!modal) return;
+
+  function openModal() {
+    modal.classList.add("is-open");
+  }
+
+  function closeModal() {
+    modal.classList.remove("is-open");
+  }
+
+  // Open modal when clicking "See notes" links
   document.querySelectorAll('a[href="#notes"]').forEach((link) => {
     link.addEventListener("click", (e) => {
       e.preventDefault();
-      const notesPage = document.getElementById("notes");
-      if (notesPage) {
-        const pageIndex = parseInt(notesPage.dataset.page);
-        goToPage(pageIndex);
-      }
+      openModal();
     });
   });
+
+  // Close on X button
+  if (closeBtn) {
+    closeBtn.addEventListener("click", closeModal);
+  }
+
+  // Close when clicking backdrop
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      closeModal();
+    }
+  });
+
+  // Close on Escape key
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal.classList.contains("is-open")) {
+      closeModal();
+    }
+  });
+
+  // Close modal when navigating to another page
+  window.closeNotesModal = closeModal;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -585,7 +619,7 @@ async function init() {
   setupSwipe();
   setupKeyboard();
   setupClickNav();
-  setupNotesLinks();
+  setupNotesModal();
 
   window.addEventListener("resize", debounce(handleResize, 200));
 }
