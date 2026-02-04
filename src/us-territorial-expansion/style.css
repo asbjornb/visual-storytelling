@@ -889,10 +889,10 @@ body {
     font-size: 0.85rem;
   }
 
-  /* Notes page on mobile */
+  /* Notes page on mobile - push below minimap */
   .page--notes .page-story {
-    margin-top: 2rem;
-    max-height: calc(100vh - 8rem);
+    margin-top: 10rem;
+    max-height: calc(100vh - 14rem);
     overflow-y: auto;
   }
 
