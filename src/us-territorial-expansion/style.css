@@ -267,9 +267,10 @@ body {
 
 .map-disclaimer {
   position: absolute;
-  bottom: 5rem;
+  bottom: 5.5rem;
   left: 50%;
   transform: translateX(-50%);
+  z-index: 90;
   max-width: 420px;
   padding: 0.6rem 1rem;
   background: rgba(255, 253, 248, 0.92);
@@ -748,10 +749,10 @@ body {
   }
 
   .map-disclaimer {
-    bottom: 4rem;
-    max-width: 90%;
+    bottom: 4.5rem;
+    max-width: 85%;
     padding: 0.5rem 0.75rem;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
   }
 
   .page--story {
