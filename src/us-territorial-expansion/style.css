@@ -383,6 +383,24 @@ body {
   font-weight: 500;
 }
 
+.page-asterisk {
+  font-size: 0.7rem;
+  color: var(--fg-muted);
+  margin-top: 1rem;
+  margin-bottom: 0;
+  opacity: 0.85;
+}
+
+.page-asterisk a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.page-asterisk a:hover {
+  opacity: 0.7;
+}
+
 /* ═══════════════════════════════════════════════════════════
    NOTES PAGE STYLING
    ═══════════════════════════════════════════════════════════ */

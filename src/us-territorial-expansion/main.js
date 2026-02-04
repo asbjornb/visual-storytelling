@@ -487,18 +487,18 @@ function setupClickNav() {
   });
 }
 
-function setupExpandableNote() {
-  // Handle click on expandable note toggle in intro
-  const toggle = document.querySelector(".page-note-toggle");
-  const content = document.getElementById("intro-note");
-
-  if (toggle && content) {
-    toggle.addEventListener("click", () => {
-      const isExpanded = toggle.getAttribute("aria-expanded") === "true";
-      toggle.setAttribute("aria-expanded", !isExpanded);
-      content.hidden = isExpanded;
+function setupNotesLinks() {
+  // Handle click on any link to #notes - navigate to the notes page
+  document.querySelectorAll('a[href="#notes"]').forEach((link) => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      const notesPage = document.getElementById("notes");
+      if (notesPage) {
+        const pageIndex = parseInt(notesPage.dataset.page);
+        goToPage(pageIndex);
+      }
     });
-  }
+  });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -585,7 +585,7 @@ async function init() {
   setupSwipe();
   setupKeyboard();
   setupClickNav();
-  setupExpandableNote();
+  setupNotesLinks();
 
   window.addEventListener("resize", debounce(handleResize, 200));
 }
