@@ -145,21 +145,84 @@ body {
   opacity: 0.7;
 }
 
-.page--intro .page-note {
+/* Expandable note on intro */
+.page-note-wrapper {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.page-note-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.4rem 0.75rem;
   font-size: 0.75rem;
   color: var(--fg-muted);
-  margin-top: 2rem;
-  opacity: 0.8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
-.page--intro .page-note a {
+.page-note-toggle:hover {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+
+.page-note-toggle[aria-expanded="true"] {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+
+.page-note-icon {
+  font-size: 0.85rem;
+}
+
+.page-note-content {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-align: left;
+  max-width: 340px;
+  margin-left: auto;
+  margin-right: auto;
+  animation: noteExpand 0.2s ease;
+}
+
+@keyframes noteExpand {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-note-content p {
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+  margin: 0 0 0.5rem 0;
+  line-height: 1.5;
+}
+
+.page-note-content p:last-child {
+  margin-bottom: 0;
+}
+
+.page-note-content em {
   color: var(--accent);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  font-style: normal;
 }
 
-.page--intro .page-note a:hover {
-  opacity: 0.8;
+.page-note-footer {
+  font-size: 0.7rem !important;
+  opacity: 0.7;
+  margin-top: 0.5rem !important;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -675,8 +738,21 @@ body {
     font-size: 0.8rem;
   }
 
-  .page--intro .page-note {
+  .page-note-wrapper {
     margin-top: 1.5rem;
+  }
+
+  .page-note-toggle {
+    font-size: 0.7rem;
+    padding: 0.35rem 0.6rem;
+  }
+
+  .page-note-content {
+    max-width: 300px;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .page-note-content p {
     font-size: 0.7rem;
   }
 

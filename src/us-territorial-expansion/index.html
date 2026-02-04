@@ -23,7 +23,19 @@
             <h1>The United States</h1>
             <p class="page-tagline">A Story of Territorial Expansion</p>
             <p class="page-prompt">1776 &ndash; 2026</p>
-            <p class="page-note">Map boundaries simplified for clarity. <a href="#notes">See notes &amp; sources</a>.</p>
+            <div class="page-note-wrapper">
+              <button class="page-note-toggle" aria-expanded="false" aria-controls="intro-note">
+                <span class="page-note-icon">ⓘ</span> About this map
+              </button>
+              <div class="page-note-content" id="intro-note" hidden>
+                <p>
+                  This map assigns each state to its <em>primary</em> acquisition.
+                  States along the Rocky Mountains (CO, WY, MT) and boundaries
+                  with Texas (OK panhandle, eastern NM) actually span multiple treaties.
+                </p>
+                <p class="page-note-footer">Full notes &amp; sources on final slide.</p>
+              </div>
+            </div>
           </div>
         </article>
 
@@ -354,13 +366,14 @@
             <h2>Notes &amp; Sources</h2>
             <h3>Known Simplifications</h3>
             <p>
-              This map shows modern state boundaries colored by their primary acquisition,
-              which obscures how several states span multiple historical cessions:
+              This map assigns each modern state to its <em>primary</em> acquisition,
+              which obscures cases where a state's territory came from multiple treaties:
             </p>
             <ul class="notes-list">
-              <li><strong>Colorado, Wyoming, Montana</strong> &mdash; split between the Louisiana Purchase (1803) and later acquisitions (Mexican Cession 1848, Oregon Treaty 1846)</li>
-              <li><strong>Oklahoma Panhandle</strong> &mdash; tied to Texas boundary settlements, not the Louisiana Purchase</li>
-              <li><strong>Gadsden Purchase</strong> &mdash; shown as approximate rectangle; actual boundary follows specific treaty coordinates</li>
+              <li><strong>Colorado, Wyoming, Montana</strong> &mdash; split between the Louisiana Purchase (east), Mexican Cession (southwest), and Oregon Treaty (northwest)</li>
+              <li><strong>Oklahoma Panhandle</strong> &mdash; tied to Texas boundary settlements (1850), not the Louisiana Purchase</li>
+              <li><strong>New Mexico (eastern portion)</strong> &mdash; claimed by Texas; ceded to U.S. territories in 1850, not via the Mexican Cession</li>
+              <li><strong>Gadsden Purchase boundary</strong> &mdash; shown as approximate; actual boundary follows specific treaty coordinates along the Gila River</li>
             </ul>
             <h3>Sources</h3>
             <ul class="notes-list notes-list--sources">
