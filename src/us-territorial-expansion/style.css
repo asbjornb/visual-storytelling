@@ -267,21 +267,16 @@ body {
 
 .map-disclaimer {
   position: fixed;
-  bottom: 5.5rem;
+  bottom: 4.5rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: 95;
-  max-width: 500px;
-  width: 90%;
-  padding: 0.6rem 1rem;
-  background: rgba(255, 253, 248, 0.95);
-  backdrop-filter: blur(6px);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 0.75rem;
+  max-width: 600px;
+  width: 95%;
+  font-size: 0.7rem;
   color: var(--fg-muted);
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .map-disclaimer em {
@@ -750,11 +745,8 @@ body {
   }
 
   .map-disclaimer {
-    bottom: 4rem;
-    width: 92%;
-    max-width: none;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.7rem;
+    bottom: 3.5rem;
+    font-size: 0.65rem;
   }
 
   .page--story {
