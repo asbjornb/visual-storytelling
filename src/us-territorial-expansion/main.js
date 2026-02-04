@@ -33,19 +33,34 @@ const ERA_COLORS = {
 // Map step definitions
 // ─────────────────────────────────────────────────────────────
 
+// Zoom level definitions - geographic bounds [west, south, east, north]
+const ZOOM_LEVELS = {
+  // Eastern US - original colonies through Louisiana Purchase and Florida
+  // Louisiana Purchase extends to ~-110°, Florida to ~24°N
+  east: { bounds: [-112, 23, -65, 52], padding: 0.08 },
+  // Continental US - includes Texas, Oregon, Mexican cession, Gadsden
+  // Oregon extends to ~-125°, Mexican cession to ~-118°
+  continental: { bounds: [-128, 23, -65, 52], padding: 0.06 },
+  // With Alaska - need to show the northwest
+  // Alaska extends to ~-170° and ~72°N
+  alaska: { bounds: [-172, 23, -65, 73], padding: 0.05 },
+  // Full Americas - Greenland, Canada, Panama for modern rhetoric
+  full: null, // null means fit to all features (current behavior)
+};
+
 const MAP_STEPS = [
-  { year: "1783", file: "1789-original-states.geojson", era: "original" },
-  { year: "1803", file: "1803-louisiana-purchase.geojson", era: "louisiana" },
-  { year: "1818", file: "1818-red-river-basin.geojson", era: "redriver" },
-  { year: "1819", file: "1819-florida.geojson", era: "florida" },
-  { year: "1845", file: "1845-texas.geojson", era: "texas" },
-  { year: "1846", file: "1846-oregon.geojson", era: "oregon" },
-  { year: "1848", file: "1848-mexican-cession.geojson", era: "mexican" },
-  { year: "1853", file: "1853-gadsden.geojson", era: "gadsden" },
-  { year: "1867", file: "1867-alaska.geojson", era: "alaska" },
-  { year: "1898", file: "1898-spanish-american-war.geojson", era: "hawaii" },
-  { year: "1899–1959", file: "1900-samoa.geojson", era: "pacific" },
-  { year: "2025–26", file: "1959-final.geojson", era: "modern" },
+  { year: "1783", file: "1789-original-states.geojson", era: "original", zoom: "east" },
+  { year: "1803", file: "1803-louisiana-purchase.geojson", era: "louisiana", zoom: "east" },
+  { year: "1818", file: "1818-red-river-basin.geojson", era: "redriver", zoom: "east" },
+  { year: "1819", file: "1819-florida.geojson", era: "florida", zoom: "east" },
+  { year: "1845", file: "1845-texas.geojson", era: "texas", zoom: "continental" },
+  { year: "1846", file: "1846-oregon.geojson", era: "oregon", zoom: "continental" },
+  { year: "1848", file: "1848-mexican-cession.geojson", era: "mexican", zoom: "continental" },
+  { year: "1853", file: "1853-gadsden.geojson", era: "gadsden", zoom: "continental" },
+  { year: "1867", file: "1867-alaska.geojson", era: "alaska", zoom: "alaska" },
+  { year: "1898", file: "1898-spanish-american-war.geojson", era: "hawaii", zoom: "alaska" },
+  { year: "1899–1959", file: "1900-samoa.geojson", era: "pacific", zoom: "full" },
+  { year: "2025–26", file: "1959-final.geojson", era: "modern", zoom: "full" },
 ];
 
 // Modern expansion rhetoric targets - coordinates for question mark labels
@@ -102,6 +117,8 @@ let pageElements = [];
 let touchStartX = 0;
 let touchStartY = 0;
 let currentMapStep = -1;
+let currentZoomLevel = null;
+let isZooming = false;
 
 // ─────────────────────────────────────────────────────────────
 // D3 setup - North America projection
@@ -119,6 +136,166 @@ const path = d3.geoPath().projection(projection);
 // Store base dimensions for viewBox
 let baseWidth = 0;
 let baseHeight = 0;
+
+// Store projection parameters for each zoom level (calculated on resize)
+let zoomProjections = {};
+
+// ─────────────────────────────────────────────────────────────
+// Zoom level calculations
+// ─────────────────────────────────────────────────────────────
+
+function calculateZoomProjections(geoData) {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const desktop = isDesktop();
+  const panelWidth = desktop ? 480 : 0;
+  const mapWidth = width - panelWidth;
+
+  // Helper to calculate projection params for given bounds
+  function getProjectionForBounds(bounds, padding) {
+    // Create a temporary projection to calculate fitting
+    const tempProjection = d3.geoConicEqualArea()
+      .parallels([20, 50])
+      .rotate([90, 0])
+      .center([0, 35]);
+
+    // Create a GeoJSON feature from bounds
+    const [west, south, east, north] = bounds;
+    const boundsFeature = {
+      type: "Feature",
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [west, south],
+          [east, south],
+          [east, north],
+          [west, north],
+          [west, south]
+        ]]
+      }
+    };
+
+    // Fit the projection to the bounds
+    if (desktop) {
+      tempProjection.fitSize([mapWidth * (1 - padding), height * (0.95 - padding)], boundsFeature);
+      const [tx, ty] = tempProjection.translate();
+      tempProjection.translate([tx + panelWidth, ty]);
+    } else {
+      tempProjection.fitSize([width * (1 - padding), height * (0.95 - padding)], boundsFeature);
+    }
+
+    return {
+      scale: tempProjection.scale(),
+      translate: tempProjection.translate()
+    };
+  }
+
+  // Helper to get projection for all features (full view)
+  function getProjectionForAll() {
+    const tempProjection = d3.geoConicEqualArea()
+      .parallels([20, 50])
+      .rotate([90, 0])
+      .center([0, 35]);
+
+    const finalData = geoData[geoData.length - 1];
+    const usFeatures = Object.values(finalData).flat();
+    const allFeatures = contextCountries
+      ? [...usFeatures, ...contextCountries.features]
+      : usFeatures;
+    const collection = { type: "FeatureCollection", features: allFeatures };
+
+    if (desktop) {
+      tempProjection.fitSize([mapWidth, height * 0.95], collection);
+      const [tx, ty] = tempProjection.translate();
+      tempProjection.translate([tx + panelWidth, ty]);
+    } else {
+      tempProjection.fitSize([width, height * 0.95], collection);
+    }
+
+    return {
+      scale: tempProjection.scale(),
+      translate: tempProjection.translate()
+    };
+  }
+
+  // Calculate projection params for each zoom level
+  zoomProjections = {};
+  for (const [key, config] of Object.entries(ZOOM_LEVELS)) {
+    if (config === null) {
+      zoomProjections[key] = getProjectionForAll();
+    } else {
+      zoomProjections[key] = getProjectionForBounds(config.bounds, config.padding);
+    }
+  }
+}
+
+function applyZoomLevel(zoomLevel, animate = false, duration = 800) {
+  if (!zoomProjections[zoomLevel]) return;
+
+  const targetParams = zoomProjections[zoomLevel];
+  const svg = d3.select("#map");
+
+  if (!animate || currentZoomLevel === null) {
+    // Instant application
+    projection.scale(targetParams.scale);
+    projection.translate(targetParams.translate);
+    path.projection(projection);
+    updateAllPaths(svg, 0);
+    currentZoomLevel = zoomLevel;
+    return;
+  }
+
+  if (currentZoomLevel === zoomLevel) return;
+
+  // Animated transition
+  const startScale = projection.scale();
+  const startTranslate = projection.translate();
+  const endScale = targetParams.scale;
+  const endTranslate = targetParams.translate;
+
+  isZooming = true;
+
+  d3.transition()
+    .duration(duration)
+    .ease(d3.easeCubicInOut)
+    .tween("zoom", () => {
+      const scaleInterp = d3.interpolate(startScale, endScale);
+      const translateInterp = d3.interpolate(startTranslate, endTranslate);
+
+      return (t) => {
+        projection.scale(scaleInterp(t));
+        projection.translate(translateInterp(t));
+        path.projection(projection);
+        updateAllPaths(svg, 0);
+      };
+    })
+    .on("end", () => {
+      isZooming = false;
+      currentZoomLevel = zoomLevel;
+    });
+
+  currentZoomLevel = zoomLevel;
+}
+
+function updateAllPaths(svg, duration = 0) {
+  // Update context countries
+  svg.select(".layer-context")
+    .selectAll(".context-country")
+    .attr("d", path);
+
+  // Update acquisitions
+  svg.select(".layer-acquisitions")
+    .selectAll(".acquisition")
+    .attr("d", path);
+
+  // Update label positions
+  RHETORIC_TARGETS.forEach((target) => {
+    const [x, y] = projection([target.lon, target.lat]);
+    svg.select(`.rhetoric-label-${target.name.toLowerCase()}`)
+      .attr("x", x)
+      .attr("y", y);
+  });
+}
 
 // ─────────────────────────────────────────────────────────────
 // Responsive helpers
@@ -193,29 +370,8 @@ function fitProjection(svg, geoData) {
   baseWidth = width;
   baseHeight = height;
 
-  // Use the final US territory data plus context countries for bounds
-  const finalData = geoData[geoData.length - 1];
-  const usFeatures = Object.values(finalData).flat();
-
-  // Combine US features with context countries for fitting
-  const allFeatures = contextCountries
-    ? [...usFeatures, ...contextCountries.features]
-    : usFeatures;
-
-  const collection = { type: "FeatureCollection", features: allFeatures };
-
-  // On desktop, offset map to the right to leave room for side panel
-  if (isDesktop()) {
-    const panelWidth = 480;
-    const mapWidth = width - panelWidth;
-    projection.fitSize([mapWidth, height * 0.95], collection);
-    const [tx, ty] = projection.translate();
-    projection.translate([tx + panelWidth, ty]);
-  } else {
-    projection.fitSize([width, height * 0.95], collection);
-  }
-
-  path.projection(projection);
+  // Calculate zoom projections for all zoom levels
+  calculateZoomProjections(geoData);
 
   svg.attr("viewBox", `0 0 ${width} ${height}`);
   svg.attr("preserveAspectRatio", "xMidYMid meet");
@@ -281,9 +437,16 @@ function initializeMap(svg) {
 }
 
 function renderMapStep(svg, geoData, stepIndex, options = {}) {
-  const { opacity = 1, duration = 800 } = options;
+  const { opacity = 1, duration = 800, animate = true } = options;
 
   if (!acquisitionsData) return;
+
+  // Handle zoom level transition for this step
+  const step = MAP_STEPS[stepIndex];
+  if (step && step.zoom) {
+    const shouldAnimate = animate && duration > 0;
+    applyZoomLevel(step.zoom, shouldAnimate, duration);
+  }
 
   const acqLayer = svg.select(".layer-acquisitions");
 
@@ -634,7 +797,12 @@ function handleResize() {
   const svg = d3.select("#map");
   const desktop = isDesktop();
 
+  // Recalculate zoom projections for new viewport
   fitProjection(svg, geoDataByStep);
+
+  // Remember current zoom level but reset so it gets reapplied
+  const savedZoomLevel = currentZoomLevel;
+  currentZoomLevel = null;
 
   if (lastWasDesktop !== desktop) {
     if (desktop) {
@@ -661,19 +829,24 @@ function handleResize() {
   const { type, step } = getPageInfo(pageEl);
   const mapLayer = document.getElementById("map-layer");
 
+  // Apply zoom level for current step (instant, no animation)
+  const targetStep = step !== null ? step : 0;
+  const targetZoom = MAP_STEPS[targetStep].zoom;
+  applyZoomLevel(targetZoom, false);
+
   // Re-initialize and re-render
   initializeMap(svg);
 
   if (type === "intro") {
     mapLayer.classList.remove("is-thumbnail");
-    renderMapStep(svg, geoDataByStep, 0, { opacity: 0.15, duration: 0 });
+    renderMapStep(svg, geoDataByStep, 0, { opacity: 0.15, duration: 0, animate: false });
   } else if (step !== null) {
     if (desktop || type === "transition") {
       mapLayer.classList.remove("is-thumbnail");
     } else {
       mapLayer.classList.add("is-thumbnail");
     }
-    renderMapStep(svg, geoDataByStep, step, { opacity: 1, duration: 0 });
+    renderMapStep(svg, geoDataByStep, step, { opacity: 1, duration: 0, animate: false });
   }
 
   updateEdgeNav();
@@ -698,11 +871,15 @@ async function init() {
   const svg = d3.select("#map");
   fitProjection(svg, geoDataByStep);
 
+  // Apply initial zoom level before creating paths
+  const initialZoom = MAP_STEPS[0].zoom;
+  applyZoomLevel(initialZoom, false);
+
   // Initialize map layers and render context countries once
   initializeMap(svg);
 
-  // Render initial US state
-  renderMapStep(svg, geoDataByStep, 0, { opacity: 0.15, duration: 0 });
+  // Render initial US state (zoom already applied, so pass animate: false)
+  renderMapStep(svg, geoDataByStep, 0, { opacity: 0.15, duration: 0, animate: false });
 
   buildTimeline();
   setupEdgeNav();
