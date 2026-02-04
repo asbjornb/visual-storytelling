@@ -33,19 +33,17 @@ const ERA_COLORS = {
 // Map step definitions
 // ─────────────────────────────────────────────────────────────
 
-// Zoom level definitions - geographic bounds [west, south, east, north]
+// Zoom level definitions - relative scale and center offset from full view
 const ZOOM_LEVELS = {
   // Eastern US - original colonies through Louisiana Purchase and Florida
-  // Louisiana Purchase extends to ~-110°, Florida to ~24°N
-  east: { bounds: [-112, 23, -65, 52], padding: 0.08 },
+  // Scale multiplier relative to full view, center offset [lon, lat] from map center
+  east: { scale: 2.0, centerOffset: [12, 5] },
   // Continental US - includes Texas, Oregon, Mexican cession, Gadsden
-  // Oregon extends to ~-125°, Mexican cession to ~-118°
-  continental: { bounds: [-128, 23, -65, 52], padding: 0.06 },
+  continental: { scale: 1.5, centerOffset: [5, 5] },
   // With Alaska - need to show the northwest
-  // Alaska extends to ~-170° and ~72°N
-  alaska: { bounds: [-172, 23, -65, 73], padding: 0.05 },
+  alaska: { scale: 1.15, centerOffset: [-5, 8] },
   // Full Americas - Greenland, Canada, Panama for modern rhetoric
-  full: null, // null means fit to all features (current behavior)
+  full: { scale: 1.0, centerOffset: [0, 0] },
 };
 
 const MAP_STEPS = [
@@ -151,81 +149,66 @@ function calculateZoomProjections(geoData) {
   const panelWidth = desktop ? 480 : 0;
   const mapWidth = width - panelWidth;
 
-  // Helper to calculate projection params for given bounds
-  function getProjectionForBounds(bounds, padding) {
-    // Create a temporary projection to calculate fitting
-    const tempProjection = d3.geoConicEqualArea()
-      .parallels([20, 50])
-      .rotate([90, 0])
-      .center([0, 35]);
+  // First, calculate the base "full" projection that fits all features
+  const baseProjection = d3.geoConicEqualArea()
+    .parallels([20, 50])
+    .rotate([90, 0])
+    .center([0, 35]);
 
-    // Create a GeoJSON feature from bounds
-    const [west, south, east, north] = bounds;
-    const boundsFeature = {
-      type: "Feature",
-      geometry: {
-        type: "Polygon",
-        coordinates: [[
-          [west, south],
-          [east, south],
-          [east, north],
-          [west, north],
-          [west, south]
-        ]]
-      }
-    };
+  const finalData = geoData[geoData.length - 1];
+  const usFeatures = Object.values(finalData).flat();
+  const allFeatures = contextCountries
+    ? [...usFeatures, ...contextCountries.features]
+    : usFeatures;
+  const collection = { type: "FeatureCollection", features: allFeatures };
 
-    // Fit the projection to the bounds
-    if (desktop) {
-      tempProjection.fitSize([mapWidth * (1 - padding), height * (0.95 - padding)], boundsFeature);
-      const [tx, ty] = tempProjection.translate();
-      tempProjection.translate([tx + panelWidth, ty]);
-    } else {
-      tempProjection.fitSize([width * (1 - padding), height * (0.95 - padding)], boundsFeature);
-    }
-
-    return {
-      scale: tempProjection.scale(),
-      translate: tempProjection.translate()
-    };
+  if (desktop) {
+    baseProjection.fitSize([mapWidth, height * 0.95], collection);
+    const [tx, ty] = baseProjection.translate();
+    baseProjection.translate([tx + panelWidth, ty]);
+  } else {
+    baseProjection.fitSize([width, height * 0.95], collection);
   }
 
-  // Helper to get projection for all features (full view)
-  function getProjectionForAll() {
-    const tempProjection = d3.geoConicEqualArea()
-      .parallels([20, 50])
-      .rotate([90, 0])
-      .center([0, 35]);
+  const baseScale = baseProjection.scale();
+  const baseTranslate = baseProjection.translate();
 
-    const finalData = geoData[geoData.length - 1];
-    const usFeatures = Object.values(finalData).flat();
-    const allFeatures = contextCountries
-      ? [...usFeatures, ...contextCountries.features]
-      : usFeatures;
-    const collection = { type: "FeatureCollection", features: allFeatures };
+  // Calculate center point in screen coordinates for the map focus area
+  // This is roughly the center of the continental US
+  const mapCenterLon = -98;
+  const mapCenterLat = 39;
+  const [baseCenterX, baseCenterY] = baseProjection([mapCenterLon, mapCenterLat]);
 
-    if (desktop) {
-      tempProjection.fitSize([mapWidth, height * 0.95], collection);
-      const [tx, ty] = tempProjection.translate();
-      tempProjection.translate([tx + panelWidth, ty]);
-    } else {
-      tempProjection.fitSize([width, height * 0.95], collection);
-    }
-
-    return {
-      scale: tempProjection.scale(),
-      translate: tempProjection.translate()
-    };
-  }
-
-  // Calculate projection params for each zoom level
+  // Calculate projection params for each zoom level relative to base
   zoomProjections = {};
   for (const [key, config] of Object.entries(ZOOM_LEVELS)) {
-    if (config === null) {
-      zoomProjections[key] = getProjectionForAll();
-    } else {
-      zoomProjections[key] = getProjectionForBounds(config.bounds, config.padding);
-    }
+    const scaleFactor = config.scale;
+    const [offsetLon, offsetLat] = config.centerOffset;
+
+    // New scale is base scale multiplied by the zoom factor
+    const newScale = baseScale * scaleFactor;
+
+    // Calculate where the offset center point would be with the new scale
+    // We need to adjust translate so that the desired center stays roughly centered
+    const focusLon = mapCenterLon + offsetLon;
+    const focusLat = mapCenterLat + offsetLat;
+
+    // Project the focus point with the base projection
+    const [focusX, focusY] = baseProjection([focusLon, focusLat]);
+
+    // Calculate the new translate to keep the focus point in a good position
+    // When we scale up, we need to adjust translate to keep focus area visible
+    const viewCenterX = desktop ? (panelWidth + mapWidth / 2) : (width / 2);
+    const viewCenterY = height / 2;
+
+    // The translate adjustment accounts for how scaling moves points
+    const newTranslateX = viewCenterX - (focusX - baseTranslate[0]) * scaleFactor;
+    const newTranslateY = viewCenterY - (focusY - baseTranslate[1]) * scaleFactor;
+
+    zoomProjections[key] = {
+      scale: newScale,
+      translate: [newTranslateX, newTranslateY]
+    };
   }
 }
 
