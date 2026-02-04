@@ -952,8 +952,8 @@ body {
 
   /* Notes page on mobile - push below minimap */
   .page--notes .page-story {
-    margin-top: 10rem;
-    max-height: calc(100vh - 14rem);
+    margin-top: 8.5rem;
+    max-height: calc(100vh - 12.5rem);
     overflow-y: auto;
   }
 
