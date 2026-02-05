@@ -7,10 +7,10 @@
 }
 
 :root {
-  --bg: #0a0a0a;
-  --fg: #e8e8e8;
-  --muted: #888;
-  --accent: #6ef;
+  --bg: #ffffff;
+  --fg: #222;
+  --muted: #444;
+  --accent: #2D9CDB;
 }
 
 body {
@@ -40,7 +40,7 @@ h1 {
 #viz-list a {
   display: block;
   padding: 1rem 1.25rem;
-  border: 1px solid #222;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
   margin-bottom: 0.75rem;
   color: var(--fg);
