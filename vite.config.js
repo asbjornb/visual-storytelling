@@ -26,7 +26,27 @@ function getVisualizationInputs() {
   return inputs;
 }
 
+// Strip "src/" prefix from output paths so visualizations are served
+// at /us-territorial-expansion/ instead of /src/us-territorial-expansion/
+function stripSrcPrefix() {
+  return {
+    name: "strip-src-prefix",
+    enforce: "post",
+    generateBundle(_options, bundle) {
+      for (const key of Object.keys(bundle)) {
+        if (bundle[key].fileName.startsWith("src/")) {
+          const entry = bundle[key];
+          entry.fileName = entry.fileName.slice(4);
+          delete bundle[key];
+          bundle[entry.fileName] = entry;
+        }
+      }
+    },
+  };
+}
+
 export default defineConfig({
+  plugins: [stripSrcPrefix()],
   build: {
     rollupOptions: {
       input: getVisualizationInputs(),
