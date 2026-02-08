@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>How the Power Grid Really Works</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <!-- Hero -->
+    <section class="page hero" id="hero">
+      <div class="page-inner center">
+        <span class="tag">Interactive Visual Story</span>
+        <h1>How the Power Grid<br />Really Works</h1>
+        <p class="deck">
+          Five chapters on the invisible machine that keeps the lights on
+          &mdash; and where your money goes.
+        </p>
+        <div class="scroll-cue">
+          <div class="scroll-line"></div>
+          <span>Scroll</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ch 1: The Balancing Act -->
+    <section class="page" id="ch-balance">
+      <div class="page-inner">
+        <header class="ch-head">
+          <span class="ch-num">01</span>
+          <h2>The Balancing Act</h2>
+        </header>
+        <div class="two-col">
+          <div class="viz-col">
+            <div class="freq-display">
+              <span class="freq-value" id="freq-value">50.00</span>
+              <span class="freq-unit">Hz</span>
+              <span class="freq-status" id="freq-status">Stable</span>
+            </div>
+            <div class="viz-card" id="response-stack"></div>
+            <div class="switch-row">
+              <button class="light-switch" id="power-switch" role="switch" aria-checked="false">
+                <span class="switch-plate">
+                  <span class="switch-rocker">
+                    <span class="rocker-on">ON</span>
+                    <span class="rocker-off">OFF</span>
+                  </span>
+                </span>
+              </button>
+              <div class="switch-info">
+                <span class="switch-label" id="demand-status">Flip the switch to add demand</span>
+                <span class="cascade-timer" id="cascade-timer"></span>
+              </div>
+            </div>
+            <p class="viz-hint">
+              Flip the switch to add 25 GW of demand &mdash; watch the cascade of response unfold in real time
+            </p>
+          </div>
+          <div class="text-col">
+            <p class="lede">
+              Supply must equal demand every second. There is no warehouse for
+              electricity.
+            </p>
+            <p>
+              Flip the switch. Frequency dips instantly. Batteries fire in
+              milliseconds to arrest the drop. Hydro follows in seconds. Gas
+              turbines need minutes. Once gas is carrying the load, batteries
+              recharge &mdash; preparing for the next surge.
+            </p>
+            <p>
+              In the 2021 Texas freeze, this cascade failed &mdash; the grid
+              came within minutes of total collapse.
+            </p>
+            <div class="callout">
+              Everything that follows &mdash; markets, trading, pricing &mdash;
+              exists to keep this cascade working.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ch 2: The Merit Order -->
+    <section class="page" id="ch-merit">
+      <div class="page-inner">
+        <header class="ch-head">
+          <span class="ch-num">02</span>
+          <h2>The Merit Order</h2>
+        </header>
+        <div class="two-col">
+          <div class="viz-col wide">
+            <div class="price-hero">
+              <span class="price-label">Clearing Price</span>
+              <span class="price-num" id="merit-price">&euro;0</span>
+              <span class="price-unit">/MWh</span>
+            </div>
+            <div class="viz-card" id="merit-chart"></div>
+            <div class="slider-row trio">
+              <label>
+                <span>Solar</span>
+                <input type="range" id="solar-slider" min="0" max="100" value="40" />
+              </label>
+              <label>
+                <span>Wind</span>
+                <input type="range" id="wind-slider" min="0" max="100" value="35" />
+              </label>
+              <label>
+                <span>Demand</span>
+                <input type="range" id="demand-merit" min="20" max="110" value="60" />
+              </label>
+            </div>
+          </div>
+          <div class="text-col">
+            <p class="lede">
+              Generators bid into a daily auction. The most expensive one still
+              needed sets the price for <em>everyone</em>.
+            </p>
+            <p>
+              Drag the sliders. A sunny, windy day pushes gas off the stack and
+              the price crashes. A calm, high-demand evening forces expensive
+              peakers online and the price spikes.
+            </p>
+            <p>
+              The glowing block is the <strong>price setter</strong> &mdash; the
+              marginal plant. Every generator to its left earns the same price,
+              even if their own cost is near zero.
+            </p>
+            <div class="callout">
+              Why pay wind &euro;70 when its cost is &euro;0? That spread repays
+              the investment in turbines. Without it, nobody would build them.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ch 3: Grid Pressures -->
+    <section class="page" id="ch-grid">
+      <div class="page-inner">
+        <header class="ch-head">
+          <span class="ch-num">03</span>
+          <h2>Grid Pressures</h2>
+        </header>
+        <div class="scenario-bar" id="scenario-bar">
+          <button class="sc-btn active" data-sc="wind">Wind Dies</button>
+          <button class="sc-btn" data-sc="cold">Cold Snap</button>
+          <button class="sc-btn" data-sc="drought">Dry Spell</button>
+          <button class="sc-btn" data-sc="nuclear">Nuclear Surprise</button>
+        </div>
+        <div class="two-col">
+          <div class="viz-col wide">
+            <div class="viz-card" id="grid-map"></div>
+          </div>
+          <div class="text-col">
+            <div id="sc-texts">
+              <div class="sc-text" data-sc="wind">
+                <h3>The Wind Dies Down</h3>
+                <p>
+                  Forecast said 15 GW offshore wind. Reality: 8 GW. Batteries
+                  fire first, then gas turbines spin up. Norway opens hydro
+                  south. Intraday prices spike as traders scramble.
+                </p>
+              </div>
+              <div class="sc-text hidden" data-sc="cold">
+                <h3>The Cold Snap</h3>
+                <p>
+                  A polar vortex hits Central Europe. Germany&rsquo;s demand
+                  surges 15%. France also needs power. Cables hit capacity.
+                  Prices <strong>decouple</strong>: Nordics stay moderate while
+                  the continent surges to &euro;200&ndash;400/MWh.
+                </p>
+              </div>
+              <div class="sc-text hidden" data-sc="drought">
+                <h3>The Nordic Dry Spell</h3>
+                <p>
+                  Low rainfall empties Scandinavian reservoirs. Norway conserves
+                  water. Gas fills the gap across the continent. Unlike sudden
+                  crises, this persists for <strong>weeks or months</strong>.
+                </p>
+              </div>
+              <div class="sc-text hidden" data-sc="nuclear">
+                <h3>The French Nuclear Surprise</h3>
+                <p>
+                  Stress corrosion sidelines 30 of 56 French reactors. France
+                  flips from top exporter to net importer. Prices exceed
+                  <strong>&euro;1,000/MWh</strong>. The shockwave spreads
+                  continent-wide.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ch 4: Traders -->
+    <section class="page" id="ch-traders">
+      <div class="page-inner">
+        <header class="ch-head">
+          <span class="ch-num">04</span>
+          <h2>Enter the Traders</h2>
+        </header>
+        <div class="two-col">
+          <div class="viz-col wide">
+            <div class="viz-card" id="trade-viz"></div>
+            <div class="slider-row">
+              <label>
+                <span>Interconnector Capacity</span>
+                <input type="range" id="trade-slider" min="0" max="8000" value="0" step="100" />
+                <output id="trade-val">0 MW</output>
+              </label>
+            </div>
+            <p class="viz-hint">
+              Add cable capacity between Norway and Germany &mdash; even one trade can use it all
+            </p>
+          </div>
+          <div class="text-col">
+            <p class="lede">
+              Traders buy where power is cheap and sell where it&rsquo;s
+              expensive. Does this help you?
+            </p>
+            <p>
+              <strong>Hedging</strong> locks in stable prices &mdash; genuine
+              insurance. <strong>Arbitrage</strong> moves power to where
+              it&rsquo;s needed, narrowing price gaps.
+              <strong>Speculation</strong> adds liquidity but can amplify
+              volatility.
+            </p>
+            <p>
+              The visualisation shows spatial arbitrage: cheap Nordic hydro
+              flowing to expensive Germany. As trading increases, the price gap
+              narrows &mdash; consumers in Germany pay less.
+            </p>
+            <div class="callout">
+              The honest answer: some trading benefits consumers, some is a
+              wealth transfer to traders. Economists genuinely debate the
+              proportion.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ch 5: Green Transition -->
+    <section class="page" id="ch-green">
+      <div class="page-inner">
+        <header class="ch-head">
+          <span class="ch-num">05</span>
+          <h2>The Green Transition</h2>
+        </header>
+        <div class="gen-clock-row">
+          <div class="gen-clock-header">
+            <div class="clock-time">
+              <span class="clock-hour" id="clock-hour">00:00</span>
+              <span class="clock-period" id="clock-period">Night</span>
+            </div>
+            <div class="clock-stats">
+              <div class="clock-stat">
+                <span class="clock-stat-label">Demand</span>
+                <span class="clock-stat-value" id="clock-demand">62 GW</span>
+              </div>
+              <div class="clock-stat">
+                <span class="clock-stat-label">Price</span>
+                <span class="clock-stat-value" id="clock-price">&euro;68/MWh</span>
+              </div>
+              <div class="clock-stat">
+                <span class="clock-stat-label">Renewables</span>
+                <span class="clock-stat-value" id="clock-renew">24%</span>
+              </div>
+              <div class="clock-stat">
+                <span class="clock-stat-label">CO&#8322;</span>
+                <span class="clock-stat-value" id="clock-co2">410 g/kWh</span>
+              </div>
+            </div>
+          </div>
+          <div class="viz-card" id="gen-stack-viz"></div>
+          <div class="slider-row">
+            <label>
+              <span>Hour of Day</span>
+              <input type="range" id="hour-slider" min="0" max="23" value="0" step="1" />
+            </label>
+          </div>
+          <div class="slider-row duo">
+            <label>
+              <span>Solar Capacity</span>
+              <input type="range" id="solar-cap" min="0" max="100" value="20" />
+            </label>
+            <label>
+              <span>Battery Storage</span>
+              <input type="range" id="battery-cap" min="0" max="100" value="0" />
+            </label>
+          </div>
+          <div class="play-controls">
+            <button class="play-btn" id="play-btn">&#9654; Play 24h</button>
+          </div>
+        </div>
+        <div class="two-col" style="margin-top: 2rem;">
+          <div class="viz-col wide">
+            <!-- empty - the full-width gen stack is above -->
+          </div>
+          <div class="text-col">
+            <p class="lede">
+              Watch how the generation mix shifts through a single day.
+              At noon, solar floods the grid. At sunset, it vanishes &mdash;
+              and gas must ramp violently.
+            </p>
+            <p>
+              Crank up solar capacity: midday becomes a wall of yellow,
+              pushing everything else off. But the evening still needs gas.
+              Now add batteries &mdash; they charge at noon (green) and
+              discharge at sunset (red).
+            </p>
+            <p>
+              Hit <strong>Play 24h</strong> to watch the daily cycle animate.
+              Notice how the mix at 2 PM and 7 PM are completely different
+              worlds.
+            </p>
+            <div class="callout">
+              The green transition makes the grid <em>more</em> volatile, not
+              less. Managing that volatility is the central engineering
+              challenge of the next decade.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Conclusion -->
+    <section class="page conclusion" id="conclusion">
+      <div class="page-inner center">
+        <h2>Now You Know</h2>
+        <p class="deck">
+          The structure of the grid and the generation mix will have a far
+          larger impact on your bill than the traders. They are the lubricant in
+          the engine &mdash; not the engine itself.
+        </p>
+        <p class="final">Now you know enough to judge for yourself.</p>
+      </div>
+    </section>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
