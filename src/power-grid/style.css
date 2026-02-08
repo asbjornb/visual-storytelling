@@ -1175,16 +1175,35 @@ input[type="range"]::-moz-range-thumb {
     display: none;
   }
 
+  .grid-timescale,
+  .grid-who-acts {
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
   .ts-label,
   .wa-label {
     min-width: auto;
     font-size: 0.55rem;
+    width: 100%;
+  }
+
+  .ts-segments,
+  .wa-segments {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+    width: 100%;
   }
 
   .ts-seg,
   .wa-seg {
     font-size: 0.5rem;
     padding: 0.2rem 0.15rem;
+  }
+
+  .wa-segments {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .am-item {
