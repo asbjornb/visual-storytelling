@@ -93,20 +93,20 @@ export function init() {
 
     const windOutput = hours.map(hr => 15 + 4 * Math.sin(((hr + 2) / 24) * Math.PI * 2));
 
-    const energyCap = batteryCap * 4;
-    const powerCap = batteryCap * 0.6;
+    const energyCap = batteryCap * 5;
+    const powerCap = batteryCap * 0.8;
     let energy = energyCap * 0.3;
     const batteryOutput = [];
 
     hours.forEach(hr => {
       const netNeed = demand[hr] - solarOutput[hr] - windOutput[hr] - 12;
       let batt = 0;
-      if (netNeed < 30 && energy < energyCap) {
-        const charge = Math.min(powerCap, 30 - netNeed, energyCap - energy);
+      if (netNeed < 35 && energy < energyCap) {
+        const charge = Math.min(powerCap, 35 - netNeed, energyCap - energy);
         batt = -charge;
         energy += charge * 0.92;
-      } else if (netNeed > 50 && energy > 0) {
-        const discharge = Math.min(powerCap, netNeed - 50, energy);
+      } else if (netNeed > 38 && energy > 0) {
+        const discharge = Math.min(powerCap, netNeed - 38, energy);
         batt = discharge;
         energy -= discharge / 0.92;
       }
@@ -118,14 +118,19 @@ export function init() {
       let remaining = d;
       const mix = {};
 
-      const nuclear = Math.min(12, remaining);
-      mix["Nuclear"] = nuclear; remaining -= nuclear;
+      // Solar is must-run: inverters are hard to disconnect, near-zero
+      // marginal cost.  It dispatches first and keeps its midday peak.
+      const solar = Math.min(solarOutput[hr], remaining);
+      mix["Solar"] = solar; remaining -= solar;
 
+      // Wind is also must-run but turbines can be feathered, so it
+      // yields after solar has taken its share.
       const wind = Math.min(windOutput[hr], remaining);
       mix["Wind"] = wind; remaining -= wind;
 
-      const solar = Math.min(solarOutput[hr], remaining);
-      mix["Solar"] = solar; remaining -= solar;
+      // Nuclear: baseload but ramps down when squeezed by renewables.
+      const nuclear = Math.min(12, remaining);
+      mix["Nuclear"] = nuclear; remaining -= nuclear;
 
       const hydro = Math.min(12, remaining);
       mix["Hydro"] = hydro; remaining -= hydro;
@@ -143,7 +148,11 @@ export function init() {
       const coal = Math.min(15, remaining);
       mix["Coal"] = coal;
 
-      return { hour: hr, demand: d, mix };
+      // Renewable surplus that must be curtailed (drives negative prices)
+      const battCharging = batteryOutput[hr] < 0 ? -batteryOutput[hr] : 0;
+      const surplus = Math.max(0, solarOutput[hr] + windOutput[hr] - d - battCharging);
+
+      return { hour: hr, demand: d, mix, surplus };
     });
   }
 
@@ -226,15 +235,17 @@ export function init() {
     clockPeriod.textContent = getPeriodName(selectedHour);
     clockDemand.textContent = `${fmt0(hourData.demand)} GW`;
 
+    const surplus = hourData.surplus || 0;
     const coalUsed = hourData.mix["Coal"] || 0;
     let price = 20;
-    if (coalUsed > 0) price = 55 + coalUsed * 4;
+    if (surplus > 0) price = -10 - surplus * 2;
+    else if (coalUsed > 0) price = 55 + coalUsed * 4;
     else if ((hourData.mix["Gas Peaker"] || 0) > 0) price = 130 + (hourData.mix["Gas Peaker"] || 0) * 5;
     else if ((hourData.mix["Gas CCGT"] || 0) > 0) price = 78 + (hourData.mix["Gas CCGT"] || 0) * 1.5;
     else if ((hourData.mix["Hydro"] || 0) > 5) price = 22;
     else price = 5;
     clockPrice.textContent = `\u20AC${fmt0(price)}/MWh`;
-    clockPrice.style.color = price > 150 ? COLORS.red : price > 80 ? COLORS.amber : COLORS.green;
+    clockPrice.style.color = price < 0 ? "#6366f1" : price > 150 ? COLORS.red : price > 80 ? COLORS.amber : COLORS.green;
 
     const totalGen = Object.values(hourData.mix).reduce((s, v) => s + v, 0);
     const renewableGen = (hourData.mix["Solar"] || 0) + (hourData.mix["Wind"] || 0) + (hourData.mix["Hydro"] || 0) + (hourData.mix["Battery"] || 0);
