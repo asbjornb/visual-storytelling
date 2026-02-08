@@ -923,14 +923,26 @@ input[type="range"]::-moz-range-thumb {
 /* ── Conclusion ───────────────────────────────────── */
 
 .conclusion {
-  padding-top: 8rem;
-  padding-bottom: 8rem;
+  padding-top: 5rem;
+  padding-bottom: 5rem;
   background: linear-gradient(
     160deg,
     #fafbff 0%,
     #eef2ff 50%,
     #fdf2f8 100%
   );
+}
+
+.conclusion-inner {
+  max-width: 40rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.conclusion-main {
+  margin-bottom: 3rem;
 }
 
 .conclusion h2 {
@@ -941,6 +953,17 @@ input[type="range"]::-moz-range-thumb {
   margin-bottom: 1.2rem;
 }
 
+.conclusion-body {
+  font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+  color: var(--text);
+  line-height: 1.65;
+  margin-top: 1rem;
+}
+
+.conclusion-body strong {
+  color: var(--text-bright);
+}
+
 .final {
   margin-top: 2rem;
   font-size: 1.1rem;
@@ -949,6 +972,42 @@ input[type="range"]::-moz-range-thumb {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-weight: 600;
+}
+
+/* ── Conclusion Resources ────────────────────────── */
+
+.conclusion-resources {
+  width: 100%;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--border-bright);
+  text-align: left;
+}
+
+.resources-heading {
+  font-family: "Outfit", sans-serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 0.6rem;
+}
+
+.resources-intro {
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.book-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(99, 102, 241, 0.3);
+  text-underline-offset: 2px;
+  font-weight: 600;
+  transition: text-decoration-color 0.2s;
+}
+
+.book-link:hover {
+  text-decoration-color: var(--accent);
 }
 
 /* ── Frequency Thresholds ────────────────────────── */
@@ -1226,6 +1285,15 @@ input[type="range"]::-moz-range-thumb {
 
   .edge-nav--next {
     right: 0.5rem;
+  }
+
+  .conclusion {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+
+  .conclusion-main {
+    margin-bottom: 2rem;
   }
 }
 
