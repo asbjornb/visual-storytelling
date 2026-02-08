@@ -1,0 +1,284 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background: #0a0a0a;
+  color: #e0e0e0;
+  min-height: 100vh;
+}
+
+header {
+  padding: 1.5rem 2rem 0.5rem;
+  border-bottom: 1px solid #222;
+}
+
+header h1 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: #888;
+  margin-top: 0.25rem;
+}
+
+main {
+  padding: 1rem 2rem 2rem;
+}
+
+/* ── Controls ── */
+
+.controls {
+  margin-bottom: 1rem;
+}
+
+.control-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.control-group {
+  flex: 1;
+}
+
+.control-group.operation {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding-top: 1.4rem;
+}
+
+.control-group label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #aaa;
+  margin-bottom: 0.35rem;
+}
+
+select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+select:focus {
+  outline: none;
+  border-color: #556;
+}
+
+.feature-info {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.25rem;
+  min-height: 1.1em;
+}
+
+/* ── Operation buttons ── */
+
+.op-buttons {
+  display: flex;
+  gap: 0;
+  border: 1px solid #333;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.op-btn {
+  padding: 0.5rem 1rem;
+  background: #1a1a1a;
+  border: none;
+  color: #aaa;
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.op-btn:first-child {
+  border-right: 1px solid #333;
+}
+
+.op-btn:hover {
+  background: #252525;
+}
+
+.op-btn.active {
+  background: #2a3a5a;
+  color: #7ab4ff;
+}
+
+/* ── Action row ── */
+
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.primary-btn {
+  padding: 0.55rem 1.5rem;
+  background: #2a5a9a;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.primary-btn:hover {
+  background: #3a6aba;
+}
+
+.primary-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.secondary-btn {
+  padding: 0.55rem 1.2rem;
+  background: transparent;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #aaa;
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.secondary-btn:hover:not(:disabled) {
+  border-color: #777;
+  color: #ddd;
+}
+
+.secondary-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.filter-group {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.filter-group label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.filter-group input[type="checkbox"] {
+  accent-color: #2a5a9a;
+}
+
+/* ── Map panels ── */
+
+.map-container {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.map-panel {
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.map-panel h3 {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #777;
+  border-bottom: 1px solid #222;
+}
+
+.map {
+  width: 100%;
+  height: 500px;
+  position: relative;
+}
+
+.map svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Status bar ── */
+
+.status-bar {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.status-bar .error {
+  color: #e63946;
+}
+
+.status-bar .success {
+  color: #2a9d8f;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 900px) {
+  main {
+    padding: 1rem;
+  }
+
+  .control-row {
+    flex-direction: column;
+  }
+
+  .control-group.operation {
+    padding-top: 0;
+    align-self: center;
+  }
+
+  .map-container {
+    grid-template-columns: 1fr;
+  }
+
+  .map {
+    height: 350px;
+  }
+
+  .action-row {
+    flex-wrap: wrap;
+  }
+
+  .filter-group {
+    margin-left: 0;
+  }
+}

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GeoJSON Diff / Sum Tool</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>GeoJSON Diff / Sum Tool</h1>
+      <p class="subtitle">
+        Compute geometric difference or union between two US territorial GeoJSON
+        files
+      </p>
+    </header>
+
+    <main>
+      <section class="controls">
+        <div class="control-row">
+          <div class="control-group">
+            <label for="file-a">File A</label>
+            <select id="file-a"></select>
+            <div class="feature-info" id="info-a"></div>
+          </div>
+          <div class="control-group operation">
+            <div class="op-buttons">
+              <button id="btn-diff" class="op-btn active" title="A minus B">
+                A &minus; B
+              </button>
+              <button id="btn-union" class="op-btn" title="A union B">
+                A &cup; B
+              </button>
+            </div>
+          </div>
+          <div class="control-group">
+            <label for="file-b">File B</label>
+            <select id="file-b"></select>
+            <div class="feature-info" id="info-b"></div>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button id="btn-compute" class="primary-btn">Compute</button>
+          <button id="btn-download" class="secondary-btn" disabled>
+            Download Result GeoJSON
+          </button>
+          <div class="filter-group">
+            <label
+              ><input type="checkbox" id="filter-us" checked /> US only
+              (exclude other_country)</label
+            >
+          </div>
+        </div>
+      </section>
+
+      <section class="map-container">
+        <div class="map-panel">
+          <h3>File A</h3>
+          <div id="map-a" class="map"></div>
+        </div>
+        <div class="map-panel">
+          <h3>Result</h3>
+          <div id="map-result" class="map"></div>
+        </div>
+        <div class="map-panel">
+          <h3>File B</h3>
+          <div id="map-b" class="map"></div>
+        </div>
+      </section>
+
+      <section class="status-bar">
+        <span id="status">Select two files and click Compute</span>
+      </section>
+    </main>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
