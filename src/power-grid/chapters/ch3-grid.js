@@ -277,10 +277,11 @@ export function init() {
       p.classList.toggle("active", p.dataset.phase === phase);
     });
 
-    // Show/hide aftermath cards
+    // Always show aftermath card for current scenario; highlight on aftermath phase
     document.querySelectorAll(".aftermath-card").forEach(card => {
-      const isVisible = phase === "aftermath" && card.dataset.sc === currentScenario;
-      card.classList.toggle("hidden", !isVisible);
+      const isCurrentScenario = card.dataset.sc === currentScenario;
+      card.classList.toggle("hidden", !isCurrentScenario);
+      card.classList.toggle("aftermath-highlight", isCurrentScenario && phase === "aftermath");
     });
 
     // Update stress label in SVG
@@ -326,10 +327,7 @@ export function init() {
       t.classList.toggle("hidden", t.dataset.sc !== key);
     });
 
-    // Hide all aftermath cards
-    document.querySelectorAll(".aftermath-card").forEach(c => c.classList.add("hidden"));
-
-    // Start at shock phase (for quick comparison)
+    // Start at shock phase (goToPhase handles aftermath visibility)
     goToPhase("shock");
   }
 

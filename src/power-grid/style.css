@@ -1179,6 +1179,55 @@ input[type="range"]::-moz-range-thumb {
   width: 20px;
 }
 
+/* ── Ch3 Grid — compact layout for laptop viewports ── */
+
+#ch-grid {
+  padding-top: 2.5rem;
+  padding-bottom: 1.5rem;
+}
+
+#ch-grid .ch-head {
+  margin-bottom: 1.25rem;
+}
+
+#ch-grid .lede {
+  margin-bottom: 0.5rem;
+}
+
+#ch-grid .scenario-bar {
+  margin-bottom: 0.75rem;
+}
+
+#ch-grid .two-col {
+  gap: 2rem;
+}
+
+#ch-grid .viz-card {
+  min-height: 15rem;
+}
+
+#ch-grid .grid-phase-bar {
+  margin-top: 0.5rem;
+}
+
+#ch-grid .grid-timescale,
+#ch-grid .grid-who-acts {
+  margin-top: 0.35rem;
+  padding: 0.3rem 0.75rem;
+}
+
+/* Aftermath card — subtle when not on aftermath phase, highlighted when active */
+
+.aftermath-card.aftermath-highlight {
+  border-color: rgba(99, 102, 241, 0.25);
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.06),
+    rgba(236, 72, 153, 0.04)
+  );
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.08);
+}
+
 /* ── Responsive ───────────────────────────────────── */
 
 @media (max-width: 900px) {
