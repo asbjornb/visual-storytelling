@@ -4,51 +4,122 @@
       <span class="ch-num">03</span>
       <h2>Grid Pressures</h2>
     </header>
+    <p class="lede">The grid usually looks calm. You only understand it when it&rsquo;s under stress &mdash; when prices explode, operators scramble, and the limits of physics become visible.</p>
+
     <div class="scenario-bar" id="scenario-bar">
-      <button class="sc-btn active" data-sc="wind">Wind Dies</button>
-      <button class="sc-btn" data-sc="cold">Cold Snap</button>
-      <button class="sc-btn" data-sc="drought">Dry Spell</button>
-      <button class="sc-btn" data-sc="nuclear">Nuclear Surprise</button>
+      <button class="sc-btn active" data-sc="wind">
+        <span class="sc-btn-name">Wind Dies</span>
+        <span class="sc-btn-type">Sudden imbalance</span>
+      </button>
+      <button class="sc-btn" data-sc="drought">
+        <span class="sc-btn-name">Dry Spell</span>
+        <span class="sc-btn-type">Sustained scarcity</span>
+      </button>
+      <button class="sc-btn" data-sc="nuclear">
+        <span class="sc-btn-name">Nuclear Outage</span>
+        <span class="sc-btn-type">Structural loss</span>
+      </button>
     </div>
+
     <div class="two-col">
       <div class="viz-col wide">
         <div class="viz-card" id="grid-map"></div>
+        <div class="grid-phase-bar" id="grid-phase-bar">
+          <button class="phase-play-btn" id="phase-play" title="Play scenario">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><polygon points="2,0 14,7 2,14"/></svg>
+          </button>
+          <div class="phase-pills" id="phase-pills">
+            <button class="phase-pill active" data-phase="normal">Normal</button>
+            <span class="phase-arrow">&rarr;</span>
+            <button class="phase-pill" data-phase="shock">Shock</button>
+            <span class="phase-arrow">&rarr;</span>
+            <button class="phase-pill" data-phase="response">Response</button>
+            <span class="phase-arrow">&rarr;</span>
+            <button class="phase-pill" data-phase="aftermath">Aftermath</button>
+          </div>
+        </div>
+        <div class="grid-timescale" id="grid-timescale">
+          <span class="ts-label">Timescale</span>
+          <div class="ts-segments">
+            <span class="ts-seg" data-idx="0">Seconds</span>
+            <span class="ts-seg" data-idx="1">Minutes</span>
+            <span class="ts-seg" data-idx="2">Hours</span>
+            <span class="ts-seg" data-idx="3">Days</span>
+            <span class="ts-seg" data-idx="4">Weeks</span>
+            <span class="ts-seg" data-idx="5">Months</span>
+          </div>
+        </div>
+        <div class="grid-who-acts" id="grid-who-acts">
+          <span class="wa-label">Who responds</span>
+          <div class="wa-segments">
+            <span class="wa-seg" data-idx="0">Grid operators</span>
+            <span class="wa-seg" data-idx="1">Intraday markets</span>
+            <span class="wa-seg" data-idx="2">Traders &amp; hedging</span>
+            <span class="wa-seg" data-idx="3">Policy &amp; investment</span>
+          </div>
+        </div>
       </div>
       <div class="text-col">
         <div id="sc-texts">
           <div class="sc-text" data-sc="wind">
             <h3>The Wind Dies Down</h3>
             <p>
-              Forecast said 15 GW offshore wind. Reality: 8 GW. Batteries
+              Forecast said 15&nbsp;GW offshore wind. Reality: 8&nbsp;GW. Batteries
               fire first, then gas turbines spin up. Norway opens hydro
-              south. Intraday prices spike as traders scramble.
+              south. Intraday prices spike as operators and traders scramble
+              to close the gap within <strong>minutes to hours</strong>.
             </p>
-          </div>
-          <div class="sc-text hidden" data-sc="cold">
-            <h3>The Cold Snap</h3>
-            <p>
-              A polar vortex hits Central Europe. Germany&rsquo;s demand
-              surges 15%. France also needs power. Cables hit capacity.
-              Prices <strong>decouple</strong>: Nordics stay moderate while
-              the continent surges to &euro;200&ndash;400/MWh.
-            </p>
+            <div class="aftermath-card hidden" data-sc="wind">
+              <div class="aftermath-header">Outcome</div>
+              <div class="aftermath-grid">
+                <div class="am-item"><span class="am-key">Peak price</span><span class="am-val">&euro;175/MWh</span></div>
+                <div class="am-item"><span class="am-key">Where</span><span class="am-val">Germany</span></div>
+                <div class="am-item"><span class="am-key">Duration</span><span class="am-val">4&ndash;8 hours</span></div>
+                <div class="am-item"><span class="am-key">Who acted</span><span class="am-val">Grid operators, then intraday traders</span></div>
+                <div class="am-item"><span class="am-key">Who paid</span><span class="am-val">Consumers via day-ahead price</span></div>
+                <div class="am-item"><span class="am-key">Lesson</span><span class="am-val am-lesson">Forecast errors hit fast. Batteries and gas reserves buy time.</span></div>
+              </div>
+            </div>
           </div>
           <div class="sc-text hidden" data-sc="drought">
             <h3>The Nordic Dry Spell</h3>
             <p>
-              Low rainfall empties Scandinavian reservoirs. Norway conserves
-              water. Gas fills the gap across the continent. Unlike sudden
-              crises, this persists for <strong>weeks or months</strong>.
+              Low rainfall empties Scandinavian reservoirs over weeks.
+              Norway conserves water. Gas fills the gap across the continent.
+              Unlike sudden crises, this persists for <strong>weeks or months</strong>
+              &mdash; long enough for traders to hedge and politics to intervene.
             </p>
+            <div class="aftermath-card hidden" data-sc="drought">
+              <div class="aftermath-header">Outcome</div>
+              <div class="aftermath-grid">
+                <div class="am-item"><span class="am-key">Peak price</span><span class="am-val">&euro;230/MWh</span></div>
+                <div class="am-item"><span class="am-key">Where</span><span class="am-val">Germany</span></div>
+                <div class="am-item"><span class="am-key">Duration</span><span class="am-val">Weeks to months</span></div>
+                <div class="am-item"><span class="am-key">Who acted</span><span class="am-val">Traders, importers, then governments</span></div>
+                <div class="am-item"><span class="am-key">Who paid</span><span class="am-val">Everyone &mdash; slow burn across the continent</span></div>
+                <div class="am-item"><span class="am-key">Lesson</span><span class="am-val am-lesson">Energy scarcity grinds. Markets adapt, but consumers feel it for months.</span></div>
+              </div>
+            </div>
           </div>
           <div class="sc-text hidden" data-sc="nuclear">
             <h3>The French Nuclear Surprise</h3>
             <p>
               Stress corrosion sidelines 30 of 56 French reactors. France
-              flips from top exporter to net importer. Prices exceed
-              <strong>&euro;1,000/MWh</strong>. The shockwave spreads
-              continent-wide.
+              flips from top exporter to desperate importer. Prices exceed
+              <strong>&euro;420/MWh</strong>. The shockwave spreads continent-wide
+              and lasts <strong>months</strong> while reactors are inspected and repaired.
             </p>
+            <div class="aftermath-card hidden" data-sc="nuclear">
+              <div class="aftermath-header">Outcome</div>
+              <div class="aftermath-grid">
+                <div class="am-item"><span class="am-key">Peak price</span><span class="am-val">&euro;420/MWh</span></div>
+                <div class="am-item"><span class="am-key">Where</span><span class="am-val">France, then everywhere</span></div>
+                <div class="am-item"><span class="am-key">Duration</span><span class="am-val">6+ months</span></div>
+                <div class="am-item"><span class="am-key">Who acted</span><span class="am-val">Everyone: operators, traders, governments, EU</span></div>
+                <div class="am-item"><span class="am-key">Who paid</span><span class="am-val">French consumers; continent via price coupling</span></div>
+                <div class="am-item"><span class="am-key">Lesson</span><span class="am-val am-lesson">Structural outages reshape markets. No quick fix when baseload vanishes.</span></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
