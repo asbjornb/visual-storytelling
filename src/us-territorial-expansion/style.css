@@ -1066,3 +1066,171 @@ body {
     bottom: 0.5rem;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   INLINE FOOTNOTE BUTTONS
+   ═══════════════════════════════════════════════════════════ */
+
+.inline-note {
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  border-bottom: 1px dashed currentColor;
+  padding: 0;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  line-height: inherit;
+}
+
+.inline-note:hover {
+  color: var(--fg);
+  border-bottom-style: solid;
+}
+
+.inline-note::after {
+  content: " \203A";
+  font-size: 0.9em;
+  opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FOOTNOTE SIDE PANEL
+   ═══════════════════════════════════════════════════════════ */
+
+.footnote-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 190;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.footnote-backdrop.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.footnote-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 195;
+  width: 380px;
+  max-width: 90vw;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.1);
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.footnote-panel.is-open {
+  transform: translateX(0);
+}
+
+.footnote-panel-inner {
+  padding: 1.75rem;
+  flex: 1;
+}
+
+.footnote-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+}
+
+.footnote-year {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.footnote-title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--fg);
+  line-height: 1.25;
+  margin: 0;
+}
+
+.footnote-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--fg-muted);
+  cursor: pointer;
+  padding: 0;
+  margin: -0.25rem -0.25rem 0 0.5rem;
+  flex-shrink: 0;
+}
+
+.footnote-close:hover {
+  color: var(--fg);
+}
+
+.footnote-map {
+  margin-bottom: 1.25rem;
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.footnote-map:empty {
+  display: none;
+}
+
+.footnote-body p {
+  font-size: 0.88rem;
+  color: var(--fg);
+  margin: 0 0 0.75rem 0;
+  line-height: 1.6;
+}
+
+.footnote-body p:last-child {
+  margin-bottom: 0;
+}
+
+/* Footnote panel — mobile: bottom sheet */
+@media (max-width: 600px) {
+  .footnote-panel {
+    width: 100%;
+    max-width: 100%;
+    top: auto;
+    bottom: 0;
+    height: auto;
+    max-height: 85vh;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    transform: translateY(100%);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+  }
+
+  .footnote-panel.is-open {
+    transform: translateY(0);
+  }
+
+  .footnote-panel-inner {
+    padding: 1.25rem;
+  }
+
+  .footnote-body p {
+    font-size: 0.84rem;
+  }
+}

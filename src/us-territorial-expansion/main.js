@@ -83,6 +83,24 @@ const ACQUISITION_LABELS = [
   { era: "hawaii", year: "1898", lat: 21, lon: -157, name: "Hawaii", detail: "Annexed during Spanish-American War" },
 ];
 
+// Expandable side-story footnotes — inline affordances that open a
+// slide-in panel with a short explanation and an optional mini-map.
+const FOOTNOTES = {
+  vermont: {
+    title: "Vermont\u2019s Quasi-Independence",
+    year: "1777\u20131791",
+    paragraphs: [
+      "In 1777, settlers between the Connecticut River and Lake Champlain declared independence\u2009\u2014\u2009not just from Britain, but from New York and New Hampshire, both of which claimed the territory. The resulting Vermont Republic adopted its own constitution, the first in America to partially abolish slavery.",
+      "For 14 years Vermont operated as a de facto nation with its own currency, postal service, and foreign policy. It even flirted with rejoining the British Empire during the so-called Haldimand Affair.",
+      "Vermont finally joined the Union in 1791 as the 14th state\u2009\u2014\u2009the first admitted beyond the original thirteen.",
+    ],
+    // Mini-map: bounding box [SW, NE] to zoom into, marker to highlight
+    mapBounds: [[-77, 40.5], [-69, 46]],
+    mapMarker: { lon: -72.6, lat: 44.0, label: "Vermont" },
+    mapStep: 0, // Color territories as of this acquisition step
+  },
+};
+
 // Context country IDs from Natural Earth (for filtering TopoJSON)
 const CONTEXT_COUNTRY_IDS = [
   // North America
@@ -685,6 +703,8 @@ function goToPage(newPage) {
 
   // Close notes modal if open
   if (window.closeNotesModal) window.closeNotesModal();
+  // Close footnote panel if open
+  if (window.closeFootnotePanel) window.closeFootnotePanel();
 
   const svg = d3.select("#map");
   const mapLayer = document.getElementById("map-layer");
@@ -854,6 +874,10 @@ function setupSwipe() {
 
 function setupKeyboard() {
   document.addEventListener("keydown", (e) => {
+    // Don't navigate when the footnote panel is open
+    const fp = document.getElementById("footnote-panel");
+    if (fp && fp.classList.contains("is-open")) return;
+
     if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === " ") {
       e.preventDefault();
       nextPage();
@@ -872,7 +896,7 @@ function setupClickNav() {
   const viewer = document.getElementById("viewer");
 
   viewer.addEventListener("click", (e) => {
-    if (e.target.closest(".timeline, .edge-nav, button, a, .page-story")) return;
+    if (e.target.closest(".timeline, .edge-nav, button, a, .page-story, .footnote-panel, .footnote-backdrop")) return;
 
     const rect = viewer.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -929,6 +953,178 @@ function setupNotesModal() {
 
   // Close modal when navigating to another page
   window.closeNotesModal = closeModal;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Footnote side-story panel
+// ─────────────────────────────────────────────────────────────
+
+function setupFootnotes() {
+  const panel = document.getElementById("footnote-panel");
+  const closeBtn = document.getElementById("footnote-close");
+  const backdrop = document.getElementById("footnote-backdrop");
+  if (!panel) return;
+
+  document.querySelectorAll(".inline-note").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.footnote;
+      if (id && FOOTNOTES[id]) {
+        openFootnote(id);
+      }
+    });
+  });
+
+  closeBtn.addEventListener("click", closeFootnote);
+  backdrop.addEventListener("click", closeFootnote);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && panel.classList.contains("is-open")) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeFootnote();
+    }
+  });
+
+  window.closeFootnotePanel = closeFootnote;
+}
+
+function openFootnote(id) {
+  const data = FOOTNOTES[id];
+  if (!data) return;
+
+  const panel = document.getElementById("footnote-panel");
+  const backdrop = document.getElementById("footnote-backdrop");
+
+  panel.querySelector(".footnote-title").textContent = data.title;
+  panel.querySelector(".footnote-year").textContent = data.year;
+
+  const body = panel.querySelector(".footnote-body");
+  body.innerHTML = "";
+  data.paragraphs.forEach((text) => {
+    const p = document.createElement("p");
+    p.textContent = text;
+    body.appendChild(p);
+  });
+
+  const mapContainer = panel.querySelector(".footnote-map");
+  mapContainer.innerHTML = "";
+  if (data.mapBounds) {
+    renderFootnoteMiniMap(mapContainer, data);
+  }
+
+  panel.classList.add("is-open");
+  backdrop.classList.add("is-open");
+}
+
+function closeFootnote() {
+  const panel = document.getElementById("footnote-panel");
+  const backdrop = document.getElementById("footnote-backdrop");
+  if (panel) panel.classList.remove("is-open");
+  if (backdrop) backdrop.classList.remove("is-open");
+}
+
+function renderFootnoteMiniMap(container, data) {
+  const width = 320;
+  const height = 180;
+
+  const svg = d3.select(container)
+    .append("svg")
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .attr("preserveAspectRatio", "xMidYMid meet")
+    .style("width", "100%")
+    .style("height", "auto")
+    .style("border-radius", "8px")
+    .style("background", "#eef1f5");
+
+  const [[west, south], [east, north]] = data.mapBounds;
+  const boundsFeature = {
+    type: "Feature",
+    geometry: {
+      type: "Polygon",
+      coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]],
+    },
+  };
+
+  const miniProjection = d3.geoConicEqualArea()
+    .parallels([20, 50])
+    .rotate([90, 0])
+    .center([0, 35]);
+
+  miniProjection.fitSize([width - 16, height - 16], boundsFeature);
+  const [tx, ty] = miniProjection.translate();
+  miniProjection.translate([tx + 8, ty + 8]);
+
+  const miniPath = d3.geoPath().projection(miniProjection);
+
+  // Context countries
+  if (contextCountries) {
+    svg.selectAll(".mini-context")
+      .data(contextCountries.features)
+      .enter()
+      .append("path")
+      .attr("d", miniPath)
+      .attr("fill", CONTEXT_COLOR)
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 0.5);
+  }
+
+  // Acquisition territories
+  if (acquisitionsData) {
+    const stepIndex = data.mapStep !== undefined ? data.mapStep : 0;
+    acquisitionsData.features.forEach((feature) => {
+      const featureStep = feature.properties.step;
+      const era = feature.properties.era;
+      let fill;
+      if (featureStep <= stepIndex) {
+        fill = featureStep === stepIndex ? ERA_COLORS[era] : ESTABLISHED_COLOR;
+      } else {
+        fill = CONTEXT_COLOR;
+      }
+
+      svg.append("path")
+        .attr("d", miniPath(feature))
+        .attr("fill", fill)
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 0.5)
+        .attr("opacity", 0.9);
+    });
+  }
+
+  // Location marker
+  if (data.mapMarker) {
+    const [mx, my] = miniProjection([data.mapMarker.lon, data.mapMarker.lat]);
+    if (mx && my) {
+      svg.append("circle")
+        .attr("cx", mx)
+        .attr("cy", my)
+        .attr("r", 16)
+        .attr("fill", "none")
+        .attr("stroke", "#e63946")
+        .attr("stroke-width", 1.5)
+        .attr("opacity", 0.4);
+
+      svg.append("circle")
+        .attr("cx", mx)
+        .attr("cy", my)
+        .attr("r", 5)
+        .attr("fill", "#e63946")
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 1.5);
+
+      svg.append("text")
+        .attr("x", mx + 12)
+        .attr("y", my + 4)
+        .attr("font-family", "Inter, system-ui, sans-serif")
+        .attr("font-size", "11px")
+        .attr("font-weight", "600")
+        .attr("fill", "#2a2d34")
+        .attr("stroke", "#eef1f5")
+        .attr("stroke-width", 2.5)
+        .attr("paint-order", "stroke")
+        .text(data.mapMarker.label);
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1034,6 +1230,7 @@ async function init() {
   setupKeyboard();
   setupClickNav();
   setupNotesModal();
+  setupFootnotes();
 
   window.addEventListener("resize", debounce(handleResize, 200));
 }
