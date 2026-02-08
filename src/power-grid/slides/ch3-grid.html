@@ -4,51 +4,127 @@
       <span class="ch-num">03</span>
       <h2>Grid Pressures</h2>
     </header>
+    <p class="lede">The grid usually looks calm, but stress needs handling by operators and traders. Different stresses play out on different timescales.</p>
+
     <div class="scenario-bar" id="scenario-bar">
-      <button class="sc-btn active" data-sc="wind">Wind Dies</button>
-      <button class="sc-btn" data-sc="cold">Cold Snap</button>
-      <button class="sc-btn" data-sc="drought">Dry Spell</button>
-      <button class="sc-btn" data-sc="nuclear">Nuclear Surprise</button>
+      <button class="sc-btn active" data-sc="dunkelflaute">
+        <span class="sc-btn-name">Dunkelflaute</span>
+        <span class="sc-btn-type">Cold + calm regime</span>
+      </button>
+      <button class="sc-btn" data-sc="drought">
+        <span class="sc-btn-name">Dry Spell</span>
+        <span class="sc-btn-type">Sustained scarcity</span>
+      </button>
+      <button class="sc-btn" data-sc="nuclear">
+        <span class="sc-btn-name">Nuclear Trip</span>
+        <span class="sc-btn-type">Sudden unit loss</span>
+      </button>
     </div>
+
     <div class="two-col">
       <div class="viz-col wide">
         <div class="viz-card" id="grid-map"></div>
+        <div class="grid-phase-bar" id="grid-phase-bar">
+          <button class="phase-play-btn" id="phase-play" title="Play scenario">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><polygon points="2,0 14,7 2,14"/></svg>
+          </button>
+          <div class="phase-pills" id="phase-pills">
+            <button class="phase-pill active" data-phase="normal">Normal</button>
+            <span class="phase-arrow">&rarr;</span>
+            <button class="phase-pill" data-phase="shock">Shock</button>
+            <span class="phase-arrow">&rarr;</span>
+            <button class="phase-pill" data-phase="response">Response</button>
+            <span class="phase-arrow">&rarr;</span>
+            <button class="phase-pill" data-phase="aftermath">Aftermath</button>
+          </div>
+        </div>
+        <div class="grid-timescale" id="grid-timescale">
+          <span class="ts-label">Timescale</span>
+          <div class="ts-segments">
+            <span class="ts-seg" data-idx="0">Seconds</span>
+            <span class="ts-seg" data-idx="1">Minutes</span>
+            <span class="ts-seg" data-idx="2">Hours</span>
+            <span class="ts-seg" data-idx="3">Days</span>
+            <span class="ts-seg" data-idx="4">Weeks</span>
+            <span class="ts-seg" data-idx="5">Months</span>
+          </div>
+        </div>
+        <div class="grid-who-acts" id="grid-who-acts">
+          <span class="wa-label">What fixes this</span>
+          <div class="wa-segments">
+            <span class="wa-seg" data-idx="0">Automatic reserves</span>
+            <span class="wa-seg" data-idx="1">Intraday repricing</span>
+            <span class="wa-seg" data-idx="2">Hedging &amp; imports</span>
+            <span class="wa-seg" data-idx="3">Capacity &amp; policy</span>
+          </div>
+        </div>
+        <p class="viz-hint">Illustrative prices based on real patterns, not historical data.</p>
       </div>
       <div class="text-col">
         <div id="sc-texts">
-          <div class="sc-text" data-sc="wind">
-            <h3>The Wind Dies Down</h3>
+          <div class="sc-text" data-sc="dunkelflaute">
+            <h3>Cold, Calm Week</h3>
             <p>
-              Forecast said 15 GW offshore wind. Reality: 8 GW. Batteries
-              fire first, then gas turbines spin up. Norway opens hydro
-              south. Intraday prices spike as traders scramble.
+              A cold high-pressure system sits over Northern Europe. Wind
+              output stays low for days. Demand rises with heating load.
+              Day-ahead forecasts deteriorate, intraday markets reprice,
+              and thermal plants fill the gap. Interconnectors to the Nordics
+              saturate as cheaper hydro flows south.
             </p>
-          </div>
-          <div class="sc-text hidden" data-sc="cold">
-            <h3>The Cold Snap</h3>
-            <p>
-              A polar vortex hits Central Europe. Germany&rsquo;s demand
-              surges 15%. France also needs power. Cables hit capacity.
-              Prices <strong>decouple</strong>: Nordics stay moderate while
-              the continent surges to &euro;200&ndash;400/MWh.
-            </p>
+            <div class="aftermath-card hidden" data-sc="dunkelflaute">
+              <div class="aftermath-header">Outcome</div>
+              <div class="aftermath-grid">
+                <div class="am-item"><span class="am-key">Peak price</span><span class="am-val">&euro;150&ndash;200/MWh (day-ahead, Central Europe)</span></div>
+                <div class="am-item"><span class="am-key">Duration</span><span class="am-val">3&ndash;7 days</span></div>
+                <div class="am-item"><span class="am-key">What helped</span><span class="am-val">Gas generation, Nordic hydro imports, demand response</span></div>
+                <div class="am-item"><span class="am-key">Cost impact</span><span class="am-val">Wholesale costs rise; pass-through depends on retail contracts</span></div>
+                <div class="am-item"><span class="am-key">Lesson</span><span class="am-val am-lesson">Weather regimes drive both supply and demand. Markets reprice over hours and days.</span></div>
+              </div>
+            </div>
           </div>
           <div class="sc-text hidden" data-sc="drought">
             <h3>The Nordic Dry Spell</h3>
             <p>
-              Low rainfall empties Scandinavian reservoirs. Norway conserves
-              water. Gas fills the gap across the continent. Unlike sudden
-              crises, this persists for <strong>weeks or months</strong>.
+              Low rainfall over weeks leaves Scandinavian reservoirs depleted.
+              Norway conserves water, bidding hydro higher. Gas fills the gap
+              across the continent. Forward markets shift as traders adjust
+              hedging positions. If it persists long enough, political pressure
+              builds.
             </p>
+            <div class="aftermath-card hidden" data-sc="drought">
+              <div class="aftermath-header">Outcome</div>
+              <div class="aftermath-grid">
+                <div class="am-item"><span class="am-key">Peak price</span><span class="am-val">&euro;130&ndash;230/MWh (sustained, varies by zone)</span></div>
+                <div class="am-item"><span class="am-key">Duration</span><span class="am-val">Weeks to months</span></div>
+                <div class="am-item"><span class="am-key">What helped</span><span class="am-val">Forward hedging, import rerouting, reservoir management</span></div>
+                <div class="am-item"><span class="am-key">Cost impact</span><span class="am-val">Slow burn &mdash; costs spread across months of higher wholesale prices</span></div>
+                <div class="am-item"><span class="am-key">Lesson</span><span class="am-val am-lesson">Energy scarcity grinds. Markets adjust, but the timeline favours those who hedged early.</span></div>
+              </div>
+            </div>
           </div>
           <div class="sc-text hidden" data-sc="nuclear">
-            <h3>The French Nuclear Surprise</h3>
+            <h3>Reactor Trip</h3>
             <p>
-              Stress corrosion sidelines 30 of 56 French reactors. France
-              flips from top exporter to net importer. Prices exceed
-              <strong>&euro;1,000/MWh</strong>. The shockwave spreads
-              continent-wide.
+              A large reactor (~1.3&nbsp;GW) trips unexpectedly. Automatic
+              reserves catch the frequency dip within seconds. Intraday
+              markets reprice within minutes as neighbouring zones
+              ramp up and interconnectors load. Prices spike locally,
+              then partially converge as the system rebalances.
             </p>
+            <p class="callout">
+              In 2022, stress corrosion sidelined much of France&rsquo;s nuclear fleet for months &mdash;
+              a far larger version of this. Forward contract prices briefly exceeded &euro;1,000/MWh.
+            </p>
+            <div class="aftermath-card hidden" data-sc="nuclear">
+              <div class="aftermath-header">Outcome</div>
+              <div class="aftermath-grid">
+                <div class="am-item"><span class="am-key">Peak price</span><span class="am-val">&euro;200&ndash;350/MWh (intraday, around France)</span></div>
+                <div class="am-item"><span class="am-key">Duration</span><span class="am-val">Hours (single trip); months if fleet-wide</span></div>
+                <div class="am-item"><span class="am-key">What helped</span><span class="am-val">Automatic reserves, then intraday trading and cross-border flows</span></div>
+                <div class="am-item"><span class="am-key">Cost impact</span><span class="am-val">Intraday spike; broader market impact depends on duration</span></div>
+                <div class="am-item"><span class="am-key">Lesson</span><span class="am-val am-lesson">Sudden loss is an operator problem. Sustained loss becomes a market and political problem.</span></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

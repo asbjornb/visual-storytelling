@@ -418,7 +418,11 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .sc-btn {
-  padding: 0.5rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.55rem 1.4rem;
   border: 1px solid var(--border-bright);
   border-radius: 999px;
   background: var(--surface-solid);
@@ -429,6 +433,19 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
   transition: all 0.25s;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.sc-btn-name {
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.sc-btn-type {
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.6;
 }
 
 .sc-btn:hover {
@@ -442,6 +459,10 @@ input[type="range"]::-moz-range-thumb {
   border-color: transparent;
   color: white;
   box-shadow: 0 2px 12px rgba(99, 102, 241, 0.3);
+}
+
+.sc-btn.active .sc-btn-type {
+  opacity: 0.85;
 }
 
 .sc-text {
@@ -463,6 +484,233 @@ input[type="range"]::-moz-range-thumb {
   color: var(--text);
   font-size: 0.95rem;
   line-height: 1.6;
+}
+
+/* ── Phase Controls ──────────────────────────────── */
+
+.grid-phase-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+
+.phase-play-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: white;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  flex-shrink: 0;
+}
+
+.phase-play-btn:hover {
+  background: var(--accent-light);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+}
+
+.phase-play-btn.playing {
+  background: linear-gradient(135deg, var(--accent), var(--pink));
+  border-color: transparent;
+  color: white;
+}
+
+.phase-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.phase-pill {
+  padding: 0.3rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.phase-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.phase-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+  box-shadow: 0 1px 6px rgba(99, 102, 241, 0.25);
+}
+
+.phase-pill.active[data-phase="shock"] {
+  background: var(--red);
+  border-color: var(--red);
+  box-shadow: 0 1px 6px rgba(239, 68, 68, 0.25);
+}
+
+.phase-pill.active[data-phase="response"] {
+  background: var(--amber);
+  border-color: var(--amber);
+  box-shadow: 0 1px 6px rgba(245, 158, 11, 0.25);
+}
+
+.phase-pill.active[data-phase="aftermath"] {
+  background: var(--text);
+  border-color: var(--text);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+}
+
+.phase-arrow {
+  color: var(--text-dim);
+  font-size: 0.65rem;
+  opacity: 0.4;
+  user-select: none;
+}
+
+/* ── Timescale Bar ───────────────────────────────── */
+
+.grid-timescale,
+.grid-who-acts {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+}
+
+.ts-label,
+.wa-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  min-width: 5.5rem;
+}
+
+.ts-segments,
+.wa-segments {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+}
+
+.ts-seg,
+.wa-seg {
+  flex: 1;
+  padding: 0.25rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-dim);
+  background: var(--bg-alt);
+  transition: all 0.4s ease;
+  white-space: nowrap;
+}
+
+.ts-seg.lit {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(236, 72, 153, 0.1));
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.2);
+}
+
+.wa-seg.lit {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 182, 212, 0.08));
+  color: #059669;
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.2);
+}
+
+/* ── Aftermath Card ──────────────────────────────── */
+
+.aftermath-card {
+  margin-top: 1.25rem;
+  padding: 1rem 1.2rem;
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.04),
+    rgba(99, 102, 241, 0.04)
+  );
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 0.75rem;
+  animation: aftermathFadeIn 0.5s ease both;
+}
+
+.aftermath-card.hidden {
+  display: none;
+}
+
+@keyframes aftermathFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.aftermath-header {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.aftermath-grid {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.am-item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.am-key {
+  font-weight: 600;
+  color: var(--text-dim);
+  min-width: 5.5rem;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.am-val {
+  color: var(--text-bright);
+  font-weight: 500;
+}
+
+.am-lesson {
+  color: var(--accent);
+  font-style: italic;
+  font-weight: 500;
 }
 
 /* ── Frequency Display ────────────────────────────── */
@@ -912,5 +1160,58 @@ input[type="range"]::-moz-range-thumb {
 
   .price-num {
     font-size: 2rem;
+  }
+
+  .phase-pills {
+    gap: 0.15rem;
+  }
+
+  .phase-pill {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.6rem;
+  }
+
+  .phase-arrow {
+    display: none;
+  }
+
+  .grid-timescale,
+  .grid-who-acts {
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .ts-label,
+  .wa-label {
+    min-width: auto;
+    font-size: 0.55rem;
+    width: 100%;
+  }
+
+  .ts-segments,
+  .wa-segments {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+    width: 100%;
+  }
+
+  .ts-seg,
+  .wa-seg {
+    font-size: 0.5rem;
+    padding: 0.2rem 0.15rem;
+  }
+
+  .wa-segments {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .am-item {
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .am-key {
+    min-width: auto;
   }
 }
