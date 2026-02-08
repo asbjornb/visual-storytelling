@@ -1060,9 +1060,15 @@ function renderFootnoteMiniMap(container, data) {
   };
 
   const miniProjection = d3.geoMercator()
-    .fitSize([width - 16, height - 16], boundsFeature);
-  const [tx, ty] = miniProjection.translate();
-  miniProjection.translate([tx + 8, ty + 8]);
+    .center([(west + east) / 2, (south + north) / 2])
+    .translate([width / 2, height / 2])
+    .scale(1);
+
+  // Measure bounds at scale=1, then compute the scale that fills the SVG
+  const tempPath = d3.geoPath().projection(miniProjection);
+  const [[bx0, by0], [bx1, by1]] = tempPath.bounds(boundsFeature);
+  const s = 0.85 * Math.min(width / (bx1 - bx0), height / (by1 - by0));
+  miniProjection.scale(s);
 
   const miniPath = d3.geoPath().projection(miniProjection);
 
