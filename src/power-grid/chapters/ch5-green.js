@@ -15,6 +15,10 @@ export function init() {
   const clockPrice = document.getElementById("clock-price");
   const clockRenew = document.getElementById("clock-renew");
   const clockCo2 = document.getElementById("clock-co2");
+  const dailyPrice = document.getElementById("daily-price");
+  const dailyRenew = document.getElementById("daily-renew");
+  const dailyCo2 = document.getElementById("daily-co2");
+  const dailyTonnes = document.getElementById("daily-tonnes");
 
   if (!container || !hourSlider) return;
 
@@ -27,6 +31,7 @@ export function init() {
     { name: "Gas CCGT", color: "#fb923c", co2: 400 },
     { name: "Gas Peaker", color: "#f472b6", co2: 550 },
     { name: "Coal", color: "#94a3b8", co2: 900 },
+    { name: "Charging", color: "#f87171", co2: 0 },
   ];
 
   const margin = { top: 30, right: 20, bottom: 50, left: 50 };
@@ -73,7 +78,7 @@ export function init() {
 
   const legend = svg.append("g").attr("transform", `translate(${margin.left},${margin.top + h + 30})`);
   genTypes.forEach((gen, i) => {
-    const lg = legend.append("g").attr("transform", `translate(${i * 88}, 0)`);
+    const lg = legend.append("g").attr("transform", `translate(${i * 78}, 0)`);
     lg.append("rect").attr("width", 10).attr("height", 10).attr("rx", 2).attr("fill", gen.color);
     lg.append("text").attr("x", 14).attr("y", 9).attr("fill", "#64748b").attr("font-size", 9).text(gen.name);
   });
@@ -82,8 +87,9 @@ export function init() {
     const hours = d3.range(24);
     const demand = hours.map(hr => {
       const morning = 8 * Math.exp(-((hr - 8) ** 2) / 14);
-      const evening = 16 * Math.exp(-((hr - 19) ** 2) / 12);
-      return 62 + morning + evening + 1.5 * Math.sin(((hr - 3) / 24) * Math.PI * 2);
+      const evening = 20 * Math.exp(-((hr - 19) ** 2) / 12);
+      const middayDip = -2.5 * Math.exp(-((hr - 13) ** 2) / 8);
+      return 62 + morning + evening + middayDip + 1.5 * Math.sin(((hr - 3) / 24) * Math.PI * 2);
     });
 
     const solarOutput = hours.map(hr => {
@@ -93,20 +99,20 @@ export function init() {
 
     const windOutput = hours.map(hr => 15 + 4 * Math.sin(((hr + 2) / 24) * Math.PI * 2));
 
-    const energyCap = batteryCap * 4;
-    const powerCap = batteryCap * 0.6;
+    const energyCap = batteryCap * 5;
+    const powerCap = batteryCap * 0.8;
     let energy = energyCap * 0.3;
     const batteryOutput = [];
 
     hours.forEach(hr => {
       const netNeed = demand[hr] - solarOutput[hr] - windOutput[hr] - 12;
       let batt = 0;
-      if (netNeed < 30 && energy < energyCap) {
-        const charge = Math.min(powerCap, 30 - netNeed, energyCap - energy);
+      if (netNeed < 35 && energy < energyCap) {
+        const charge = Math.min(powerCap, 35 - netNeed, energyCap - energy);
         batt = -charge;
         energy += charge * 0.92;
-      } else if (netNeed > 50 && energy > 0) {
-        const discharge = Math.min(powerCap, netNeed - 50, energy);
+      } else if (netNeed > 38 && energy > 0) {
+        const discharge = Math.min(powerCap, netNeed - 38, energy);
         batt = discharge;
         energy -= discharge / 0.92;
       }
@@ -118,14 +124,19 @@ export function init() {
       let remaining = d;
       const mix = {};
 
-      const nuclear = Math.min(12, remaining);
-      mix["Nuclear"] = nuclear; remaining -= nuclear;
+      // Solar is must-run: inverters are hard to disconnect, near-zero
+      // marginal cost.  It dispatches first and keeps its midday peak.
+      const solar = Math.min(solarOutput[hr], remaining);
+      mix["Solar"] = solar; remaining -= solar;
 
+      // Wind is also must-run but turbines can be feathered, so it
+      // yields after solar has taken its share.
       const wind = Math.min(windOutput[hr], remaining);
       mix["Wind"] = wind; remaining -= wind;
 
-      const solar = Math.min(solarOutput[hr], remaining);
-      mix["Solar"] = solar; remaining -= solar;
+      // Nuclear: baseload but ramps down when squeezed by renewables.
+      const nuclear = Math.min(12, remaining);
+      mix["Nuclear"] = nuclear; remaining -= nuclear;
 
       const hydro = Math.min(12, remaining);
       mix["Hydro"] = hydro; remaining -= hydro;
@@ -143,8 +154,36 @@ export function init() {
       const coal = Math.min(15, remaining);
       mix["Coal"] = coal;
 
-      return { hour: hr, demand: d, mix };
+      // Battery charging sits on top of the stack: bars exceed the demand
+      // line at midday, showing the grid absorbing power into storage.
+      mix["Charging"] = batteryOutput[hr] < 0 ? -batteryOutput[hr] : 0;
+
+      // Renewable surplus that must be curtailed (drives negative prices)
+      const battCharging = batteryOutput[hr] < 0 ? -batteryOutput[hr] : 0;
+      const surplus = Math.max(0, solarOutput[hr] + windOutput[hr] - d - battCharging);
+
+      return { hour: hr, demand: d, mix, surplus };
     });
+  }
+
+  function hourPrice(d) {
+    const surplus = d.surplus || 0;
+    const coal = d.mix["Coal"] || 0;
+    if (surplus > 0) return -10 - surplus * 2;
+    if (coal > 0) return 55 + coal * 4;
+    if ((d.mix["Gas Peaker"] || 0) > 0) return 130 + (d.mix["Gas Peaker"] || 0) * 5;
+    if ((d.mix["Gas CCGT"] || 0) > 0) return 78 + (d.mix["Gas CCGT"] || 0) * 1.5;
+    if ((d.mix["Hydro"] || 0) > 5) return 22;
+    if ((d.mix["Nuclear"] || 0) > 0) return 12;
+    return 0;
+  }
+
+  function hourStats(d) {
+    const gen = Object.values(d.mix).reduce((s, v) => s + v, 0) - (d.mix["Charging"] || 0);
+    const renew = (d.mix["Solar"] || 0) + (d.mix["Wind"] || 0) + (d.mix["Hydro"] || 0) + (d.mix["Battery"] || 0);
+    let co2 = 0;
+    genTypes.forEach(g => { co2 += (d.mix[g.name] || 0) * g.co2; });
+    return { gen, renew, renewPct: gen > 0 ? (renew / gen) * 100 : 0, co2, co2Intensity: gen > 0 ? co2 / gen : 0 };
   }
 
   function getPeriodName(hr) {
@@ -164,7 +203,8 @@ export function init() {
     const data = computeHourlyMix(solarCap, batteryCap);
 
     const maxDemand = d3.max(data, d => d.demand);
-    yScale.domain([0, Math.max(100, maxDemand + 5)]);
+    const maxStack = d3.max(data, d => Object.values(d.mix).reduce((s, v) => s + v, 0));
+    yScale.domain([0, Math.max(100, maxDemand + 5, maxStack + 5)]);
 
     yAxisG.transition().duration(200)
       .call(d3.axisLeft(yScale).ticks(6).tickFormat(d => `${d} GW`))
@@ -221,32 +261,47 @@ export function init() {
       .attr("width", xScale.bandwidth())
       .attr("height", h);
 
+    // --- Selected-hour stats ---
     const hourData = data[selectedHour];
     clockHour.textContent = `${String(selectedHour).padStart(2, "0")}:00`;
     clockPeriod.textContent = getPeriodName(selectedHour);
     clockDemand.textContent = `${fmt0(hourData.demand)} GW`;
 
-    const coalUsed = hourData.mix["Coal"] || 0;
-    let price = 20;
-    if (coalUsed > 0) price = 55 + coalUsed * 4;
-    else if ((hourData.mix["Gas Peaker"] || 0) > 0) price = 130 + (hourData.mix["Gas Peaker"] || 0) * 5;
-    else if ((hourData.mix["Gas CCGT"] || 0) > 0) price = 78 + (hourData.mix["Gas CCGT"] || 0) * 1.5;
-    else if ((hourData.mix["Hydro"] || 0) > 5) price = 22;
-    else price = 5;
+    const price = hourPrice(hourData);
     clockPrice.textContent = `\u20AC${fmt0(price)}/MWh`;
-    clockPrice.style.color = price > 150 ? COLORS.red : price > 80 ? COLORS.amber : COLORS.green;
+    clockPrice.style.color = price < 0 ? "#6366f1" : price > 150 ? COLORS.red : price > 80 ? COLORS.amber : COLORS.green;
 
-    const totalGen = Object.values(hourData.mix).reduce((s, v) => s + v, 0);
-    const renewableGen = (hourData.mix["Solar"] || 0) + (hourData.mix["Wind"] || 0) + (hourData.mix["Hydro"] || 0) + (hourData.mix["Battery"] || 0);
-    const renewPct = totalGen > 0 ? (renewableGen / totalGen) * 100 : 0;
-    clockRenew.textContent = `${fmt0(renewPct)}%`;
-    clockRenew.style.color = renewPct > 70 ? COLORS.green : renewPct > 40 ? COLORS.amber : COLORS.red;
+    const hs = hourStats(hourData);
+    clockRenew.textContent = `${fmt0(hs.renewPct)}%`;
+    clockRenew.style.color = hs.renewPct > 70 ? COLORS.green : hs.renewPct > 40 ? COLORS.amber : COLORS.red;
+    clockCo2.textContent = `${fmt0(hs.co2Intensity)} g/kWh`;
+    clockCo2.style.color = hs.co2Intensity > 300 ? COLORS.red : hs.co2Intensity > 150 ? COLORS.amber : COLORS.green;
 
-    let totalCo2 = 0;
-    genTypes.forEach(gen => { totalCo2 += (hourData.mix[gen.name] || 0) * gen.co2; });
-    const co2Intensity = totalGen > 0 ? totalCo2 / totalGen : 0;
-    clockCo2.textContent = `${fmt0(co2Intensity)} g/kWh`;
-    clockCo2.style.color = co2Intensity > 300 ? COLORS.red : co2Intensity > 150 ? COLORS.amber : COLORS.green;
+    // --- Daily averages ---
+    let sumPrice = 0, sumRenewPct = 0, sumCo2Intensity = 0, sumCo2Total = 0;
+    data.forEach(d => {
+      sumPrice += hourPrice(d);
+      const s = hourStats(d);
+      sumRenewPct += s.renewPct;
+      sumCo2Intensity += s.co2Intensity;
+      sumCo2Total += s.co2;
+    });
+    const avgPrice = sumPrice / 24;
+    const avgRenew = sumRenewPct / 24;
+    const avgCo2 = sumCo2Intensity / 24;
+    // co2 is g/kWh * GW per hour; convert to kilotonnes per day
+    // each hour: sum(GW * gCO2/kWh) = sum in g·GW/kWh
+    // GW·h * g/kWh = 1e6 kW·h * g/kWh = 1e6 g = 1 tonne
+    const totalTonnes = sumCo2Total / 1000; // kilotonnes
+
+    dailyPrice.textContent = `\u20AC${fmt0(avgPrice)}/MWh`;
+    dailyPrice.style.color = avgPrice < 0 ? "#6366f1" : avgPrice > 150 ? COLORS.red : avgPrice > 80 ? COLORS.amber : COLORS.green;
+    dailyRenew.textContent = `${fmt0(avgRenew)}%`;
+    dailyRenew.style.color = avgRenew > 70 ? COLORS.green : avgRenew > 40 ? COLORS.amber : COLORS.red;
+    dailyCo2.textContent = `${fmt0(avgCo2)} g/kWh`;
+    dailyCo2.style.color = avgCo2 > 300 ? COLORS.red : avgCo2 > 150 ? COLORS.amber : COLORS.green;
+    dailyTonnes.textContent = `${totalTonnes.toFixed(1)} kt`;
+    dailyTonnes.style.color = totalTonnes > 30 ? COLORS.red : totalTonnes > 15 ? COLORS.amber : COLORS.green;
   }
 
   hourSlider.addEventListener("input", update);

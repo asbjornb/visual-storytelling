@@ -43,11 +43,32 @@
         </label>
         <label>
           <span>Battery Storage</span>
-          <input type="range" id="battery-cap" min="0" max="100" value="0" />
+          <input type="range" id="battery-cap" min="0" max="120" value="0" />
         </label>
       </div>
       <div class="play-controls">
         <button class="play-btn" id="play-btn">&#9654; Play 24h</button>
+      </div>
+      <div class="daily-summary">
+        <span class="daily-summary-label">Daily average</span>
+        <div class="clock-stats">
+          <div class="clock-stat">
+            <span class="clock-stat-label">Price</span>
+            <span class="clock-stat-value" id="daily-price">&euro;68/MWh</span>
+          </div>
+          <div class="clock-stat">
+            <span class="clock-stat-label">Renewables</span>
+            <span class="clock-stat-value" id="daily-renew">24%</span>
+          </div>
+          <div class="clock-stat">
+            <span class="clock-stat-label">CO&#8322;</span>
+            <span class="clock-stat-value" id="daily-co2">410 g/kWh</span>
+          </div>
+          <div class="clock-stat">
+            <span class="clock-stat-label">Emissions</span>
+            <span class="clock-stat-value" id="daily-tonnes">0 kt</span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="two-col" style="margin-top: 2rem;">
@@ -63,8 +84,8 @@
         <p>
           Crank up solar capacity: midday becomes a wall of yellow,
           pushing everything else off. But the evening still needs gas.
-          Now add batteries &mdash; they charge at noon (green) and
-          discharge at sunset (red).
+          Now add batteries &mdash; they charge at noon (red, above the
+          demand line) and discharge at sunset (green).
         </p>
         <p>
           Hit <strong>Play 24h</strong> to watch the daily cycle animate.
