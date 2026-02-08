@@ -505,6 +505,17 @@ input[type="range"]::-moz-range-thumb {
   line-height: 1.6;
 }
 
+.sc-text a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  text-underline-offset: 2px;
+}
+
+.sc-text a:hover {
+  text-decoration-color: var(--accent);
+}
+
 /* ── Phase Controls ──────────────────────────────── */
 
 .grid-phase-bar {
