@@ -82,8 +82,9 @@ export function init() {
     const hours = d3.range(24);
     const demand = hours.map(hr => {
       const morning = 8 * Math.exp(-((hr - 8) ** 2) / 14);
-      const evening = 16 * Math.exp(-((hr - 19) ** 2) / 12);
-      return 62 + morning + evening + 1.5 * Math.sin(((hr - 3) / 24) * Math.PI * 2);
+      const evening = 20 * Math.exp(-((hr - 19) ** 2) / 12);
+      const middayDip = -2.5 * Math.exp(-((hr - 13) ** 2) / 8);
+      return 62 + morning + evening + middayDip + 1.5 * Math.sin(((hr - 3) / 24) * Math.PI * 2);
     });
 
     const solarOutput = hours.map(hr => {
