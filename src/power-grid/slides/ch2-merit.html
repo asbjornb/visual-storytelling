@@ -1,0 +1,52 @@
+<section class="page" id="ch-merit">
+  <div class="page-inner">
+    <header class="ch-head">
+      <span class="ch-num">02</span>
+      <h2>The Merit Order</h2>
+    </header>
+    <div class="two-col">
+      <div class="viz-col wide">
+        <div class="price-hero">
+          <span class="price-label">Clearing Price</span>
+          <span class="price-num" id="merit-price">&euro;0</span>
+          <span class="price-unit">/MWh</span>
+        </div>
+        <div class="viz-card" id="merit-chart"></div>
+        <div class="slider-row trio">
+          <label>
+            <span>Solar</span>
+            <input type="range" id="solar-slider" min="0" max="100" value="40" />
+          </label>
+          <label>
+            <span>Wind</span>
+            <input type="range" id="wind-slider" min="0" max="100" value="35" />
+          </label>
+          <label>
+            <span>Demand</span>
+            <input type="range" id="demand-merit" min="20" max="110" value="60" />
+          </label>
+        </div>
+      </div>
+      <div class="text-col">
+        <p class="lede">
+          Generators bid into a daily auction. The most expensive one still
+          needed sets the price for <em>everyone</em>.
+        </p>
+        <p>
+          Drag the sliders. A sunny, windy day pushes gas off the stack and
+          the price crashes. A calm, high-demand evening forces expensive
+          peakers online and the price spikes.
+        </p>
+        <p>
+          The glowing block is the <strong>price setter</strong> &mdash; the
+          marginal plant. Every generator to its left earns the same price,
+          even if their own cost is near zero.
+        </p>
+        <div class="callout">
+          Why pay wind &euro;70 when its cost is &euro;0? That spread repays
+          the investment in turbines. Without it, nobody would build them.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

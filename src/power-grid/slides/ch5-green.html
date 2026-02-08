@@ -1,0 +1,82 @@
+<section class="page" id="ch-green">
+  <div class="page-inner">
+    <header class="ch-head">
+      <span class="ch-num">05</span>
+      <h2>The Green Transition</h2>
+    </header>
+    <div class="gen-clock-row">
+      <div class="gen-clock-header">
+        <div class="clock-time">
+          <span class="clock-hour" id="clock-hour">00:00</span>
+          <span class="clock-period" id="clock-period">Night</span>
+        </div>
+        <div class="clock-stats">
+          <div class="clock-stat">
+            <span class="clock-stat-label">Demand</span>
+            <span class="clock-stat-value" id="clock-demand">62 GW</span>
+          </div>
+          <div class="clock-stat">
+            <span class="clock-stat-label">Price</span>
+            <span class="clock-stat-value" id="clock-price">&euro;68/MWh</span>
+          </div>
+          <div class="clock-stat">
+            <span class="clock-stat-label">Renewables</span>
+            <span class="clock-stat-value" id="clock-renew">24%</span>
+          </div>
+          <div class="clock-stat">
+            <span class="clock-stat-label">CO&#8322;</span>
+            <span class="clock-stat-value" id="clock-co2">410 g/kWh</span>
+          </div>
+        </div>
+      </div>
+      <div class="viz-card" id="gen-stack-viz"></div>
+      <div class="slider-row">
+        <label>
+          <span>Hour of Day</span>
+          <input type="range" id="hour-slider" min="0" max="23" value="0" step="1" />
+        </label>
+      </div>
+      <div class="slider-row duo">
+        <label>
+          <span>Solar Capacity</span>
+          <input type="range" id="solar-cap" min="0" max="100" value="20" />
+        </label>
+        <label>
+          <span>Battery Storage</span>
+          <input type="range" id="battery-cap" min="0" max="100" value="0" />
+        </label>
+      </div>
+      <div class="play-controls">
+        <button class="play-btn" id="play-btn">&#9654; Play 24h</button>
+      </div>
+    </div>
+    <div class="two-col" style="margin-top: 2rem;">
+      <div class="viz-col wide">
+        <!-- empty - the full-width gen stack is above -->
+      </div>
+      <div class="text-col">
+        <p class="lede">
+          Watch how the generation mix shifts through a single day.
+          At noon, solar floods the grid. At sunset, it vanishes &mdash;
+          and gas must ramp violently.
+        </p>
+        <p>
+          Crank up solar capacity: midday becomes a wall of yellow,
+          pushing everything else off. But the evening still needs gas.
+          Now add batteries &mdash; they charge at noon (green) and
+          discharge at sunset (red).
+        </p>
+        <p>
+          Hit <strong>Play 24h</strong> to watch the daily cycle animate.
+          Notice how the mix at 2 PM and 7 PM are completely different
+          worlds.
+        </p>
+        <div class="callout">
+          The green transition makes the grid <em>more</em> volatile, not
+          less. Managing that volatility is the central engineering
+          challenge of the next decade.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
