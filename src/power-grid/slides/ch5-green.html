@@ -30,6 +30,17 @@
         </div>
       </div>
       <div class="viz-card" id="gen-stack-viz"></div>
+      <div class="gen-legend">
+        <span class="gen-legend-item"><i style="background:#a78bfa"></i>Nuclear</span>
+        <span class="gen-legend-item"><i style="background:#22d3ee"></i>Wind</span>
+        <span class="gen-legend-item"><i style="background:#fbbf24"></i>Solar</span>
+        <span class="gen-legend-item"><i style="background:#34d399"></i>Hydro</span>
+        <span class="gen-legend-item"><i style="background:#10b981"></i>Battery</span>
+        <span class="gen-legend-item"><i style="background:#fb923c"></i>Gas CCGT</span>
+        <span class="gen-legend-item"><i style="background:#f472b6"></i>Gas Peaker</span>
+        <span class="gen-legend-item"><i style="background:#94a3b8"></i>Coal</span>
+        <span class="gen-legend-item"><i style="background:#f87171"></i>Charging</span>
+      </div>
       <div class="slider-row">
         <label>
           <span>Hour of Day</span>
@@ -50,23 +61,31 @@
         <button class="play-btn" id="play-btn">&#9654; Play 24h</button>
       </div>
       <div class="daily-summary">
-        <span class="daily-summary-label">Daily average</span>
-        <div class="clock-stats">
-          <div class="clock-stat">
-            <span class="clock-stat-label">Price</span>
-            <span class="clock-stat-value" id="daily-price">&euro;68/MWh</span>
+        <div class="daily-summary-group">
+          <span class="daily-summary-label">Daily average</span>
+          <div class="clock-stats">
+            <div class="clock-stat">
+              <span class="clock-stat-label">Price</span>
+              <span class="clock-stat-value" id="daily-price">&euro;68/MWh</span>
+            </div>
+            <div class="clock-stat">
+              <span class="clock-stat-label">Renewables</span>
+              <span class="clock-stat-value" id="daily-renew">24%</span>
+            </div>
+            <div class="clock-stat">
+              <span class="clock-stat-label">CO&#8322;</span>
+              <span class="clock-stat-value" id="daily-co2">410 g/kWh</span>
+            </div>
           </div>
-          <div class="clock-stat">
-            <span class="clock-stat-label">Renewables</span>
-            <span class="clock-stat-value" id="daily-renew">24%</span>
-          </div>
-          <div class="clock-stat">
-            <span class="clock-stat-label">CO&#8322;</span>
-            <span class="clock-stat-value" id="daily-co2">410 g/kWh</span>
-          </div>
-          <div class="clock-stat">
-            <span class="clock-stat-label">Emissions</span>
-            <span class="clock-stat-value" id="daily-tonnes">0 kt</span>
+        </div>
+        <div class="daily-summary-sep"></div>
+        <div class="daily-summary-group">
+          <span class="daily-summary-label">Daily total</span>
+          <div class="clock-stats">
+            <div class="clock-stat">
+              <span class="clock-stat-label">Emissions</span>
+              <span class="clock-stat-value" id="daily-tonnes">0 kt</span>
+            </div>
           </div>
         </div>
       </div>
