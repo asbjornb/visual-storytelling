@@ -636,11 +636,15 @@ async function runCompute() {
     // Stale check — a newer compute may have started
     if (generation !== computeGeneration) return;
 
-    resultGeoJSON = toFC(current);
-
+    // Rewind result back to CW (D3's spherical convention).
+    // Turf outputs RFC 7946 (CCW exterior), which D3's geoPath
+    // interprets as the polygon's complement.
     if (current) {
+      current = turf.rewind(current, { reverse: true });
       current.properties = { operation: opDescriptions.join(" ") };
     }
+
+    resultGeoJSON = toFC(current);
 
     renderGeoJSON(mapMain, resultGeoJSON);
 
