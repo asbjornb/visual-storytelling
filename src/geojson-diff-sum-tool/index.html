@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GeoJSON Diff / Sum Tool</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>GeoJSON Diff / Sum Tool</h1>
+      <p class="subtitle">
+        Build territorial boundaries by chaining geometric operations on US
+        GeoJSON files
+      </p>
+    </header>
+
+    <main>
+      <section class="controls">
+        <div class="base-row">
+          <label>Start with</label>
+          <select id="base-file"></select>
+          <div class="feature-info" id="base-info"></div>
+        </div>
+
+        <div id="operations"></div>
+
+        <button id="btn-add-op" class="add-op-btn">+ Add operation</button>
+
+        <div class="action-row">
+          <button id="btn-download" class="secondary-btn" disabled>
+            Download GeoJSON
+          </button>
+          <button id="btn-share" class="secondary-btn">
+            Copy Share URL
+          </button>
+          <button id="btn-copy-desc" class="secondary-btn">
+            Copy Description
+          </button>
+          <div class="filter-group">
+            <label>
+              <input type="checkbox" id="filter-us" checked />
+              US territory only (exclude context countries, unassigned, disputed)
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="right-column">
+        <div class="map-panel">
+          <div class="map-header">
+            <h3 id="map-title">Base</h3>
+          </div>
+          <div id="map-main" class="map"></div>
+        </div>
+
+        <div class="preview-section">
+          <h3 class="preview-heading">Input files</h3>
+          <div id="preview-strip" class="preview-strip"></div>
+        </div>
+      </section>
+
+      <section class="status-bar">
+        <span id="status">Select a base file to begin</span>
+      </section>
+    </main>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
