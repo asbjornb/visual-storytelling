@@ -15,6 +15,10 @@ export function init() {
   const clockPrice = document.getElementById("clock-price");
   const clockRenew = document.getElementById("clock-renew");
   const clockCo2 = document.getElementById("clock-co2");
+  const dailyPrice = document.getElementById("daily-price");
+  const dailyRenew = document.getElementById("daily-renew");
+  const dailyCo2 = document.getElementById("daily-co2");
+  const dailyTonnes = document.getElementById("daily-tonnes");
 
   if (!container || !hourSlider) return;
 
@@ -162,6 +166,26 @@ export function init() {
     });
   }
 
+  function hourPrice(d) {
+    const surplus = d.surplus || 0;
+    const coal = d.mix["Coal"] || 0;
+    if (surplus > 0) return -10 - surplus * 2;
+    if (coal > 0) return 55 + coal * 4;
+    if ((d.mix["Gas Peaker"] || 0) > 0) return 130 + (d.mix["Gas Peaker"] || 0) * 5;
+    if ((d.mix["Gas CCGT"] || 0) > 0) return 78 + (d.mix["Gas CCGT"] || 0) * 1.5;
+    if ((d.mix["Hydro"] || 0) > 5) return 22;
+    if ((d.mix["Nuclear"] || 0) > 0) return 12;
+    return 0;
+  }
+
+  function hourStats(d) {
+    const gen = Object.values(d.mix).reduce((s, v) => s + v, 0) - (d.mix["Charging"] || 0);
+    const renew = (d.mix["Solar"] || 0) + (d.mix["Wind"] || 0) + (d.mix["Hydro"] || 0) + (d.mix["Battery"] || 0);
+    let co2 = 0;
+    genTypes.forEach(g => { co2 += (d.mix[g.name] || 0) * g.co2; });
+    return { gen, renew, renewPct: gen > 0 ? (renew / gen) * 100 : 0, co2, co2Intensity: gen > 0 ? co2 / gen : 0 };
+  }
+
   function getPeriodName(hr) {
     if (hr >= 6 && hr < 10) return "Morning";
     if (hr >= 10 && hr < 14) return "Midday";
@@ -237,35 +261,47 @@ export function init() {
       .attr("width", xScale.bandwidth())
       .attr("height", h);
 
+    // --- Selected-hour stats ---
     const hourData = data[selectedHour];
     clockHour.textContent = `${String(selectedHour).padStart(2, "0")}:00`;
     clockPeriod.textContent = getPeriodName(selectedHour);
     clockDemand.textContent = `${fmt0(hourData.demand)} GW`;
 
-    const surplus = hourData.surplus || 0;
-    const coalUsed = hourData.mix["Coal"] || 0;
-    let price = 20;
-    if (surplus > 0) price = -10 - surplus * 2;
-    else if (coalUsed > 0) price = 55 + coalUsed * 4;
-    else if ((hourData.mix["Gas Peaker"] || 0) > 0) price = 130 + (hourData.mix["Gas Peaker"] || 0) * 5;
-    else if ((hourData.mix["Gas CCGT"] || 0) > 0) price = 78 + (hourData.mix["Gas CCGT"] || 0) * 1.5;
-    else if ((hourData.mix["Hydro"] || 0) > 5) price = 22;
-    else if ((hourData.mix["Nuclear"] || 0) > 0) price = 12;
-    else price = 0;
+    const price = hourPrice(hourData);
     clockPrice.textContent = `\u20AC${fmt0(price)}/MWh`;
     clockPrice.style.color = price < 0 ? "#6366f1" : price > 150 ? COLORS.red : price > 80 ? COLORS.amber : COLORS.green;
 
-    const totalGen = Object.values(hourData.mix).reduce((s, v) => s + v, 0) - (hourData.mix["Charging"] || 0);
-    const renewableGen = (hourData.mix["Solar"] || 0) + (hourData.mix["Wind"] || 0) + (hourData.mix["Hydro"] || 0) + (hourData.mix["Battery"] || 0);
-    const renewPct = totalGen > 0 ? (renewableGen / totalGen) * 100 : 0;
-    clockRenew.textContent = `${fmt0(renewPct)}%`;
-    clockRenew.style.color = renewPct > 70 ? COLORS.green : renewPct > 40 ? COLORS.amber : COLORS.red;
+    const hs = hourStats(hourData);
+    clockRenew.textContent = `${fmt0(hs.renewPct)}%`;
+    clockRenew.style.color = hs.renewPct > 70 ? COLORS.green : hs.renewPct > 40 ? COLORS.amber : COLORS.red;
+    clockCo2.textContent = `${fmt0(hs.co2Intensity)} g/kWh`;
+    clockCo2.style.color = hs.co2Intensity > 300 ? COLORS.red : hs.co2Intensity > 150 ? COLORS.amber : COLORS.green;
 
-    let totalCo2 = 0;
-    genTypes.forEach(gen => { totalCo2 += (hourData.mix[gen.name] || 0) * gen.co2; });
-    const co2Intensity = totalGen > 0 ? totalCo2 / totalGen : 0;
-    clockCo2.textContent = `${fmt0(co2Intensity)} g/kWh`;
-    clockCo2.style.color = co2Intensity > 300 ? COLORS.red : co2Intensity > 150 ? COLORS.amber : COLORS.green;
+    // --- Daily averages ---
+    let sumPrice = 0, sumRenewPct = 0, sumCo2Intensity = 0, sumCo2Total = 0;
+    data.forEach(d => {
+      sumPrice += hourPrice(d);
+      const s = hourStats(d);
+      sumRenewPct += s.renewPct;
+      sumCo2Intensity += s.co2Intensity;
+      sumCo2Total += s.co2;
+    });
+    const avgPrice = sumPrice / 24;
+    const avgRenew = sumRenewPct / 24;
+    const avgCo2 = sumCo2Intensity / 24;
+    // co2 is g/kWh * GW per hour; convert to kilotonnes per day
+    // each hour: sum(GW * gCO2/kWh) = sum in g·GW/kWh
+    // GW·h * g/kWh = 1e6 kW·h * g/kWh = 1e6 g = 1 tonne
+    const totalTonnes = sumCo2Total / 1000; // kilotonnes
+
+    dailyPrice.textContent = `\u20AC${fmt0(avgPrice)}/MWh`;
+    dailyPrice.style.color = avgPrice < 0 ? "#6366f1" : avgPrice > 150 ? COLORS.red : avgPrice > 80 ? COLORS.amber : COLORS.green;
+    dailyRenew.textContent = `${fmt0(avgRenew)}%`;
+    dailyRenew.style.color = avgRenew > 70 ? COLORS.green : avgRenew > 40 ? COLORS.amber : COLORS.red;
+    dailyCo2.textContent = `${fmt0(avgCo2)} g/kWh`;
+    dailyCo2.style.color = avgCo2 > 300 ? COLORS.red : avgCo2 > 150 ? COLORS.amber : COLORS.green;
+    dailyTonnes.textContent = `${totalTonnes.toFixed(1)} kt`;
+    dailyTonnes.style.color = totalTonnes > 30 ? COLORS.red : totalTonnes > 15 ? COLORS.amber : COLORS.green;
   }
 
   hourSlider.addEventListener("input", update);
