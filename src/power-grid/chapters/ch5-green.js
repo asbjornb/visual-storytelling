@@ -27,6 +27,7 @@ export function init() {
     { name: "Gas CCGT", color: "#fb923c", co2: 400 },
     { name: "Gas Peaker", color: "#f472b6", co2: 550 },
     { name: "Coal", color: "#94a3b8", co2: 900 },
+    { name: "Charging", color: "#f87171", co2: 0 },
   ];
 
   const margin = { top: 30, right: 20, bottom: 50, left: 50 };
@@ -73,7 +74,7 @@ export function init() {
 
   const legend = svg.append("g").attr("transform", `translate(${margin.left},${margin.top + h + 30})`);
   genTypes.forEach((gen, i) => {
-    const lg = legend.append("g").attr("transform", `translate(${i * 88}, 0)`);
+    const lg = legend.append("g").attr("transform", `translate(${i * 78}, 0)`);
     lg.append("rect").attr("width", 10).attr("height", 10).attr("rx", 2).attr("fill", gen.color);
     lg.append("text").attr("x", 14).attr("y", 9).attr("fill", "#64748b").attr("font-size", 9).text(gen.name);
   });
@@ -149,6 +150,10 @@ export function init() {
       const coal = Math.min(15, remaining);
       mix["Coal"] = coal;
 
+      // Battery charging sits on top of the stack: bars exceed the demand
+      // line at midday, showing the grid absorbing power into storage.
+      mix["Charging"] = batteryOutput[hr] < 0 ? -batteryOutput[hr] : 0;
+
       // Renewable surplus that must be curtailed (drives negative prices)
       const battCharging = batteryOutput[hr] < 0 ? -batteryOutput[hr] : 0;
       const surplus = Math.max(0, solarOutput[hr] + windOutput[hr] - d - battCharging);
@@ -174,7 +179,8 @@ export function init() {
     const data = computeHourlyMix(solarCap, batteryCap);
 
     const maxDemand = d3.max(data, d => d.demand);
-    yScale.domain([0, Math.max(100, maxDemand + 5)]);
+    const maxStack = d3.max(data, d => Object.values(d.mix).reduce((s, v) => s + v, 0));
+    yScale.domain([0, Math.max(100, maxDemand + 5, maxStack + 5)]);
 
     yAxisG.transition().duration(200)
       .call(d3.axisLeft(yScale).ticks(6).tickFormat(d => `${d} GW`))
@@ -244,11 +250,12 @@ export function init() {
     else if ((hourData.mix["Gas Peaker"] || 0) > 0) price = 130 + (hourData.mix["Gas Peaker"] || 0) * 5;
     else if ((hourData.mix["Gas CCGT"] || 0) > 0) price = 78 + (hourData.mix["Gas CCGT"] || 0) * 1.5;
     else if ((hourData.mix["Hydro"] || 0) > 5) price = 22;
-    else price = 5;
+    else if ((hourData.mix["Nuclear"] || 0) > 0) price = 12;
+    else price = 0;
     clockPrice.textContent = `\u20AC${fmt0(price)}/MWh`;
     clockPrice.style.color = price < 0 ? "#6366f1" : price > 150 ? COLORS.red : price > 80 ? COLORS.amber : COLORS.green;
 
-    const totalGen = Object.values(hourData.mix).reduce((s, v) => s + v, 0);
+    const totalGen = Object.values(hourData.mix).reduce((s, v) => s + v, 0) - (hourData.mix["Charging"] || 0);
     const renewableGen = (hourData.mix["Solar"] || 0) + (hourData.mix["Wind"] || 0) + (hourData.mix["Hydro"] || 0) + (hourData.mix["Battery"] || 0);
     const renewPct = totalGen > 0 ? (renewableGen / totalGen) * 100 : 0;
     clockRenew.textContent = `${fmt0(renewPct)}%`;
