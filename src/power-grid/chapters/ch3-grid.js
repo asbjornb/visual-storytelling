@@ -34,9 +34,9 @@ const defaultFlows = {
 };
 
 const scenarios = {
-  wind: {
-    timescale: [0, 1, 2],        // Seconds, Minutes, Hours
-    whoActs: [0, 1],             // Grid operators, Intraday markets
+  dunkelflaute: {
+    timescale: [2, 3, 4],        // Hours, Days, Weeks
+    whoActs: [1, 2],             // Intraday repricing, Hedging & imports
     phases: {
       normal: {
         prices: { NO: 42, SE: 45, DK: 48, UK: 50, NL: 52, DE: 55, BE: 51, FR: 49 },
@@ -44,20 +44,22 @@ const scenarios = {
         congested: [],
       },
       shock: {
-        prices: { NO: 45, SE: 52, DK: 95, UK: 130, NL: 155, DE: 175, BE: 160, FR: 140 },
+        // Cold + calm: demand up, wind down, gas sets price on continent
+        prices: { NO: 52, SE: 60, DK: 110, UK: 140, NL: 160, DE: 185, BE: 170, FR: 155 },
         flows: {
-          "NO-SE": 0.6, "NO-DK": 0.7, "SE-DK": 0.5, "DK-DE": 0.95,
-          "NO-UK": 0.5, "NO-DE": 0.85, "UK-NL": 0.4, "UK-BE": 0.3,
-          "UK-FR": 0.2, "NL-DE": 0.7, "NL-BE": 0.5, "DE-BE": 0.6,
-          "DE-FR": 0.5, "FR-BE": 0.3,
+          "NO-SE": 0.65, "NO-DK": 0.7, "SE-DK": 0.5, "DK-DE": 0.9,
+          "NO-UK": 0.55, "NO-DE": 0.85, "UK-NL": 0.4, "UK-BE": 0.3,
+          "UK-FR": 0.25, "NL-DE": 0.65, "NL-BE": 0.5, "DE-BE": 0.6,
+          "DE-FR": 0.55, "FR-BE": 0.3,
         },
         congested: ["DK-DE", "NO-DE"],
       },
       response: {
-        prices: { NO: 48, SE: 54, DK: 78, UK: 100, NL: 115, DE: 130, BE: 120, FR: 108 },
+        // Gas ramps, imports settle, still elevated but less extreme
+        prices: { NO: 55, SE: 62, DK: 90, UK: 115, NL: 125, DE: 145, BE: 135, FR: 120 },
         flows: {
-          "NO-SE": 0.55, "NO-DK": 0.6, "SE-DK": 0.45, "DK-DE": 0.8,
-          "NO-UK": 0.45, "NO-DE": 0.7, "UK-NL": 0.4, "UK-BE": 0.3,
+          "NO-SE": 0.6, "NO-DK": 0.6, "SE-DK": 0.45, "DK-DE": 0.8,
+          "NO-UK": 0.5, "NO-DE": 0.7, "UK-NL": 0.4, "UK-BE": 0.3,
           "UK-FR": 0.25, "NL-DE": 0.55, "NL-BE": 0.4, "DE-BE": 0.45,
           "DE-FR": 0.4, "FR-BE": 0.25,
         },
@@ -67,7 +69,7 @@ const scenarios = {
   },
   drought: {
     timescale: [3, 4, 5],        // Days, Weeks, Months
-    whoActs: [2, 3],             // Traders & hedging, Policy & investment
+    whoActs: [2, 3],             // Hedging & imports, Capacity & policy
     phases: {
       normal: {
         prices: { NO: 38, SE: 42, DK: 46, UK: 48, NL: 50, DE: 52, BE: 49, FR: 47 },
@@ -75,6 +77,7 @@ const scenarios = {
         congested: [],
       },
       shock: {
+        // Reservoirs low, hydro bids higher, gas fills gap
         prices: { NO: 130, SE: 140, DK: 170, UK: 190, NL: 210, DE: 230, BE: 215, FR: 200 },
         flows: {
           "NO-SE": 0.4, "NO-DK": 0.3, "SE-DK": 0.35, "DK-DE": 0.6,
@@ -85,6 +88,7 @@ const scenarios = {
         congested: ["NO-SE"],
       },
       response: {
+        // Forward hedging adjusts, imports reroute, still elevated
         prices: { NO: 110, SE: 120, DK: 150, UK: 165, NL: 180, DE: 195, BE: 185, FR: 175 },
         flows: {
           "NO-SE": 0.35, "NO-DK": 0.3, "SE-DK": 0.3, "DK-DE": 0.55,
@@ -97,8 +101,8 @@ const scenarios = {
     },
   },
   nuclear: {
-    timescale: [1, 2, 3, 4, 5],  // Minutes through Months
-    whoActs: [0, 1, 2, 3],       // Everyone
+    timescale: [0, 1, 2],        // Seconds, Minutes, Hours (single unit trip)
+    whoActs: [0, 1],             // Automatic reserves, Intraday repricing
     phases: {
       normal: {
         prices: { NO: 40, SE: 44, DK: 46, UK: 48, NL: 50, DE: 52, BE: 50, FR: 45 },
@@ -109,24 +113,26 @@ const scenarios = {
         congested: [],
       },
       shock: {
-        prices: { NO: 70, SE: 85, DK: 180, UK: 200, NL: 260, DE: 280, BE: 290, FR: 420 },
+        // ~1.3 GW reactor trips: France price spikes, neighbours feel it
+        prices: { NO: 48, SE: 55, DK: 85, UK: 120, NL: 145, DE: 160, BE: 180, FR: 280 },
         flows: {
-          "NO-SE": 0.5, "NO-DK": 0.6, "SE-DK": 0.55, "DK-DE": 0.75,
-          "NO-UK": 0.4, "NO-DE": 0.7, "UK-NL": 0.5, "UK-BE": 0.55,
-          "UK-FR": 0.8, "NL-DE": 0.6, "NL-BE": 0.7, "DE-BE": 0.8,
-          "DE-FR": 0.95, "FR-BE": 0.92,
-        },
-        congested: ["DE-FR", "FR-BE", "UK-FR"],
-      },
-      response: {
-        prices: { NO: 65, SE: 78, DK: 155, UK: 175, NL: 220, DE: 240, BE: 250, FR: 350 },
-        flows: {
-          "NO-SE": 0.5, "NO-DK": 0.55, "SE-DK": 0.5, "DK-DE": 0.7,
-          "NO-UK": 0.4, "NO-DE": 0.65, "UK-NL": 0.45, "UK-BE": 0.5,
-          "UK-FR": 0.75, "NL-DE": 0.55, "NL-BE": 0.65, "DE-BE": 0.7,
-          "DE-FR": 0.88, "FR-BE": 0.85,
+          "NO-SE": 0.4, "NO-DK": 0.45, "SE-DK": 0.4, "DK-DE": 0.55,
+          "NO-UK": 0.3, "NO-DE": 0.5, "UK-NL": 0.35, "UK-BE": 0.4,
+          "UK-FR": 0.65, "NL-DE": 0.45, "NL-BE": 0.5, "DE-BE": 0.6,
+          "DE-FR": 0.8, "FR-BE": 0.75,
         },
         congested: ["DE-FR", "UK-FR"],
+      },
+      response: {
+        // Reserves stabilise frequency, intraday reprices, partial convergence
+        prices: { NO: 45, SE: 50, DK: 70, UK: 95, NL: 110, DE: 120, BE: 135, FR: 200 },
+        flows: {
+          "NO-SE": 0.4, "NO-DK": 0.4, "SE-DK": 0.35, "DK-DE": 0.5,
+          "NO-UK": 0.3, "NO-DE": 0.45, "UK-NL": 0.35, "UK-BE": 0.4,
+          "UK-FR": 0.6, "NL-DE": 0.4, "NL-BE": 0.45, "DE-BE": 0.55,
+          "DE-FR": 0.7, "FR-BE": 0.65,
+        },
+        congested: ["DE-FR"],
       },
     },
   },
@@ -137,7 +143,7 @@ const PHASE_DURATION = 2800;  // ms per phase during auto-play
 
 /* ── Module state ─────────────────────────────────── */
 
-let currentScenario = "wind";
+let currentScenario = "dunkelflaute";
 let currentPhase = "normal";
 let autoplayTimer = null;
 let isPlaying = false;
@@ -415,10 +421,10 @@ export function init() {
 
   /* ── Initial render ─────────────────────── */
 
-  // Start on the shock phase of wind scenario to show immediate impact
+  // Start on the shock phase of dunkelflaute scenario to show immediate impact
   goToPhase("shock");
-  updateTimescale(scenarios.wind);
-  updateWhoActs(scenarios.wind);
+  updateTimescale(scenarios.dunkelflaute);
+  updateWhoActs(scenarios.dunkelflaute);
 }
 
 export function destroy() {
