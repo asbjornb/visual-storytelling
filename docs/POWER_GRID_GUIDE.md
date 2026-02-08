@@ -1,342 +1,230 @@
 # How the Power Grid Really Works
 ### A visual storybook for consumers wondering where their money goes
 
-> **Format note:** This document is a script and content guide for an interactive
-> visual story in five pages. Each page is a self-contained chapter designed as a
-> full-screen panel with animations or interactive elements. The narrative builds
-> from physical reality up to markets, trading, and the green transition -- giving
-> the reader enough understanding to form their own opinion on whether energy
-> trading benefits them.
+> **Format note:** This document is a content guide for an interactive visual
+> story in five chapters. Each chapter is a scroll-driven section with a
+> two-column layout: an interactive visualization on one side and explanatory
+> narrative on the other. The story builds from physical reality up to markets,
+> trading, and the green transition — giving the reader enough understanding to
+> form their own opinion on whether energy trading benefits them.
 
 ---
 
-## Page 1: The Balancing Act
+## Design
 
-**Visual:** A tightrope walker on a wire labeled "50 Hz". Below, a city glows
-on one side and power plants hum on the other. The wire wobbles gently.
+Modern glass morphism on a white/light background (#FAFBFF). Frosted glass
+cards with `backdrop-filter: blur(20px)`. Bright candy-colored data palette:
 
-### The one rule of electricity
+| Source | Color | Hex |
+|--------|-------|-----|
+| Solar | Yellow | #FBBF24 |
+| Wind | Cyan | #22D3EE |
+| Nuclear | Violet | #A78BFA |
+| Hydro | Mint | #34D399 |
+| Battery | Green | #10B981 |
+| Gas CCGT | Orange | #FB923C |
+| Gas Peaker | Pink | #F472B6 |
+| Coal | Slate | #94A3B8 |
+| Oil | Red | #EF4444 |
 
-The grid has a single non-negotiable constraint: **supply must equal demand,
-every second of every day.** There is (almost) no warehouse for electricity.
-The moment you flip a light switch, a generator somewhere spins a tiny bit
-harder.
+Typography: **Outfit** for headings, **Inter** for body text. Indigo (#6366F1)
+as primary accent color, indigo→pink gradients for decorative elements (slider
+tracks, active buttons, body background orbs).
 
-This balance is measured as frequency -- in Europe, exactly 50 Hz. If demand
-exceeds supply, frequency drops. If supply exceeds demand, frequency rises.
-Drift too far from 50 Hz and equipment starts failing, protection systems
-trip, and blackouts cascade.
-
-**Key insight:** Everything that follows -- markets, trading, pricing -- exists
-to solve this one problem: keeping the wire balanced.
-
-> **Animation idea:** A frequency meter hovering at 50.00 Hz. The reader drags a
-> slider labeled "Demand" up. The frequency dips. Then generators visually "spin
-> up" to compensate, restoring balance. Reverse when demand drops.
-
----
-
-## Page 2: The Merit Order — Who Gets to Sell?
-
-**Visual:** A bar chart filling from left to right. Each bar is a generator type,
-ordered by cost. A horizontal "demand line" slides across, and everything to its
-left is switched on.
-
-### The auction that sets your price
-
-Every day (and intraday), electricity is auctioned on power exchanges. Generators
-submit offers: "I can produce X megawatts at Y euros per megawatt-hour." These
-offers are stacked from cheapest to most expensive. This stack is called the
-**merit order**.
-
-Typical merit order (left to right, cheapest to most expensive):
-
-| Position | Source | Marginal cost | Why |
-|----------|--------|--------------|-----|
-| 1 | Wind & Solar | ~€0/MWh | No fuel cost -- the wind is free |
-| 2 | Nuclear | ~€5-15/MWh | Fuel is cheap, plants run continuously |
-| 3 | Hydro (run-of-river) | ~€5-20/MWh | Water is free, but capacity is limited |
-| 4 | Coal/Lignite | ~€30-60/MWh | Fuel + carbon permits |
-| 5 | Natural gas (CCGT) | ~€50-90/MWh | Gas price + carbon permits |
-| 6 | Natural gas (peaker) | ~€80-150/MWh | Less efficient, started only at peak |
-| 7 | Oil (emergency) | ~€150+/MWh | Last resort |
-
-The demand line slides across this stack. Every generator to the left of the line
-is "dispatched" (turned on). **The most expensive generator that is still needed
-sets the price for everyone.** This is called **marginal pricing**.
-
-### Why marginal pricing?
-
-This feels unfair at first -- why should a wind farm that produces at €0 get paid
-€70 because some gas plant was also needed? Two reasons:
-
-1. **Investment signal.** If wind farms only got paid €0, nobody would build them.
-   The spread between their cost and the marginal price is what repays the
-   investment in turbines, panels, and grid connections.
-2. **Dispatch efficiency.** Marginal pricing ensures the cheapest generators always
-   run first. If each generator were paid its own bid, gaming would be rampant.
-
-> **Interactive panel:** The reader controls four sliders:
-> - ☀️ **Solar influx** (0-100%)
-> - 💨 **Wind strength** (0-100%)
-> - 🌡️ **Temperature** (affects demand via heating/cooling)
-> - 📈 **Base demand** (industrial activity)
->
-> As sliders move, the merit order bar chart adjusts in real time. The demand line
-> shifts. Generators light up or go dark. The spot price updates. The reader
-> *feels* how a sunny windy day pushes gas off the stack and crashes the price,
-> while a cold windless evening forces expensive peakers online and the price
-> spikes.
+Tech: Vanilla JS + D3.js (v7). No framework. Vite for dev/build.
 
 ---
 
-## Page 3: Grid Pressures — When Physics Gets in the Way
+## Chapter 1: The Balancing Act
 
-**Visual:** A map of northern Europe with animated power flows. Arrows pulse
-between regions. Bottlenecks glow red.
+**Concept:** Supply must equal demand every second. There is no warehouse for
+electricity.
 
-### Scenario 1: The wind dies down
+**Visual:** A horizontal bar chart showing six generator types (Batteries,
+Hydro, Gas Turbine, Gas CCGT, Coal, Nuclear) with a real-time frequency display
+above. A physical light switch triggers a 25 GW demand surge.
 
-It's Tuesday afternoon in the North Sea. Wind forecasts predicted 15 GW of
-offshore wind, but actual output drops to 8 GW over two hours.
+**Interactive element:** A wall-plate light switch (3D CSS rocker that tilts
+on click). Flipping it ON triggers a time-based cascade:
 
-**What happens:**
-1. Frequency starts to dip across the synchronous grid
-2. Automatic reserves kick in (batteries, hydro) within seconds
-3. Gas turbines receive dispatch orders -- they can ramp up in 10-30 minutes
-4. In Norway, dam operators open turbines to export hydropower south
-5. Prices on the intraday market spike as traders scramble for replacement power
+1. **Batteries** fire instantly (~50 ms), covering up to 6 GW of the gap
+2. **Hydro** ramps over ~2 seconds (0.4 s delay), reaching 8 GW steady state
+3. **Gas Turbines** ramp over ~3 seconds (1.8 s delay), reaching 10 GW
+4. **Gas CCGT** ramps over ~3.5 seconds (3.5 s delay), reaching 6 GW
+5. **Coal** ramps over ~3 seconds (6 s delay), reaching 2 GW
+6. As thermal generation takes over, **batteries recharge** (shown as amber bar, negative output)
 
-> **Animation:** The wind turbines on the map slow down. Red "deficit" zones
-> appear. Then gas plants light up, Norwegian hydro arrows grow thicker, and
-> balance is restored -- but the price ticker in the corner jumps.
+The frequency display shows real-time Hz: dips when demand exceeds supply,
+recovers as generators ramp. Color-coded status: green (stable), amber (tense),
+red (critical). A timer shows elapsed seconds since the switch was flipped.
 
-### Scenario 2: The cold snap
+Flipping the switch OFF decays all generation smoothly over ~2.5 seconds.
 
-A polar vortex pushes into central Europe. Germany's electricity demand jumps
-15% as heat pumps and old resistive heaters work overtime. France, normally a net
-exporter, is also cold -- its electric heating load is enormous.
-
-**What happens:**
-1. Germany needs imports, but France has none to spare
-2. Nordic hydro is drawn south harder, but transmission lines hit capacity
-3. Pricing areas that normally track each other **decouple** -- Nordic prices
-   stay moderate while German prices surge
-4. Coal and gas plants that were on standby come online at high cost
-5. Consumer spot prices that evening can hit €200-400/MWh (vs. a normal €50-80)
-
-> **Animation:** Temperature drops on the map. Demand bubbles swell in Germany
-> and France. Transmission lines between pricing zones pulse and then some turn
-> red (congested). Price tags appear above each zone, diverging sharply.
-
-### Scenario 3: The Nordic dry spell
-
-A warm, dry summer means Scandinavian reservoirs are below normal. Norway and
-Sweden have less hydro to export. This is felt across the continent.
-
-**What happens:**
-1. Nordic hydro producers conserve water -- they bid higher in auctions
-2. Less cheap hydro flows south to Germany and the Netherlands
-3. These countries must run more gas, pushing up the merit order price
-4. The effect persists for *weeks or months*, not hours
-
-> **Animation:** Reservoir levels visually drop. The hydro bars in the merit order
-> shrink. The gas bars grow. The price baseline drifts upward over a calendar
-> that advances week by week.
-
-### Scenario 4: The French nuclear surprise
-
-One of France's 56 nuclear reactors discovers a stress corrosion issue. It's
-taken offline for inspection. 1.3 GW of baseload generation vanishes.
-
-**What happens:**
-1. France goes from comfortable to tight within a day
-2. French prices jump immediately -- forward contracts for the next months adjust
-3. Neighboring countries feel the pull: Germany, Belgium, Spain export more to
-   France
-4. Their own prices rise in sympathy
-5. The forward price curve for the entire winter shifts upward
-
-This actually happened at scale in 2022 when France took ~30 reactors offline
-for corrosion checks. French wholesale prices hit €1,000/MWh on some days, and
-the ripple was felt continent-wide.
-
-> **Animation:** A nuclear plant icon blinks red and goes dark. An immediate
-> ripple of price increases spreads outward across the map like a shockwave,
-> strongest nearby and attenuating with distance (but not disappearing).
+**Key narrative points:**
+- The grid's single non-negotiable constraint: supply = demand, every second
+- Frequency (50 Hz in Europe) as the measure of balance
+- Everything that follows — markets, trading, pricing — exists to solve this one problem
+- Reference: 2021 Texas freeze as a real-world cascade failure
 
 ---
 
-## Page 4: Enter the Traders
+## Chapter 2: The Merit Order — Who Gets to Sell?
 
-**Visual:** The same map, but now with a new layer: trading desks overlaid as
-nodes, with buy/sell arrows flowing between them and the exchanges.
+**Concept:** Generators bid into daily auctions. The most expensive generator
+still needed sets the price for everyone (marginal pricing).
 
-### What energy traders actually do
+**Visual:** A D3 bar chart with generators stacked left-to-right by cost. Each
+bar's height represents marginal cost (€/MWh), width represents capacity (GW).
+A vertical demand line slides across; everything to its left is dispatched. The
+marginal plant (price setter) glows with a soft filter effect.
 
-Energy trading companies sit between producers and consumers. They operate on
-the exchanges (spot and futures) and in bilateral (over-the-counter) markets.
-Their activities fall into a few categories:
+**Interactive elements:** Three sliders:
+- ☀️ **Solar** (0–100%) — scales solar capacity
+- 💨 **Wind** (0–100%) — scales wind capacity
+- 📈 **Demand** (20–110 GW) — shifts the demand line
 
-**1. Hedging and portfolio management**
+A prominent clearing price display updates in real time (green < €80, amber
+€80–150, red > €150).
 
-Utilities that serve consumers need stable costs. A gas plant operator needs
-to lock in fuel prices. Trading desks assemble portfolios of contracts that
-reduce risk for these physical players. This is genuinely useful -- it's
-insurance.
+**Generator stack (left to right):**
 
-**2. Spatial arbitrage**
+| Source | Base capacity | Marginal cost |
+|--------|-------------|--------------|
+| Solar | 25 GW | €0/MWh |
+| Wind | 30 GW | €0/MWh |
+| Nuclear | 14 GW | €12/MWh |
+| Hydro | 12 GW | €22/MWh |
+| Coal | 16 GW | €55/MWh |
+| Gas CCGT | 22 GW | €78/MWh |
+| Gas Peaker | 12 GW | €130/MWh |
+| Oil | 6 GW | €190/MWh |
 
-If electricity is cheap in Norway (lots of hydro) and expensive in Germany
-(cold, no wind), a trader buys Norwegian power and sells it into Germany.
-This *does* move power to where it's needed. It also narrows the price gap
-between regions.
-
-**But:** the trader captures the remaining spread as profit. The question is
-whether the spread would be even wider without them (probably yes) or whether
-their activity sometimes amplifies dislocations (occasionally also yes).
-
-**3. Temporal arbitrage**
-
-Buying power when it's cheap (summer, windy night) and selling when it's
-expensive (winter peak). With physical assets like batteries or pumped hydro,
-this directly helps grid balance. With purely financial contracts, it provides
-liquidity and price discovery -- but the value to consumers is more indirect.
-
-**4. Speculation**
-
-Taking directional bets on where prices will go. If a trader expects a cold
-winter, they buy winter futures. If winter is indeed cold, they profit. This
-adds liquidity to the market and helps price discovery, but it can also
-amplify price moves.
-
-### Where does the money come from?
-
-This is the key consumer question. Trading profits come from:
-
-- **Bid-ask spreads:** A small cut on each transaction. This is the "cost of
-  liquidity" -- like a market maker in stocks.
-- **Information advantages:** Traders invest heavily in weather models, grid
-  flow analysis, and satellite data. When they predict a wind shortfall before
-  the market does, they profit. This money comes from less-informed market
-  participants who are buying or selling at stale prices.
-- **Speed:** Algorithmic trading captures small mispricings faster than others.
-- **Risk premiums:** When a utility hedges its winter exposure, it pays a premium
-  for certainty. The trader earns that premium by bearing the risk.
-
-**The honest answer:** Some of this benefits consumers (hedging, liquidity,
-moving power to where it's needed). Some of it is a wealth transfer from
-consumers to traders (information/speed advantages, speculation on scarcity).
-The proportion is genuinely debated by economists and regulators.
-
-> **Visual concept:** A Sankey diagram showing money flows. Consumer bills
-> on the left, broken into: generation cost, grid fees, taxes, retail margin,
-> and -- highlighted -- "market costs" which includes the trading layer.
-> The trader's cut is real but relatively small per MWh compared to the
-> generation cost. The question is whether their activity raises or lowers
-> the total.
+**Key narrative points:**
+- How marginal pricing works — why wind farms earning €0 get paid €70
+- Investment signal: the spread between cost and marginal price repays investment
+- Reader *feels* how a sunny windy day crashes the price, while a calm evening spikes it
 
 ---
 
-## Page 5: The Green Transition — New Pressures
+## Chapter 3: Grid Pressures — When Physics Gets in the Way
 
-**Visual:** The merit order from Page 2, but over time. An animation shows years
-passing (2020 → 2025 → 2030 → 2035). Renewable bars grow, nuclear and coal
-bars shrink, but the shape of the stack changes in unexpected ways.
+**Concept:** Electricity doesn't just need to be generated — it needs to get
+to where it's needed. Transmission constraints create price divergence.
 
-### The duck curve and the baseload problem
+**Visual:** An SVG node-link diagram of 8 northern European pricing zones
+(Norway, Sweden, Denmark, UK, Netherlands, Germany, Belgium, France) connected
+by 14 interconnector edges. Each node shows a two-letter country code and
+current price. Edges animate with dashed flow lines; congested lines glow red.
 
-As solar capacity grows, midday prices collapse (sometimes to zero or negative).
-But evening demand remains high. The daily price shape looks like a duck:
-low belly during the day, high neck in the evening.
+**Interactive element:** Four scenario pill buttons that instantly reconfigure
+the network state:
 
-**What this means:**
-- Solar producers earn less and less per MWh (their own success depresses their
-  revenue -- the "cannibalization" effect)
-- Gas peakers become more important, not less, because someone needs to fill the
-  evening gap
-- The merit order "flattens" during sunny hours but "steepens" at sunset
+1. **Wind Dies Down** — North Sea wind drops from 15 to 8 GW. Norwegian hydro
+   flows south. DK→DE and NO→DE lines congest. Continental prices spike.
 
-> **Animation:** A 24-hour price chart. As a "solar capacity" slider increases,
-> the midday price drops toward zero while the evening peak stays high or grows.
-> The duck shape emerges. Gas plant icons flash on at 6 PM and off at 10 AM.
+2. **Cold Snap** — Polar vortex hits Central Europe. Germany +15% demand.
+   France also tight. Multiple lines congest. Prices decouple: Nordics stay
+   moderate, continent surges to €200–400/MWh.
 
-### Storage changes everything (slowly)
+3. **Nordic Dry Spell** — Low rainfall empties Scandinavian reservoirs.
+   Norwegian hydro bids higher. Gas fills the gap. Persists for weeks/months.
 
-Batteries, pumped hydro, and eventually hydrogen can shift cheap midday solar
-to expensive evening hours. But we don't have nearly enough yet.
+4. **French Nuclear Surprise** — Stress corrosion sidelines French reactors.
+   France flips from exporter to importer. FR→BE and DE→FR lines congest.
+   French prices hit €420/MWh; shockwave felt continent-wide.
 
-Current scale vs. what's needed:
+Each scenario has a dedicated text panel that appears alongside the map.
 
-| Storage type | Current EU capacity | Needed by 2035 (est.) |
-|-------------|--------------------|-----------------------|
-| Pumped hydro | ~50 GW | ~60 GW (limited sites) |
-| Grid batteries | ~5 GW | ~80-120 GW |
-| Hydrogen (power-to-gas) | ~0.1 GW | ~30-50 GW |
+**Key narrative points:**
+- Transmission bottlenecks cause prices to diverge between regions
+- Some crises are hours (wind drop), others last months (drought)
+- The 2022 French nuclear corrosion crisis as a real-world example
 
-Until storage scales up, the grid needs flexible gas capacity as backup --
-and that gas capacity needs to earn enough during peak hours to justify
-existing. This is the "missing money" problem: a plant that only runs 500
-hours a year still needs to cover its fixed costs.
+---
 
-> **Interactive idea:** Same merit order panel from Page 2, but now with a
-> "battery capacity" slider. As the reader adds storage, it absorbs midday
-> surplus and discharges in the evening. The duck curve flattens. The gas
-> peaker bar shrinks. But the reader sees that enormous battery capacity is
-> needed to fully eliminate the gas.
+## Chapter 4: Enter the Traders
 
-### Balancing the grid becomes harder
+**Concept:** Traders buy where power is cheap and sell where it's expensive.
+Spatial arbitrage narrows price gaps — but the trader captures the spread.
 
-With large shares of variable renewables, the grid operator's job intensifies:
+**Visual:** A two-region comparison (Norway vs Germany) with vertical price
+bars, animated flow arrows between them, and a prominent savings readout.
+Norway starts at €35/MWh (hydro), Germany at €180/MWh (gas).
 
-- **Forecast errors** matter more (clouds, wind lulls)
-- **Ramp rates** are steeper (solar drops off fast at sunset)
-- **Inertia** decreases (spinning turbines naturally resist frequency changes;
-  solar panels don't)
-- **Grid congestion** increases (wind is in the north, demand in the south)
+**Interactive element:** A single slider for interconnector capacity (0–8,000
+MW). As the reader increases capacity:
+- Flow arrows appear and multiply (1–6 arrows depending on GW)
+- Norwegian prices rise (exporting pushes local price up)
+- German prices fall (imports push price down)
+- Prices converge toward a midpoint (65% convergence at max capacity)
+- Savings readout shows: "German consumers save €X/MWh · Norway earns €Y/MWh more"
+- Real cable reference: NordLink (1,400 MW), NorNed (700 MW)
 
-This is where trading *could* help: liquid intraday markets allow rapid
-rebalancing when forecasts shift. But it's also where speculation can hurt:
-if traders amplify price signals beyond what the physical situation warrants,
-it adds cost without adding electrons.
+**Key narrative points:**
+- Hedging: genuine insurance, locks in stable prices
+- Spatial arbitrage: moves power to where it's needed, but traders capture the spread
+- Speculation: adds liquidity but can amplify volatility
+- The honest answer: some trading benefits consumers, some is a wealth transfer
 
-### The question this leaves you with
+---
 
-By now you've seen the full picture: a grid that must balance every second
-(Page 1), a pricing mechanism where the most expensive generator sets the price
-(Page 2), physical pressures that can cascade across a continent (Page 3), and
-traders who sit in the middle of all of it (Page 4).
+## Chapter 5: The Green Transition — New Pressures
 
-The green transition makes all of this *more* volatile, not less -- more
-variable generation, steeper ramps, bigger forecast errors, more congestion.
-That means more opportunities for trading to be useful (moving power, smoothing
-risk) *and* more opportunities for it to extract value (exploiting information
-gaps, amplifying price signals).
+**Concept:** As renewables grow, the generation mix shifts dramatically through
+a single day. The duck curve emerges, and batteries are needed to flatten it.
 
-Whether the net effect benefits you as a consumer depends on how well markets
-are regulated, how fast storage scales, and how much grid infrastructure gets
-built. The generation mix and the wires matter far more than the financial
-layer on top. But the financial layer isn't nothing -- and now you know enough
-to judge for yourself.
+**Visual:** A 24-hour stacked bar chart showing the generation mix at each
+hour. Eight generation types stacked in merit order (Nuclear at bottom, Coal
+at top). A dashed demand line traces the daily load shape. A subtle sky gradient
+in the background hints at day/night. A clock display shows current hour,
+demand, spot price, renewables %, and CO₂ intensity.
+
+**Interactive elements:**
+- **Hour of Day** slider (0–23) — highlights one hour, updates the clock stats
+- **Solar Capacity** slider (0–100 GW) — scales solar generation
+- **Battery Storage** slider (0–100 GW) — adds battery charge/discharge logic
+- **Play 24h** button — auto-advances hour slider at 600 ms intervals
+
+Battery logic:
+- Charges (absorbs surplus) when net demand after solar/wind/nuclear is low
+- Discharges (feeds grid) when net demand is high
+- 4-hour energy capacity, 60% power-to-energy ratio, 92% round-trip efficiency
+
+**Key narrative points:**
+- The duck curve: midday solar floods the grid, sunset creates violent ramp
+- Solar cannibalization: success depresses own revenue
+- Gas peakers become more important with more renewables, not less
+- Storage can flatten the duck, but enormous capacity is needed
+- The green transition makes the grid more volatile — managing that volatility
+  is the central engineering challenge
+
+---
+
+## Conclusion
+
+A brief closing section reinforcing the core message: the generation mix and
+grid infrastructure matter far more than the financial trading layer. But the
+trading layer isn't nothing — and now you know enough to judge for yourself.
 
 ---
 
 ## Production Notes
 
-### Recommended format
-An interactive web-based storybook. Each page is a full viewport panel.
-Scroll-driven animations trigger as the reader progresses. Interactive panels
-use simple sliders and see immediate results. Works on mobile (simpler
-animations) and desktop (full interactive panels).
+### Format
+A scroll-driven web-based storybook. Each chapter is a two-column section:
+interactive visualization on the left/top, explanatory text on the right/bottom.
+The layout uses glass morphism cards on a light background with decorative
+gradient orbs. IntersectionObserver triggers entrance animations.
 
-### Tech considerations
-- Framework: Could be built with Svelte/SvelteKit, Next.js, or even a
-  static site with D3.js animations
-- Data: Real wholesale price data is publicly available from ENTSO-E
-  Transparency Platform and national exchanges (Nord Pool, EPEX SPOT)
-- Maps: European grid topology data from ENTSO-E
-- The merit order interactive panel is the centerpiece -- invest most
-  development time here
+### Tech stack
+- **Vanilla JS + D3.js v7** — no framework
+- **Vite** — dev server and production build
+- **CSS** — glass morphism (backdrop-blur), CSS custom properties for palette, 3D transforms for light switch
+
+### Data
+Stylized/representative data, not real wholesale prices. The goal is to build
+intuition about mechanisms, not model specific markets. Generator capacities,
+costs, and response times are realistic order-of-magnitude values.
 
 ### Tone
 Informative but not preachy. The goal is to give readers enough understanding
@@ -345,5 +233,5 @@ is genuinely complex and that reasonable people disagree.
 
 ### Audience
 Consumers and interested non-specialists. No assumed knowledge of electricity
-markets. The physical grid explanations (Pages 1, 3) build intuition before
-introducing financial complexity (Pages 4-5).
+markets. The physical grid explanations (Chapters 1, 3) build intuition before
+introducing financial complexity (Chapters 4–5).
