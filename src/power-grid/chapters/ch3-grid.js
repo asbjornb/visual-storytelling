@@ -136,6 +136,40 @@ const scenarios = {
       },
     },
   },
+  windsurplus: {
+    timescale: [2, 3],           // Hours, Days
+    whoActs: [1, 2],             // Intraday repricing, Hedging & imports
+    phases: {
+      normal: {
+        // Mild spring baseline — lower prices than winter
+        prices: { NO: 28, SE: 30, DK: 32, UK: 35, NL: 38, DE: 40, BE: 36, FR: 33 },
+        flows: { ...defaultFlows },
+        congested: [],
+      },
+      shock: {
+        // Wind surges + weekend low demand: DK/DE deeply negative
+        prices: { NO: 10, SE: -15, DK: -55, UK: 18, NL: -20, DE: -70, BE: 5, FR: 12 },
+        flows: {
+          "NO-SE": 0.15, "NO-DK": 0.1, "SE-DK": 0.15, "DK-DE": 0.9,
+          "NO-UK": 0.1, "NO-DE": 0.15, "UK-NL": 0.15, "UK-BE": 0.1,
+          "UK-FR": 0.1, "NL-DE": 0.85, "NL-BE": 0.6, "DE-BE": 0.7,
+          "DE-FR": 0.8, "FR-BE": 0.2,
+        },
+        congested: ["DK-DE", "NL-DE", "DE-FR"],
+      },
+      response: {
+        // Curtailment kicks in, some thermal shuts down, still depressed
+        prices: { NO: 12, SE: 5, DK: -10, UK: 22, NL: 8, DE: -15, BE: 15, FR: 20 },
+        flows: {
+          "NO-SE": 0.15, "NO-DK": 0.1, "SE-DK": 0.15, "DK-DE": 0.7,
+          "NO-UK": 0.1, "NO-DE": 0.15, "UK-NL": 0.15, "UK-BE": 0.1,
+          "UK-FR": 0.1, "NL-DE": 0.6, "NL-BE": 0.45, "DE-BE": 0.55,
+          "DE-FR": 0.6, "FR-BE": 0.2,
+        },
+        congested: ["DK-DE"],
+      },
+    },
+  },
 };
 
 const PHASE_ORDER = ["normal", "shock", "response", "aftermath"];
@@ -208,8 +242,8 @@ export function init() {
   const nodeG = svg.append("g");
 
   const priceColor = d3.scaleLinear()
-    .domain([40, 150, 350])
-    .range([COLORS.green, COLORS.amber, COLORS.red])
+    .domain([-80, 0, 40, 150, 350])
+    .range([COLORS.cyan, "#60a5fa", COLORS.green, COLORS.amber, COLORS.red])
     .clamp(true);
 
   /* ── Render a phase state ───────────────── */
@@ -262,7 +296,8 @@ export function init() {
       sel.select(".node-glow-circle").transition().duration(transitionMs).attr("fill", c).attr("opacity", 0.18);
       sel.select(".node-bg").transition().duration(transitionMs).attr("stroke", c);
       sel.select(".node-code").attr("fill", c).text(code);
-      sel.select(".node-price").attr("fill", "#475569").text(`\u20AC${price}`);
+      sel.select(".node-price").attr("fill", "#475569")
+        .text(price < 0 ? `\u2212\u20AC${Math.abs(price)}` : `\u20AC${price}`);
     });
   }
 
@@ -287,7 +322,7 @@ export function init() {
     // Update stress label in SVG
     const stressTexts = {
       normal: "",
-      shock: phase === "shock" ? "STRESS" : "",
+      shock: phase === "shock" ? (currentScenario === "windsurplus" ? "SURPLUS" : "STRESS") : "",
       response: "RECOVERING",
       aftermath: "AFTERMATH",
     };
@@ -295,7 +330,9 @@ export function init() {
       .transition().duration(300)
       .attr("opacity", stressTexts[phase] ? 0.6 : 0)
       .text(stressTexts[phase] || "")
-      .attr("fill", phase === "shock" ? COLORS.red : phase === "response" ? COLORS.amber : "#94a3b8");
+      .attr("fill", phase === "shock"
+        ? (currentScenario === "windsurplus" ? COLORS.cyan : COLORS.red)
+        : phase === "response" ? COLORS.amber : "#94a3b8");
 
     // Render the appropriate data
     if (phase === "aftermath") {
