@@ -419,3 +419,38 @@ select:focus {
     grid-column: 1;
   }
 }
+
+/* ── Lightbox overlay ── */
+
+.lightbox-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.lightbox-overlay.active {
+  display: flex;
+}
+
+.lightbox-content {
+  width: 92vw;
+  height: 92vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.lightbox-content svg {
+  width: 100%;
+  height: 100%;
+  max-width: 92vw;
+  max-height: 92vh;
+}

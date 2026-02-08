@@ -153,6 +153,12 @@ async function updatePreviewStrip() {
     mapDiv.className = "preview-tile-map";
     tile.appendChild(mapDiv);
 
+    tile.style.cursor = "pointer";
+    tile.addEventListener("click", () => {
+      const svg = tile.querySelector("svg");
+      if (svg) openLightbox(svg);
+    });
+
     previewStrip.appendChild(tile);
 
     // Render async
@@ -401,15 +407,15 @@ function createMap(containerId) {
   return { svg, path, projection, width, height };
 }
 
-function renderGeoJSON(mapObj, geojson) {
-  const { svg, path } = mapObj;
+function renderGeoJSON(mapObj, geojson, { preProject = false } = {}) {
+  const { svg, path, projection, width, height } = mapObj;
   svg.selectAll("*").remove();
 
   if (!geojson || !geojson.features || geojson.features.length === 0) {
     svg
       .append("text")
-      .attr("x", mapObj.width / 2)
-      .attr("y", mapObj.height / 2)
+      .attr("x", width / 2)
+      .attr("y", height / 2)
       .attr("text-anchor", "middle")
       .attr("fill", "#555")
       .attr("font-size", "14px")
@@ -417,11 +423,22 @@ function renderGeoJSON(mapObj, geojson) {
     return;
   }
 
+  // For Turf.js output: pre-project coordinates and render with a null
+  // (planar) path generator. This avoids D3's spherical winding-order
+  // interpretation which renders RFC 7946 polygons as their complement.
+  let features = geojson.features;
+  let pathGen = path;
+
+  if (preProject) {
+    features = features.map((f) => preProjectFeature(f, projection));
+    pathGen = d3.geoPath(); // null projection → planar rendering
+  }
+
   svg
     .selectAll("path")
-    .data(geojson.features)
+    .data(features)
     .join("path")
-    .attr("d", path)
+    .attr("d", pathGen)
     .attr("fill", FILL_RESULT)
     .attr("stroke", STROKE)
     .attr("stroke-width", 0.5)
@@ -541,6 +558,36 @@ function toFC(feature) {
   return { type: "FeatureCollection", features: [feature] };
 }
 
+/**
+ * Pre-project a GeoJSON feature's coordinates through a D3 projection,
+ * returning a new feature with [x, y] pixel coordinates. This bypasses
+ * D3's spherical winding-order interpretation which conflicts with
+ * Turf.js RFC 7946 output.
+ */
+function preProjectFeature(feature, projection) {
+  if (!feature || !feature.geometry) return feature;
+  const geom = feature.geometry;
+
+  function projectRing(ring) {
+    return ring.map((coord) => projection(coord) || [0, 0]);
+  }
+
+  let newCoords;
+  if (geom.type === "Polygon") {
+    newCoords = geom.coordinates.map(projectRing);
+  } else if (geom.type === "MultiPolygon") {
+    newCoords = geom.coordinates.map((poly) => poly.map(projectRing));
+  } else {
+    return feature;
+  }
+
+  return {
+    type: "Feature",
+    properties: feature.properties,
+    geometry: { type: geom.type, coordinates: newCoords },
+  };
+}
+
 // ─────────────────────────────────────────────────────────────
 // Human-readable description
 // ─────────────────────────────────────────────────────────────
@@ -636,17 +683,14 @@ async function runCompute() {
     // Stale check — a newer compute may have started
     if (generation !== computeGeneration) return;
 
-    // Rewind result back to CW (D3's spherical convention).
-    // Turf outputs RFC 7946 (CCW exterior), which D3's geoPath
-    // interprets as the polygon's complement.
     if (current) {
-      current = turf.rewind(current, { reverse: true });
       current.properties = { operation: opDescriptions.join(" ") };
     }
 
     resultGeoJSON = toFC(current);
 
-    renderGeoJSON(mapMain, resultGeoJSON);
+    // Pre-project Turf output to bypass D3's spherical winding interpretation
+    renderGeoJSON(mapMain, resultGeoJSON, { preProject: true });
 
     const featureCount = resultGeoJSON.features.length;
     const desc = opDescriptions.join(" ");
@@ -743,6 +787,40 @@ btnDownload.addEventListener("click", () => {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+});
+
+// ─────────────────────────────────────────────────────────────
+// Lightbox — click any map to view fullscreen
+// ─────────────────────────────────────────────────────────────
+
+const lightbox = document.createElement("div");
+lightbox.className = "lightbox-overlay";
+lightbox.innerHTML = '<div class="lightbox-content"></div>';
+document.body.appendChild(lightbox);
+
+function closeLightbox() {
+  lightbox.classList.remove("active");
+  lightbox.querySelector(".lightbox-content").innerHTML = "";
+}
+
+lightbox.addEventListener("click", closeLightbox);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeLightbox();
+});
+
+function openLightbox(svgElement) {
+  const content = lightbox.querySelector(".lightbox-content");
+  const clone = svgElement.cloneNode(true);
+  content.innerHTML = "";
+  content.appendChild(clone);
+  lightbox.classList.add("active");
+}
+
+// Main map click
+document.getElementById("map-main").style.cursor = "pointer";
+document.getElementById("map-main").addEventListener("click", () => {
+  const svg = document.querySelector("#map-main svg");
+  if (svg) openLightbox(svg);
 });
 
 // ─────────────────────────────────────────────────────────────
