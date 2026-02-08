@@ -99,6 +99,11 @@ export function init() {
     let energy = energyCap * 0.3;
     const batteryOutput = [];
 
+    // Floor scales down with battery capacity: at low capacity the battery
+    // only shaves peaks (floor≈38); at high capacity it displaces gas more
+    // aggressively, down to the hydro-capacity floor of 12 GW.
+    const dischargeFloor = Math.max(12, 38 - batteryCap * 0.5);
+
     hours.forEach(hr => {
       const netNeed = demand[hr] - solarOutput[hr] - windOutput[hr] - 12;
       let batt = 0;
@@ -107,7 +112,7 @@ export function init() {
         batt = -charge;
         energy += charge * 0.92;
       } else if (netNeed > 38 && energy > 0) {
-        const discharge = Math.min(powerCap, netNeed - 38, energy);
+        const discharge = Math.min(powerCap, netNeed - dischargeFloor, energy * 0.92);
         batt = discharge;
         energy -= discharge / 0.92;
       }
