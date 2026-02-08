@@ -170,6 +170,9 @@ function setupSwipe() {
   }, { passive: true });
 
   viewer.addEventListener("touchend", (e) => {
+    // Don't navigate when swiping on interactive controls
+    if (e.target.closest("input, button, .slider-row, .switch-row, .play-controls, .scenario-bar")) return;
+
     const touchEndX = e.changedTouches[0].clientX;
     const touchEndY = e.changedTouches[0].clientY;
     const deltaX = touchEndX - touchStartX;
@@ -189,8 +192,8 @@ function setupSwipe() {
 
 function setupKeyboard() {
   document.addEventListener("keydown", (e) => {
-    // Don't capture keyboard when interacting with sliders/inputs
-    if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return;
+    // Don't capture keyboard when interacting with sliders/inputs/buttons
+    if (e.target.closest("input, button, select, textarea")) return;
 
     if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === " ") {
       e.preventDefault();
