@@ -116,7 +116,7 @@ body {
 .page {
   min-height: 100vh;
   position: relative;
-  padding: 5rem 1.5rem;
+  padding: clamp(2rem, 4vh, 5rem) 1.5rem;
   z-index: 1;
 }
 
@@ -131,7 +131,7 @@ body {
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-height: calc(100vh - 10rem);
+  min-height: calc(100vh - clamp(4rem, 8vh, 10rem));
 }
 
 .hero {
@@ -190,7 +190,7 @@ h1 {
 /* ── Chapter Layout ───────────────────────────────── */
 
 .ch-head {
-  margin-bottom: 2.5rem;
+  margin-bottom: clamp(1rem, 2vh, 2.5rem);
 }
 
 .ch-num {
@@ -296,7 +296,7 @@ h1 {
 .slider-row {
   display: grid;
   gap: 0.75rem;
-  margin-top: 1rem;
+  margin-top: clamp(0.4rem, 0.8vh, 1rem);
 }
 
 .slider-row.trio {
@@ -758,14 +758,14 @@ input[type="range"]::-moz-range-thumb {
 /* ── Generation Clock (Ch 5) ──────────────────────── */
 
 .gen-clock-row {
-  margin-bottom: 1rem;
+  margin-bottom: clamp(0.5rem, 1vh, 1rem);
 }
 
 .gen-clock-header {
   display: flex;
   align-items: center;
   gap: 2rem;
-  margin-bottom: 1rem;
+  margin-bottom: clamp(0.4rem, 0.8vh, 1rem);
   flex-wrap: wrap;
 }
 
@@ -777,7 +777,7 @@ input[type="range"]::-moz-range-thumb {
 
 .clock-hour {
   font-family: "Outfit", sans-serif;
-  font-size: 2.4rem;
+  font-size: clamp(1.6rem, 3vh, 2.4rem);
   font-weight: 800;
   color: var(--text-bright);
   line-height: 1;
@@ -816,7 +816,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .play-controls {
-  margin-top: 0.75rem;
+  margin-top: clamp(0.3rem, 0.6vh, 0.75rem);
   display: flex;
   gap: 0.5rem;
 }
@@ -844,13 +844,27 @@ input[type="range"]::-moz-range-thumb {
   color: white;
 }
 
-/* ── Generation legend (HTML, outside SVG) ────────── */
+/* ── Generation legend (HTML, inside viz-card) ───── */
+
+#gen-stack-viz {
+  position: relative;
+}
 
 .gen-legend {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.5rem;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 0.9rem;
-  padding: 0.5rem 0.25rem;
+  justify-content: flex-end;
+  gap: 0.2rem 0.7rem;
+  padding: 0.35rem 0.5rem;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 0.5rem;
+  max-width: 60%;
+  z-index: 2;
 }
 
 .gen-legend-item {
@@ -872,8 +886,8 @@ input[type="range"]::-moz-range-thumb {
 /* ── Daily summary ────────────────────────────────── */
 
 .daily-summary {
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
+  margin-top: clamp(0.4rem, 0.8vh, 1rem);
+  padding: 0.5rem 1rem;
   border-radius: 8px;
   background: var(--bg-card, #f8fafc);
   border: 1px solid var(--border, #e2e8f0);

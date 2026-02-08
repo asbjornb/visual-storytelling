@@ -36,7 +36,7 @@ export function init() {
 
   const margin = { top: 30, right: 20, bottom: 25, left: 50 };
   const svg = d3.select(container).append("svg")
-    .attr("viewBox", "0 0 760 375").attr("preserveAspectRatio", "xMidYMid meet");
+    .attr("viewBox", "0 0 760 400").attr("preserveAspectRatio", "xMidYMid meet");
 
   const w = 760 - margin.left - margin.right;
   const h = 400 - margin.top - margin.bottom;
