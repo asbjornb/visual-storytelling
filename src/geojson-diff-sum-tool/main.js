@@ -2,12 +2,12 @@ import * as d3 from "d3";
 import * as turf from "@turf/turf";
 
 // ─────────────────────────────────────────────────────────────
-// Available GeoJSON files (relative to /data/us-territorial-expansion/)
+// Available GeoJSON files
 // ─────────────────────────────────────────────────────────────
 
 const DATA_DIR = "/data/us-territorial-expansion";
 
-const FILES = [
+const YEAR_FILES = [
   { value: "1789-original-states.geojson", label: "1783 — Original States" },
   {
     value: "1803-louisiana-purchase.geojson",
@@ -29,69 +29,125 @@ const FILES = [
   { value: "acquisitions.geojson", label: "Acquisitions (overview)" },
 ];
 
+// Individual states are loaded dynamically from 1959-final.geojson
+let STATE_FILES = []; // populated on init
+
+// Categories to exclude when "US territory only" is checked
+const NON_US_CATEGORIES = new Set([
+  "other_country",
+  "none",
+  "disputed",
+  "seceded_state",
+]);
+
 // ─────────────────────────────────────────────────────────────
 // DOM references
 // ─────────────────────────────────────────────────────────────
 
-const selectA = document.getElementById("file-a");
-const selectB = document.getElementById("file-b");
-const infoA = document.getElementById("info-a");
-const infoB = document.getElementById("info-b");
-const btnDiff = document.getElementById("btn-diff");
-const btnUnion = document.getElementById("btn-union");
+const baseSelect = document.getElementById("base-file");
+const baseInfo = document.getElementById("base-info");
+const opsContainer = document.getElementById("operations");
+const btnAddOp = document.getElementById("btn-add-op");
 const btnCompute = document.getElementById("btn-compute");
 const btnDownload = document.getElementById("btn-download");
 const filterUS = document.getElementById("filter-us");
 const statusEl = document.getElementById("status");
+const mapTitle = document.getElementById("map-title");
 
-let operation = "diff"; // "diff" or "union"
 let resultGeoJSON = null;
 
 // ─────────────────────────────────────────────────────────────
-// Populate selects
+// File select helpers
 // ─────────────────────────────────────────────────────────────
 
-FILES.forEach((f, i) => {
-  const optA = new Option(f.label, f.value);
-  const optB = new Option(f.label, f.value);
-  selectA.appendChild(optA);
-  selectB.appendChild(optB);
-});
+function populateSelect(selectEl, selectedValue) {
+  selectEl.innerHTML = "";
 
-// Default: consecutive files for diffing acquisitions
-selectA.selectedIndex = 1; // 1803 Louisiana
-selectB.selectedIndex = 0; // 1783 Original
+  const yearGroup = document.createElement("optgroup");
+  yearGroup.label = "Year Maps";
+  for (const f of YEAR_FILES) {
+    yearGroup.appendChild(new Option(f.label, f.value));
+  }
+  selectEl.appendChild(yearGroup);
+
+  if (STATE_FILES.length > 0) {
+    const stateGroup = document.createElement("optgroup");
+    stateGroup.label = "Individual States";
+    for (const f of STATE_FILES) {
+      stateGroup.appendChild(new Option(f.label, f.value));
+    }
+    selectEl.appendChild(stateGroup);
+  }
+
+  if (selectedValue) selectEl.value = selectedValue;
+}
 
 // ─────────────────────────────────────────────────────────────
-// Operation toggle
+// Operation row management
 // ─────────────────────────────────────────────────────────────
 
-btnDiff.addEventListener("click", () => {
-  operation = "diff";
-  btnDiff.classList.add("active");
-  btnUnion.classList.remove("active");
-});
+let opCounter = 0;
 
-btnUnion.addEventListener("click", () => {
-  operation = "union";
-  btnUnion.classList.add("active");
-  btnDiff.classList.remove("active");
-});
+function addOperationRow(defaultOp = "subtract", defaultFile = null) {
+  const id = opCounter++;
+  const row = document.createElement("div");
+  row.className = "op-row";
+  row.dataset.id = id;
+
+  const toggle = document.createElement("button");
+  toggle.className = `op-toggle ${defaultOp}`;
+  toggle.textContent = defaultOp === "subtract" ? "\u2212" : "+";
+  toggle.title =
+    defaultOp === "subtract" ? "Subtract (difference)" : "Add (union)";
+  toggle.addEventListener("click", () => {
+    const isSub = toggle.classList.contains("subtract");
+    toggle.classList.toggle("subtract", !isSub);
+    toggle.classList.toggle("add", isSub);
+    toggle.textContent = isSub ? "+" : "\u2212";
+    toggle.title = isSub ? "Add (union)" : "Subtract (difference)";
+  });
+
+  const select = document.createElement("select");
+  populateSelect(select, defaultFile);
+
+  const removeBtn = document.createElement("button");
+  removeBtn.className = "remove-btn";
+  removeBtn.textContent = "\u00d7";
+  removeBtn.title = "Remove this operation";
+  removeBtn.addEventListener("click", () => row.remove());
+
+  row.appendChild(toggle);
+  row.appendChild(select);
+  row.appendChild(removeBtn);
+  opsContainer.appendChild(row);
+
+  return row;
+}
+
+function getOperations() {
+  const rows = opsContainer.querySelectorAll(".op-row");
+  return Array.from(rows).map((row) => ({
+    op: row.querySelector(".op-toggle").classList.contains("subtract")
+      ? "subtract"
+      : "add",
+    file: row.querySelector("select").value,
+  }));
+}
+
+btnAddOp.addEventListener("click", () => addOperationRow());
 
 // ─────────────────────────────────────────────────────────────
 // Map rendering
 // ─────────────────────────────────────────────────────────────
 
-const FILL_A = "#4a90d9";
-const FILL_B = "#d94a4a";
-const FILL_RESULT = "#2a9d8f";
-const FILL_CONTEXT = "#2a2a2a";
+const FILL_RESULT = "#4a90d9";
 const STROKE = "#0a0a0a";
 
 function createMap(containerId) {
   const container = document.getElementById(containerId);
-  const width = container.clientWidth;
-  const height = container.clientHeight;
+  const rect = container.getBoundingClientRect();
+  const width = rect.width || 800;
+  const height = rect.height || 600;
 
   const svg = d3
     .select(`#${containerId}`)
@@ -125,7 +181,7 @@ function createMap(containerId) {
   return { svg, path, projection, width, height };
 }
 
-function renderGeoJSON(mapObj, geojson, fillColor) {
+function renderGeoJSON(mapObj, geojson) {
   const { svg, path } = mapObj;
   svg.selectAll("*").remove();
 
@@ -146,16 +202,10 @@ function renderGeoJSON(mapObj, geojson, fillColor) {
     .data(geojson.features)
     .join("path")
     .attr("d", path)
-    .attr("fill", (d) => {
-      if (d.properties?.CATEGORY === "other_country") return FILL_CONTEXT;
-      return fillColor;
-    })
+    .attr("fill", FILL_RESULT)
     .attr("stroke", STROKE)
     .attr("stroke-width", 0.5)
-    .attr("opacity", (d) => {
-      if (d.properties?.CATEGORY === "other_country") return 0.4;
-      return 0.85;
-    });
+    .attr("opacity", 0.85);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -165,11 +215,25 @@ function renderGeoJSON(mapObj, geojson, fillColor) {
 const geoCache = new Map();
 
 async function loadGeoJSON(filename) {
-  if (geoCache.has(filename)) return geoCache.get(filename);
+  if (geoCache.has(filename)) return structuredClone(geoCache.get(filename));
+
+  // Individual state references are like "state:WA"
+  if (filename.startsWith("state:")) {
+    const stateCode = filename.slice(6);
+    const final = await loadGeoJSON("1959-final.geojson");
+    const feature = final.features.find(
+      (f) => f.properties?.STATE === stateCode
+    );
+    if (!feature) throw new Error(`State ${stateCode} not found`);
+    const fc = { type: "FeatureCollection", features: [feature] };
+    geoCache.set(filename, fc);
+    return structuredClone(fc);
+  }
+
   const url = `${DATA_DIR}/${filename}`;
   const data = await d3.json(url);
   geoCache.set(filename, data);
-  return data;
+  return structuredClone(data);
 }
 
 function filterFeatures(geojson, usOnly) {
@@ -177,7 +241,7 @@ function filterFeatures(geojson, usOnly) {
   return {
     type: "FeatureCollection",
     features: geojson.features.filter(
-      (f) => f.properties?.CATEGORY !== "other_country"
+      (f) => !NON_US_CATEGORIES.has(f.properties?.CATEGORY)
     ),
   };
 }
@@ -186,24 +250,20 @@ function describeGeoJSON(geojson) {
   const total = geojson.features.length;
   const categories = {};
   for (const f of geojson.features) {
-    const cat = f.properties?.CATEGORY || f.properties?.era || "unknown";
+    const cat =
+      f.properties?.CATEGORY || f.properties?.era || f.properties?.id || "—";
     categories[cat] = (categories[cat] || 0) + 1;
   }
   const parts = Object.entries(categories)
     .map(([k, v]) => `${k}: ${v}`)
     .join(", ");
-  return `${total} features (${parts})`;
+  return `${total} feature${total !== 1 ? "s" : ""} (${parts})`;
 }
 
 // ─────────────────────────────────────────────────────────────
 // Geometric operations
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Merge all polygons in a FeatureCollection into a single MultiPolygon.
- * This is needed because turf.difference / turf.union work on individual
- * polygon features, not collections.
- */
 function dissolveToSingle(fc) {
   const polys = fc.features.filter(
     (f) =>
@@ -217,9 +277,7 @@ function dissolveToSingle(fc) {
   let merged = polys[0];
   for (let i = 1; i < polys.length; i++) {
     try {
-      const result = turf.union(
-        turf.featureCollection([merged, polys[i]])
-      );
+      const result = turf.union(turf.featureCollection([merged, polys[i]]));
       if (result) merged = result;
     } catch {
       // Skip features that cause topology errors
@@ -228,88 +286,78 @@ function dissolveToSingle(fc) {
   return merged;
 }
 
-function computeDiff(fcA, fcB) {
-  const mergedA = dissolveToSingle(fcA);
-  const mergedB = dissolveToSingle(fcB);
-
-  if (!mergedA) return emptyFC();
-  if (!mergedB) return singleFC(mergedA, "diff-result");
-
+function geometricDiff(featureA, featureB) {
+  if (!featureA) return null;
+  if (!featureB) return featureA;
   try {
-    const result = turf.difference(
-      turf.featureCollection([mergedA, mergedB])
-    );
-    if (!result) return emptyFC();
-    result.properties = { operation: "difference" };
-    return singleFC(result, "diff-result");
+    return turf.difference(turf.featureCollection([featureA, featureB]));
   } catch (err) {
     throw new Error(`Difference failed: ${err.message}`);
   }
 }
 
-function computeUnion(fcA, fcB) {
-  const mergedA = dissolveToSingle(fcA);
-  const mergedB = dissolveToSingle(fcB);
-
-  if (!mergedA && !mergedB) return emptyFC();
-  if (!mergedA) return singleFC(mergedB, "union-result");
-  if (!mergedB) return singleFC(mergedA, "union-result");
-
+function geometricUnion(featureA, featureB) {
+  if (!featureA) return featureB;
+  if (!featureB) return featureA;
   try {
-    const result = turf.union(
-      turf.featureCollection([mergedA, mergedB])
-    );
-    if (!result) return emptyFC();
-    result.properties = { operation: "union" };
-    return singleFC(result, "union-result");
+    return turf.union(turf.featureCollection([featureA, featureB]));
   } catch (err) {
     throw new Error(`Union failed: ${err.message}`);
   }
 }
 
-function emptyFC() {
-  return { type: "FeatureCollection", features: [] };
-}
-
-function singleFC(feature, id) {
-  feature.properties = { ...feature.properties, id };
+function toFC(feature) {
+  if (!feature) return { type: "FeatureCollection", features: [] };
   return { type: "FeatureCollection", features: [feature] };
 }
 
 // ─────────────────────────────────────────────────────────────
-// Main compute handler
+// Initialization
 // ─────────────────────────────────────────────────────────────
 
-const mapA = createMap("map-a");
-const mapResult = createMap("map-result");
-const mapB = createMap("map-b");
+const mapMain = createMap("map-main");
 
-async function updatePreview(selectEl, infoEl, mapObj, fillColor) {
-  const filename = selectEl.value;
+async function init() {
+  // Load individual states for the dropdowns
   try {
-    const raw = await loadGeoJSON(filename);
+    const final = await loadGeoJSON("1959-final.geojson");
+    STATE_FILES = final.features
+      .filter((f) => f.properties?.STATE)
+      .map((f) => ({
+        value: `state:${f.properties.STATE}`,
+        label: `${f.properties.LABEL} (${f.properties.STATE})`,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  } catch {
+    // Non-critical — just won't have individual state options
+  }
+
+  populateSelect(baseSelect, "1803-louisiana-purchase.geojson");
+  updateBaseInfo();
+
+  // Start with one subtract operation pre-filled
+  addOperationRow("subtract", "1789-original-states.geojson");
+}
+
+async function updateBaseInfo() {
+  try {
+    const raw = await loadGeoJSON(baseSelect.value);
     const usOnly = filterUS.checked;
     const filtered = filterFeatures(raw, usOnly);
-    infoEl.textContent = describeGeoJSON(filtered);
-    renderGeoJSON(mapObj, filtered, fillColor);
-    return filtered;
+    baseInfo.textContent = describeGeoJSON(filtered);
+    renderGeoJSON(mapMain, filtered);
+    mapTitle.textContent = "Base";
   } catch (err) {
-    infoEl.textContent = `Error: ${err.message}`;
-    return null;
+    baseInfo.textContent = `Error: ${err.message}`;
   }
 }
 
-// Auto-preview on file change
-selectA.addEventListener("change", () => updatePreview(selectA, infoA, mapA, FILL_A));
-selectB.addEventListener("change", () => updatePreview(selectB, infoB, mapB, FILL_B));
-filterUS.addEventListener("change", () => {
-  updatePreview(selectA, infoA, mapA, FILL_A);
-  updatePreview(selectB, infoB, mapB, FILL_B);
-});
+baseSelect.addEventListener("change", updateBaseInfo);
+filterUS.addEventListener("change", updateBaseInfo);
 
-// Initial preview
-updatePreview(selectA, infoA, mapA, FILL_A);
-updatePreview(selectB, infoB, mapB, FILL_B);
+// ─────────────────────────────────────────────────────────────
+// Compute
+// ─────────────────────────────────────────────────────────────
 
 btnCompute.addEventListener("click", async () => {
   btnCompute.disabled = true;
@@ -319,42 +367,61 @@ btnCompute.addEventListener("click", async () => {
   statusEl.className = "";
 
   try {
-    const rawA = await loadGeoJSON(selectA.value);
-    const rawB = await loadGeoJSON(selectB.value);
     const usOnly = filterUS.checked;
-    const fcA = filterFeatures(rawA, usOnly);
-    const fcB = filterFeatures(rawB, usOnly);
 
-    // Update side previews
-    renderGeoJSON(mapA, fcA, FILL_A);
-    renderGeoJSON(mapB, fcB, FILL_B);
+    // Load and filter base
+    const baseRaw = await loadGeoJSON(baseSelect.value);
+    const baseFC = filterFeatures(baseRaw, usOnly);
+    let current = dissolveToSingle(baseFC);
 
-    let result;
-    if (operation === "diff") {
-      result = computeDiff(fcA, fcB);
-    } else {
-      result = computeUnion(fcA, fcB);
+    const ops = getOperations();
+    const opDescriptions = [baseSelect.options[baseSelect.selectedIndex].text];
+
+    for (let i = 0; i < ops.length; i++) {
+      const { op, file } = ops[i];
+      const raw = await loadGeoJSON(file);
+      const fc = filterFeatures(raw, usOnly);
+      const operand = dissolveToSingle(fc);
+
+      if (op === "subtract") {
+        current = geometricDiff(current, operand);
+        opDescriptions.push(
+          `\u2212 ${file.startsWith("state:") ? file.slice(6) : file.replace(".geojson", "")}`
+        );
+      } else {
+        current = geometricUnion(current, operand);
+        opDescriptions.push(
+          `+ ${file.startsWith("state:") ? file.slice(6) : file.replace(".geojson", "")}`
+        );
+      }
     }
 
-    resultGeoJSON = result;
-    renderGeoJSON(mapResult, result, FILL_RESULT);
+    resultGeoJSON = toFC(current);
 
-    const opLabel = operation === "diff" ? "Difference" : "Union";
-    const featureCount = result.features.length;
+    if (current) {
+      current.properties = { operation: opDescriptions.join(" ") };
+    }
+
+    renderGeoJSON(mapMain, resultGeoJSON);
+
+    const featureCount = resultGeoJSON.features.length;
     if (featureCount === 0) {
-      statusEl.innerHTML = `<span class="success">${opLabel} computed — empty result (geometries may be identical or non-overlapping)</span>`;
+      statusEl.innerHTML = `<span class="success">Computed — empty result (geometries may cancel out)</span>`;
+      mapTitle.textContent = "Result (empty)";
     } else {
-      const geomType = result.features[0]?.geometry?.type || "unknown";
-      const coords =
+      const geomType = resultGeoJSON.features[0]?.geometry?.type || "unknown";
+      const detail =
         geomType === "MultiPolygon"
-          ? result.features[0].geometry.coordinates.length + " polygons"
+          ? `${resultGeoJSON.features[0].geometry.coordinates.length} polygons`
           : geomType;
-      statusEl.innerHTML = `<span class="success">${opLabel} computed — ${featureCount} feature(s), ${coords}</span>`;
+      statusEl.innerHTML = `<span class="success">Computed — ${detail}</span>`;
+      mapTitle.textContent = `Result: ${opDescriptions.join(" ")}`;
     }
     btnDownload.disabled = false;
   } catch (err) {
     statusEl.innerHTML = `<span class="error">Error: ${err.message}</span>`;
-    renderGeoJSON(mapResult, emptyFC(), FILL_RESULT);
+    renderGeoJSON(mapMain, toFC(null));
+    mapTitle.textContent = "Error";
   } finally {
     btnCompute.disabled = false;
   }
@@ -367,10 +434,18 @@ btnCompute.addEventListener("click", async () => {
 btnDownload.addEventListener("click", () => {
   if (!resultGeoJSON) return;
 
-  const opLabel = operation === "diff" ? "diff" : "union";
-  const nameA = selectA.value.replace(".geojson", "");
-  const nameB = selectB.value.replace(".geojson", "");
-  const filename = `${opLabel}_${nameA}_${nameB}.geojson`;
+  const ops = getOperations();
+  const baseName = baseSelect.value.startsWith("state:")
+    ? baseSelect.value.slice(6)
+    : baseSelect.value.replace(".geojson", "");
+  const parts = [baseName];
+  for (const { op, file } of ops) {
+    const name = file.startsWith("state:")
+      ? file.slice(6)
+      : file.replace(".geojson", "");
+    parts.push(`${op === "subtract" ? "minus" : "plus"}_${name}`);
+  }
+  const filename = parts.join("_") + ".geojson";
 
   const blob = new Blob([JSON.stringify(resultGeoJSON, null, 2)], {
     type: "application/geo+json",
@@ -382,3 +457,9 @@ btnDownload.addEventListener("click", () => {
   a.click();
   URL.revokeObjectURL(url);
 });
+
+// ─────────────────────────────────────────────────────────────
+// Boot
+// ─────────────────────────────────────────────────────────────
+
+init();
