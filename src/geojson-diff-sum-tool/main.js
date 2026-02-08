@@ -88,6 +88,16 @@ function populateSelect(selectEl, selectedValue) {
 
 let opCounter = 0;
 
+function updateMoveButtons() {
+  const rows = opsContainer.querySelectorAll(".op-row");
+  rows.forEach((row, i) => {
+    const up = row.querySelector(".move-up");
+    const down = row.querySelector(".move-down");
+    if (up) up.disabled = i === 0;
+    if (down) down.disabled = i === rows.length - 1;
+  });
+}
+
 function addOperationRow(defaultOp = "subtract", defaultFile = null) {
   const id = opCounter++;
   const row = document.createElement("div");
@@ -110,17 +120,53 @@ function addOperationRow(defaultOp = "subtract", defaultFile = null) {
   const select = document.createElement("select");
   populateSelect(select, defaultFile);
 
+  // Move & remove buttons
+  const actions = document.createElement("div");
+  actions.className = "row-actions";
+
+  const moveUp = document.createElement("button");
+  moveUp.className = "move-btn move-up";
+  moveUp.textContent = "\u25b2";
+  moveUp.title = "Move up";
+  moveUp.addEventListener("click", () => {
+    const prev = row.previousElementSibling;
+    if (prev) {
+      opsContainer.insertBefore(row, prev);
+      updateMoveButtons();
+    }
+  });
+
+  const moveDown = document.createElement("button");
+  moveDown.className = "move-btn move-down";
+  moveDown.textContent = "\u25bc";
+  moveDown.title = "Move down";
+  moveDown.addEventListener("click", () => {
+    const next = row.nextElementSibling;
+    if (next) {
+      opsContainer.insertBefore(next, row);
+      updateMoveButtons();
+    }
+  });
+
   const removeBtn = document.createElement("button");
   removeBtn.className = "remove-btn";
   removeBtn.textContent = "\u00d7";
   removeBtn.title = "Remove this operation";
-  removeBtn.addEventListener("click", () => row.remove());
+  removeBtn.addEventListener("click", () => {
+    row.remove();
+    updateMoveButtons();
+  });
+
+  actions.appendChild(moveUp);
+  actions.appendChild(moveDown);
+  actions.appendChild(removeBtn);
 
   row.appendChild(toggle);
   row.appendChild(select);
-  row.appendChild(removeBtn);
+  row.appendChild(actions);
   opsContainer.appendChild(row);
 
+  updateMoveButtons();
   return row;
 }
 
@@ -135,6 +181,51 @@ function getOperations() {
 }
 
 btnAddOp.addEventListener("click", () => addOperationRow());
+
+// ─────────────────────────────────────────────────────────────
+// URL hash state persistence
+// ─────────────────────────────────────────────────────────────
+
+function encodeState() {
+  const state = {
+    base: baseSelect.value,
+    usOnly: filterUS.checked,
+    ops: getOperations().map((o) => `${o.op === "subtract" ? "-" : "+"}${o.file}`),
+  };
+  return "#" + encodeURIComponent(JSON.stringify(state));
+}
+
+function decodeHash() {
+  const hash = location.hash.slice(1);
+  if (!hash) return null;
+  try {
+    return JSON.parse(decodeURIComponent(hash));
+  } catch {
+    return null;
+  }
+}
+
+function pushState() {
+  history.replaceState(null, "", encodeState());
+}
+
+const btnShare = document.getElementById("btn-share");
+btnShare.addEventListener("click", () => {
+  pushState();
+  const url = location.href;
+  navigator.clipboard.writeText(url).then(
+    () => {
+      btnShare.textContent = "Copied!";
+      setTimeout(() => {
+        btnShare.textContent = "Copy Share URL";
+      }, 1500);
+    },
+    () => {
+      // Fallback: select a prompt
+      prompt("Copy this URL:", url);
+    }
+  );
+});
 
 // ─────────────────────────────────────────────────────────────
 // Map rendering
@@ -332,11 +423,22 @@ async function init() {
     // Non-critical — just won't have individual state options
   }
 
-  populateSelect(baseSelect, "1803-louisiana-purchase.geojson");
-  updateBaseInfo();
+  // Restore from URL hash or use defaults
+  const saved = decodeHash();
+  if (saved) {
+    populateSelect(baseSelect, saved.base);
+    filterUS.checked = saved.usOnly !== false;
+    for (const entry of saved.ops || []) {
+      const op = entry.startsWith("+") ? "add" : "subtract";
+      const file = entry.slice(1);
+      addOperationRow(op, file);
+    }
+  } else {
+    populateSelect(baseSelect, "1803-louisiana-purchase.geojson");
+    addOperationRow("subtract", "1789-original-states.geojson");
+  }
 
-  // Start with one subtract operation pre-filled
-  addOperationRow("subtract", "1789-original-states.geojson");
+  updateBaseInfo();
 }
 
 async function updateBaseInfo() {
@@ -418,6 +520,7 @@ btnCompute.addEventListener("click", async () => {
       mapTitle.textContent = `Result: ${opDescriptions.join(" ")}`;
     }
     btnDownload.disabled = false;
+    pushState();
   } catch (err) {
     statusEl.innerHTML = `<span class="error">Error: ${err.message}</span>`;
     renderGeoJSON(mapMain, toFC(null));

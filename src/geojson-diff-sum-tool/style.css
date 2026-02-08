@@ -134,16 +134,38 @@ select:focus {
   font-size: 0.82rem;
 }
 
+.op-row .row-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 2px;
+}
+
+.op-row .move-btn,
 .op-row .remove-btn {
   flex: 0 0 auto;
-  padding: 0.25rem 0.5rem;
+  padding: 0.2rem 0.35rem;
   background: none;
   border: none;
-  color: #555;
-  font-size: 1rem;
+  color: #444;
+  font-size: 0.75rem;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 3px;
   line-height: 1;
+}
+
+.op-row .move-btn:hover {
+  color: #aaa;
+  background: #1a1a1a;
+}
+
+.op-row .move-btn:disabled {
+  opacity: 0.2;
+  cursor: default;
+}
+
+.op-row .remove-btn {
+  font-size: 1rem;
+  padding: 0.25rem 0.5rem;
 }
 
 .op-row .remove-btn:hover {
