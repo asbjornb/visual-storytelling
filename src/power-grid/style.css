@@ -869,14 +869,26 @@ input[type="range"]::-moz-range-thumb {
 /* ── Conclusion ───────────────────────────────────── */
 
 .conclusion {
-  padding-top: 8rem;
-  padding-bottom: 8rem;
+  padding-top: 5rem;
+  padding-bottom: 5rem;
   background: linear-gradient(
     160deg,
     #fafbff 0%,
     #eef2ff 50%,
     #fdf2f8 100%
   );
+}
+
+.conclusion-inner {
+  max-width: 40rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.conclusion-main {
+  margin-bottom: 3rem;
 }
 
 .conclusion h2 {
@@ -887,6 +899,17 @@ input[type="range"]::-moz-range-thumb {
   margin-bottom: 1.2rem;
 }
 
+.conclusion-body {
+  font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+  color: var(--text);
+  line-height: 1.65;
+  margin-top: 1rem;
+}
+
+.conclusion-body strong {
+  color: var(--text-bright);
+}
+
 .final {
   margin-top: 2rem;
   font-size: 1.1rem;
@@ -895,6 +918,68 @@ input[type="range"]::-moz-range-thumb {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-weight: 600;
+}
+
+/* ── Conclusion Resources ────────────────────────── */
+
+.conclusion-resources {
+  width: 100%;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--border-bright);
+  text-align: left;
+}
+
+.resources-heading {
+  font-family: "Outfit", sans-serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 0.6rem;
+}
+
+.resources-intro {
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.resource-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.resource-list li a {
+  display: block;
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  text-decoration: none;
+  transition: all 0.25s;
+}
+
+.resource-list li a:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.1);
+  transform: translateY(-1px);
+}
+
+.resource-title {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 0.2rem;
+}
+
+.resource-desc {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.45;
 }
 
 /* ── Frequency Thresholds ────────────────────────── */
@@ -1172,6 +1257,15 @@ input[type="range"]::-moz-range-thumb {
 
   .edge-nav--next {
     right: 0.5rem;
+  }
+
+  .conclusion {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+
+  .conclusion-main {
+    margin-bottom: 2rem;
   }
 }
 
