@@ -95,7 +95,7 @@ const FOOTNOTES = {
       "Vermont finally joined the Union in 1791 as the 14th state\u2009\u2014\u2009the first admitted beyond the original thirteen.",
     ],
     // Mini-map: bounding box [SW, NE] to zoom into, marker to highlight
-    mapBounds: [[-77, 40.5], [-69, 46]],
+    mapBounds: [[-74.5, 42.2], [-70.5, 45.8]],
     mapMarker: { lon: -72.6, lat: 44.0, label: "Vermont" },
     mapStep: 0, // Color territories as of this acquisition step
   },
@@ -1098,23 +1098,23 @@ function renderFootnoteMiniMap(container, data) {
       svg.append("circle")
         .attr("cx", mx)
         .attr("cy", my)
-        .attr("r", 16)
+        .attr("r", 24)
         .attr("fill", "none")
         .attr("stroke", "#e63946")
         .attr("stroke-width", 1.5)
-        .attr("opacity", 0.4);
+        .attr("opacity", 0.35);
 
       svg.append("circle")
         .attr("cx", mx)
         .attr("cy", my)
-        .attr("r", 5)
+        .attr("r", 4)
         .attr("fill", "#e63946")
         .attr("stroke", "#fff")
         .attr("stroke-width", 1.5);
 
       svg.append("text")
-        .attr("x", mx + 12)
-        .attr("y", my + 4)
+        .attr("x", mx + 10)
+        .attr("y", my - 10)
         .attr("font-family", "Inter, system-ui, sans-serif")
         .attr("font-size", "11px")
         .attr("font-weight", "600")
