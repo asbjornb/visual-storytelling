@@ -1043,13 +1043,6 @@ function renderFootnoteMiniMap(container, data) {
   const g = svg.append("g").attr("clip-path", "url(#fn-clip)");
 
   const [[west, south], [east, north]] = data.mapBounds;
-  const boundsFeature = {
-    type: "Feature",
-    geometry: {
-      type: "Polygon",
-      coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]],
-    },
-  };
 
   // Pad the bounds a little so we test feature overlap generously
   const pad = Math.max(east - west, north - south) * 0.5;
@@ -1059,16 +1052,14 @@ function renderFootnoteMiniMap(container, data) {
     return x1 > west - pad && x0 < east + pad && y1 > south - pad && y0 < north + pad;
   };
 
+  // Use MultiPoint (no winding-order ambiguity) with fitExtent for reliable zoom
+  const corners = {
+    type: "MultiPoint",
+    coordinates: [[west, south], [east, south], [east, north], [west, north]],
+  };
+  const margin = width * 0.075;
   const miniProjection = d3.geoMercator()
-    .center([(west + east) / 2, (south + north) / 2])
-    .translate([width / 2, height / 2])
-    .scale(1);
-
-  // Measure bounds at scale=1, then compute the scale that fills the SVG
-  const tempPath = d3.geoPath().projection(miniProjection);
-  const [[bx0, by0], [bx1, by1]] = tempPath.bounds(boundsFeature);
-  const s = 0.85 * Math.min(width / (bx1 - bx0), height / (by1 - by0));
-  miniProjection.scale(s);
+    .fitExtent([[margin, margin], [width - margin, height - margin]], corners);
 
   const miniPath = d3.geoPath().projection(miniProjection);
 
