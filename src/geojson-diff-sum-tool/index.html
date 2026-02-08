@@ -25,10 +25,7 @@
       <section class="controls">
         <div class="base-row">
           <label>Start with</label>
-          <div class="base-select-wrap">
-            <select id="base-file"></select>
-            <div class="thumb" id="base-thumb"></div>
-          </div>
+          <select id="base-file"></select>
           <div class="feature-info" id="base-info"></div>
         </div>
 
@@ -43,6 +40,9 @@
           <button id="btn-share" class="secondary-btn">
             Copy Share URL
           </button>
+          <button id="btn-copy-desc" class="secondary-btn">
+            Copy Description
+          </button>
           <div class="filter-group">
             <label>
               <input type="checkbox" id="filter-us" checked />
@@ -52,17 +52,22 @@
         </div>
       </section>
 
-      <section class="map-area">
+      <section class="right-column">
         <div class="map-panel">
           <div class="map-header">
             <h3 id="map-title">Base</h3>
           </div>
           <div id="map-main" class="map"></div>
         </div>
+
+        <div class="preview-section">
+          <h3 class="preview-heading">Input files</h3>
+          <div id="preview-strip" class="preview-strip"></div>
+        </div>
       </section>
 
       <section class="status-bar">
-        <span id="status">Select a base file and click Compute</span>
+        <span id="status">Select a base file to begin</span>
       </section>
     </main>
 

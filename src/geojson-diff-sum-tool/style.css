@@ -31,8 +31,8 @@ header h1 {
 main {
   padding: 1rem 2rem 2rem;
   display: grid;
-  grid-template-columns: 380px 1fr;
-  grid-template-rows: auto 1fr;
+  grid-template-columns: 360px 1fr;
+  grid-template-rows: 1fr auto;
   gap: 1rem;
   height: calc(100vh - 75px);
 }
@@ -40,7 +40,7 @@ main {
 /* ── Controls (left column) ── */
 
 .controls {
-  grid-row: 1 / 3;
+  grid-row: 1 / 2;
   overflow-y: auto;
   padding-right: 0.5rem;
 }
@@ -81,44 +81,6 @@ select:focus {
   color: #555;
   margin-top: 0.2rem;
   min-height: 1em;
-}
-
-/* ── Thumbnails ── */
-
-.thumb {
-  flex: 0 0 auto;
-  width: 64px;
-  height: 42px;
-  background: #0e0e0e;
-  border: 1px solid #222;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.thumb svg {
-  display: block;
-}
-
-.base-select-wrap,
-.op-select-wrap {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.base-select-wrap {
-  margin-bottom: 0.1rem;
-}
-
-.base-select-wrap select,
-.op-select-wrap select {
-  flex: 1;
-  min-width: 0;
-}
-
-.op-select-wrap {
-  flex: 1;
-  min-width: 0;
 }
 
 /* ── Operation rows ── */
@@ -168,6 +130,8 @@ select:focus {
 }
 
 .op-row select {
+  flex: 1;
+  min-width: 0;
   font-size: 0.82rem;
 }
 
@@ -239,28 +203,6 @@ select:focus {
   gap: 0.6rem;
 }
 
-.primary-btn {
-  padding: 0.55rem 1.5rem;
-  background: #2a5a9a;
-  border: none;
-  border-radius: 6px;
-  color: #fff;
-  font-family: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.primary-btn:hover {
-  background: #3a6aba;
-}
-
-.primary-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
 .secondary-btn {
   padding: 0.55rem 1.2rem;
   background: transparent;
@@ -301,11 +243,15 @@ select:focus {
   accent-color: #2a5a9a;
 }
 
-/* ── Map area (right column) ── */
+/* ── Right column (map + preview strip) ── */
 
-.map-area {
+.right-column {
   grid-column: 2;
-  grid-row: 1 / 3;
+  grid-row: 1 / 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
 }
 
 .map-panel {
@@ -313,9 +259,10 @@ select:focus {
   border: 1px solid #222;
   border-radius: 8px;
   overflow: hidden;
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 300px;
 }
 
 .map-header {
@@ -337,10 +284,82 @@ select:focus {
 .map {
   flex: 1;
   position: relative;
-  min-height: 400px;
+  min-height: 250px;
 }
 
 .map svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Preview strip ── */
+
+.preview-section {
+  flex: 0 0 auto;
+}
+
+.preview-heading {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #555;
+  margin-bottom: 0.4rem;
+}
+
+.preview-strip {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.preview-tile {
+  flex: 0 0 auto;
+  width: 220px;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.preview-tile.subtract {
+  border-color: #3a1818;
+}
+
+.preview-tile.add {
+  border-color: #1a3a32;
+}
+
+.preview-tile-title {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #888;
+  border-bottom: 1px solid #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preview-tile.subtract .preview-tile-title {
+  color: #c45555;
+}
+
+.preview-tile.add .preview-tile-title {
+  color: #2a9d8f;
+}
+
+.preview-tile.base .preview-tile-title {
+  color: #5a8abd;
+}
+
+.preview-tile-map {
+  height: 150px;
+}
+
+.preview-tile-map svg {
+  display: block;
   width: 100%;
   height: 100%;
 }
@@ -379,13 +398,21 @@ select:focus {
     grid-row: auto;
   }
 
-  .map-area {
+  .right-column {
     grid-column: 1;
     grid-row: auto;
   }
 
   .map {
     min-height: 350px;
+  }
+
+  .preview-tile {
+    width: 180px;
+  }
+
+  .preview-tile-map {
+    height: 120px;
   }
 
   .status-bar {

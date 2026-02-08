@@ -46,15 +46,17 @@ const NON_US_CATEGORIES = new Set([
 
 const baseSelect = document.getElementById("base-file");
 const baseInfo = document.getElementById("base-info");
-const baseThumbEl = document.getElementById("base-thumb");
 const opsContainer = document.getElementById("operations");
 const btnAddOp = document.getElementById("btn-add-op");
 const btnDownload = document.getElementById("btn-download");
+const btnCopyDesc = document.getElementById("btn-copy-desc");
 const filterUS = document.getElementById("filter-us");
 const statusEl = document.getElementById("status");
 const mapTitle = document.getElementById("map-title");
+const previewStrip = document.getElementById("preview-strip");
 
 let resultGeoJSON = null;
+let lastDescription = "";
 
 // ─────────────────────────────────────────────────────────────
 // File select helpers
@@ -82,63 +84,102 @@ function populateSelect(selectEl, selectedValue) {
   if (selectedValue) selectEl.value = selectedValue;
 }
 
+function getLabelForFile(filename) {
+  const all = [...YEAR_FILES, ...STATE_FILES];
+  const match = all.find((f) => f.value === filename);
+  return match ? match.label : filename;
+}
+
 // ─────────────────────────────────────────────────────────────
-// Thumbnail rendering (shared projection)
+// Shared projection for preview maps
 // ─────────────────────────────────────────────────────────────
 
-const THUMB_W = 64;
-const THUMB_H = 42;
+const PREVIEW_W = 220;
+const PREVIEW_H = 150;
 
-const thumbProjection = d3
-  .geoConicEqualArea()
-  .parallels([20, 50])
-  .rotate([90, 0])
-  .center([0, 35])
-  .fitSize([THUMB_W, THUMB_H], {
-    type: "Feature",
-    geometry: {
-      type: "Polygon",
-      coordinates: [
-        [
-          [-180, 10],
-          [-180, 75],
-          [-50, 75],
-          [-50, 10],
-          [-180, 10],
+function makePreviewProjection() {
+  return d3
+    .geoConicEqualArea()
+    .parallels([20, 50])
+    .rotate([90, 0])
+    .center([0, 35])
+    .fitSize([PREVIEW_W, PREVIEW_H], {
+      type: "Feature",
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [-180, 10],
+            [-180, 75],
+            [-50, 75],
+            [-50, 10],
+            [-180, 10],
+          ],
         ],
-      ],
-    },
-  });
+      },
+    });
+}
 
-const thumbPath = d3.geoPath().projection(thumbProjection);
+const previewProjection = makePreviewProjection();
+const previewPath = d3.geoPath().projection(previewProjection);
 
-async function renderThumbnail(container, filename) {
-  // Clear previous
-  container.innerHTML = "";
+// ─────────────────────────────────────────────────────────────
+// Preview strip — shows each selected file as a map tile
+// ─────────────────────────────────────────────────────────────
 
-  const svg = d3
-    .select(container)
-    .append("svg")
-    .attr("viewBox", `0 0 ${THUMB_W} ${THUMB_H}`)
-    .attr("width", THUMB_W)
-    .attr("height", THUMB_H);
+async function updatePreviewStrip() {
+  previewStrip.innerHTML = "";
 
-  try {
-    const raw = await loadGeoJSON(filename);
-    const fc = filterFeatures(raw, filterUS.checked);
-    if (fc.features.length === 0) return;
+  const usOnly = filterUS.checked;
 
-    svg
-      .selectAll("path")
-      .data(fc.features)
-      .join("path")
-      .attr("d", thumbPath)
-      .attr("fill", "#5a8abd")
-      .attr("stroke", "#0a0a0a")
-      .attr("stroke-width", 0.3)
-      .attr("opacity", 0.9);
-  } catch {
-    // silently fail for thumbnails
+  // Collect all file references: base + operations
+  const items = [{ label: getLabelForFile(baseSelect.value), file: baseSelect.value, role: "base" }];
+  const ops = getOperations();
+  for (const { op, file } of ops) {
+    const symbol = op === "subtract" ? "\u2212" : "+";
+    items.push({ label: `${symbol} ${getLabelForFile(file)}`, file, role: op });
+  }
+
+  for (const item of items) {
+    const tile = document.createElement("div");
+    tile.className = `preview-tile ${item.role}`;
+
+    const titleEl = document.createElement("div");
+    titleEl.className = "preview-tile-title";
+    titleEl.textContent = item.label;
+    tile.appendChild(titleEl);
+
+    const mapDiv = document.createElement("div");
+    mapDiv.className = "preview-tile-map";
+    tile.appendChild(mapDiv);
+
+    previewStrip.appendChild(tile);
+
+    // Render async
+    try {
+      const raw = await loadGeoJSON(item.file);
+      const fc = filterFeatures(raw, usOnly);
+
+      const svg = d3
+        .select(mapDiv)
+        .append("svg")
+        .attr("viewBox", `0 0 ${PREVIEW_W} ${PREVIEW_H}`)
+        .attr("preserveAspectRatio", "xMidYMid meet");
+
+      if (fc.features.length > 0) {
+        svg
+          .selectAll("path")
+          .data(fc.features)
+          .join("path")
+          .attr("d", previewPath)
+          .attr("fill", item.role === "subtract" ? "#c45555" : item.role === "add" ? "#2a9d8f" : "#5a8abd")
+          .attr("stroke", "#0a0a0a")
+          .attr("stroke-width", 0.4)
+          .attr("opacity", 0.85);
+      }
+    } catch {
+      // silently fail for previews
+    }
   }
 }
 
@@ -178,22 +219,9 @@ function addOperationRow(defaultOp = "subtract", defaultFile = null) {
     scheduleCompute();
   });
 
-  const selectWrap = document.createElement("div");
-  selectWrap.className = "op-select-wrap";
-
   const select = document.createElement("select");
   populateSelect(select, defaultFile);
-  select.addEventListener("change", () => {
-    renderThumbnail(thumb, select.value);
-    scheduleCompute();
-  });
-
-  const thumb = document.createElement("div");
-  thumb.className = "thumb";
-  renderThumbnail(thumb, select.value);
-
-  selectWrap.appendChild(select);
-  selectWrap.appendChild(thumb);
+  select.addEventListener("change", () => scheduleCompute());
 
   // Move & remove buttons
   const actions = document.createElement("div");
@@ -240,7 +268,7 @@ function addOperationRow(defaultOp = "subtract", defaultFile = null) {
   actions.appendChild(removeBtn);
 
   row.appendChild(toggle);
-  row.appendChild(selectWrap);
+  row.appendChild(select);
   row.appendChild(actions);
   opsContainer.appendChild(row);
 
@@ -305,6 +333,25 @@ btnShare.addEventListener("click", () => {
     },
     () => {
       prompt("Copy this URL:", url);
+    }
+  );
+});
+
+// ─────────────────────────────────────────────────────────────
+// Copy description
+// ─────────────────────────────────────────────────────────────
+
+btnCopyDesc.addEventListener("click", () => {
+  if (!lastDescription) return;
+  navigator.clipboard.writeText(lastDescription).then(
+    () => {
+      btnCopyDesc.textContent = "Copied!";
+      setTimeout(() => {
+        btnCopyDesc.textContent = "Copy Description";
+      }, 1500);
+    },
+    () => {
+      prompt("Copy this description:", lastDescription);
     }
   );
 });
@@ -437,6 +484,12 @@ function describeGeoJSON(geojson) {
 // Geometric operations
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * Dissolve all polygon features in a FeatureCollection into a single
+ * geometry. Rewinds each feature to RFC 7946 winding order first —
+ * the source data uses D3's clockwise convention which Turf.js
+ * misinterprets as the polygon's complement.
+ */
 function dissolveToSingle(fc) {
   const polys = fc.features.filter(
     (f) =>
@@ -445,12 +498,16 @@ function dissolveToSingle(fc) {
   );
 
   if (polys.length === 0) return null;
-  if (polys.length === 1) return polys[0];
 
-  let merged = polys[0];
-  for (let i = 1; i < polys.length; i++) {
+  // Rewind to RFC 7946 (counter-clockwise exterior rings)
+  const rewound = polys.map((f) => turf.rewind(f, { reverse: false }));
+
+  if (rewound.length === 1) return rewound[0];
+
+  let merged = rewound[0];
+  for (let i = 1; i < rewound.length; i++) {
     try {
-      const result = turf.union(turf.featureCollection([merged, polys[i]]));
+      const result = turf.union(turf.featureCollection([merged, rewound[i]]));
       if (result) merged = result;
     } catch {
       // Skip features that cause topology errors
@@ -485,6 +542,23 @@ function toFC(feature) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Human-readable description
+// ─────────────────────────────────────────────────────────────
+
+function buildDescription() {
+  const baseLabel = getLabelForFile(baseSelect.value);
+  const ops = getOperations();
+  if (ops.length === 0) return baseLabel;
+
+  const parts = [baseLabel];
+  for (const { op, file } of ops) {
+    const word = op === "subtract" ? "MINUS" : "PLUS";
+    parts.push(`${word} ${getLabelForFile(file)}`);
+  }
+  return parts.join("\n");
+}
+
+// ─────────────────────────────────────────────────────────────
 // Auto-compute (debounced)
 // ─────────────────────────────────────────────────────────────
 
@@ -503,6 +577,10 @@ async function runCompute() {
   resultGeoJSON = null;
   statusEl.textContent = "Computing\u2026";
   statusEl.className = "";
+
+  // Update description and previews immediately
+  lastDescription = buildDescription();
+  updatePreviewStrip();
 
   try {
     const usOnly = filterUS.checked;
@@ -624,24 +702,9 @@ async function init() {
     addOperationRow("subtract", "1789-original-states.geojson");
   }
 
-  // Base thumbnail
-  renderThumbnail(baseThumbEl, baseSelect.value);
-
   // Wire up base select & filter
-  baseSelect.addEventListener("change", () => {
-    renderThumbnail(baseThumbEl, baseSelect.value);
-    scheduleCompute();
-  });
-  filterUS.addEventListener("change", () => {
-    // Re-render all thumbnails on filter change
-    renderThumbnail(baseThumbEl, baseSelect.value);
-    opsContainer.querySelectorAll(".op-row").forEach((row) => {
-      const thumb = row.querySelector(".thumb");
-      const sel = row.querySelector("select");
-      if (thumb && sel) renderThumbnail(thumb, sel.value);
-    });
-    scheduleCompute();
-  });
+  baseSelect.addEventListener("change", () => scheduleCompute());
+  filterUS.addEventListener("change", () => scheduleCompute());
 
   // Initial compute
   scheduleCompute();
