@@ -34,9 +34,9 @@ export function init() {
     { name: "Charging", color: "#f87171", co2: 0 },
   ];
 
-  const margin = { top: 30, right: 20, bottom: 50, left: 50 };
+  const margin = { top: 30, right: 20, bottom: 25, left: 50 };
   const svg = d3.select(container).append("svg")
-    .attr("viewBox", "0 0 760 400").attr("preserveAspectRatio", "xMidYMid meet");
+    .attr("viewBox", "0 0 760 375").attr("preserveAspectRatio", "xMidYMid meet");
 
   const w = 760 - margin.left - margin.right;
   const h = 400 - margin.top - margin.bottom;
@@ -76,12 +76,7 @@ export function init() {
   const hourHighlight = gEl.append("rect")
     .attr("fill", COLORS.accent).attr("opacity", 0.1).attr("rx", 3);
 
-  const legend = svg.append("g").attr("transform", `translate(${margin.left},${margin.top + h + 30})`);
-  genTypes.forEach((gen, i) => {
-    const lg = legend.append("g").attr("transform", `translate(${i * 78}, 0)`);
-    lg.append("rect").attr("width", 10).attr("height", 10).attr("rx", 2).attr("fill", gen.color);
-    lg.append("text").attr("x", 14).attr("y", 9).attr("fill", "#64748b").attr("font-size", 9).text(gen.name);
-  });
+  // Legend is rendered in HTML (not SVG) so it stays readable on mobile.
 
   function computeHourlyMix(solarCap, batteryCap) {
     const hours = d3.range(24);
