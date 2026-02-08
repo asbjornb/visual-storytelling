@@ -941,45 +941,19 @@ input[type="range"]::-moz-range-thumb {
   font-size: 0.95rem;
   color: var(--text);
   line-height: 1.6;
-  margin-bottom: 1.5rem;
 }
 
-.resource-list {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  gap: 0.5rem;
-}
-
-.resource-list li a {
-  display: block;
-  padding: 0.85rem 1rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  text-decoration: none;
-  transition: all 0.25s;
-}
-
-.resource-list li a:hover {
-  border-color: var(--accent);
-  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.1);
-  transform: translateY(-1px);
-}
-
-.resource-title {
-  display: block;
-  font-size: 0.9rem;
-  font-weight: 600;
+.book-link {
   color: var(--accent);
-  margin-bottom: 0.2rem;
+  text-decoration: underline;
+  text-decoration-color: rgba(99, 102, 241, 0.3);
+  text-underline-offset: 2px;
+  font-weight: 600;
+  transition: text-decoration-color 0.2s;
 }
 
-.resource-desc {
-  display: block;
-  font-size: 0.8rem;
-  color: var(--text);
-  line-height: 1.45;
+.book-link:hover {
+  text-decoration-color: var(--accent);
 }
 
 /* ── Frequency Thresholds ────────────────────────── */
