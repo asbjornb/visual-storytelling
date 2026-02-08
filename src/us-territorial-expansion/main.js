@@ -1046,12 +1046,8 @@ function renderFootnoteMiniMap(container, data) {
     },
   };
 
-  const miniProjection = d3.geoConicEqualArea()
-    .parallels([20, 50])
-    .rotate([90, 0])
-    .center([0, 35]);
-
-  miniProjection.fitSize([width - 16, height - 16], boundsFeature);
+  const miniProjection = d3.geoMercator()
+    .fitSize([width - 16, height - 16], boundsFeature);
   const [tx, ty] = miniProjection.translate();
   miniProjection.translate([tx + 8, ty + 8]);
 
