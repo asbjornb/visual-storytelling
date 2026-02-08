@@ -234,6 +234,17 @@ export function init() {
     .attr("cx", barX).attr("cy", 11)
     .attr("r", 5).attr("fill", COLORS.accent).attr("opacity", 0);
 
+  // Clickable hit area over timeline
+  tlG.append("rect")
+    .attr("x", barX).attr("y", -2)
+    .attr("width", barW).attr("height", 34)
+    .attr("fill", "transparent").attr("cursor", "pointer")
+    .on("click", function(event) {
+      const [mx] = d3.pointer(event, tlG.node());
+      const clickedT = clamp(tlScale.invert(mx - barX), 0, ANIM_DURATION);
+      jumpTo(clickedT);
+    });
+
   tlG.append("text")
     .attr("x", 0).attr("y", 14)
     .attr("fill", COLORS.label).attr("font-size", 11).attr("font-weight", 700)
@@ -241,6 +252,7 @@ export function init() {
 
   // ── Animation state ──
   let running = false;
+  let paused = false;
   let startTime = 0;
   let currentFreq = 50.0;
 
@@ -388,13 +400,16 @@ export function init() {
 
     if (done) {
       running = false;
+      paused = false;
       switchBtn.classList.remove("running");
       switchBtn.classList.add("done");
       btnLabel.textContent = "REPLAY";
       return;
     }
 
-    animFrameId = requestAnimationFrame(tick);
+    if (!paused) {
+      animFrameId = requestAnimationFrame(tick);
+    }
   }
 
   function reset() {
@@ -425,10 +440,45 @@ export function init() {
     btnLabel.textContent = "GAME OVER";
   }
 
+  function jumpTo(t) {
+    // Warm up currentFreq to match the state at time t
+    currentFreq = 50.0;
+    const steps = Math.ceil(t * 10);
+    for (let i = 1; i <= steps; i++) {
+      const st = (i / steps) * t;
+      let total = 0;
+      allTechs.forEach(tech => { total += computeTechOutput(tech, st); });
+      const imb = total - SURGE_MW;
+      const target = imb <= 0
+        ? 50.0 + (imb / SURGE_MW) * 0.15
+        : 50.0 + Math.min(imb / SURGE_MW, 1.0) * 0.10;
+      currentFreq += (target - currentFreq) * 0.3;
+    }
+
+    if (animFrameId) cancelAnimationFrame(animFrameId);
+    startTime = performance.now() - t * 1000;
+    running = true;
+    paused = true;
+    switchBtn.classList.remove("done");
+    switchBtn.classList.add("running");
+    btnLabel.textContent = "RESUME";
+    tick(); // render one frame, won't schedule next because paused
+  }
+
   switchBtn.addEventListener("click", () => {
+    if (running && paused) {
+      // Resume from paused position
+      const elapsed = performance.now() - startTime;
+      paused = false;
+      startTime = performance.now() - elapsed;
+      btnLabel.textContent = "GAME OVER";
+      animFrameId = requestAnimationFrame(tick);
+      return;
+    }
     if (running) return;
     reset();
     running = true;
+    paused = false;
     startTime = performance.now();
     switchBtn.classList.add("running");
     animFrameId = requestAnimationFrame(tick);
