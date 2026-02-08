@@ -95,9 +95,11 @@ const FOOTNOTES = {
       "Vermont finally joined the Union in 1791 as the 14th state\u2009\u2014\u2009the first admitted beyond the original thirteen.",
     ],
     // Mini-map: bounding box [SW, NE] to zoom into, marker to highlight
-    mapBounds: [[-74.5, 42.2], [-70.5, 45.8]],
+    mapBounds: [[-76.5, 41.0], [-69.0, 46.5]],
     mapMarker: { lon: -72.6, lat: 44.0, label: "Vermont" },
     mapStep: 0, // Color territories as of this acquisition step
+    // Highlight a US state outline (FIPS id from us-states-10m.json)
+    highlightStateId: "50", // Vermont
   },
 };
 
@@ -141,6 +143,7 @@ const DESKTOP_BREAKPOINT = 900;
 let geoDataByStep = [];
 let acquisitionsData = null;
 let contextCountries = null;
+let usStates = null; // US state boundaries for footnote mini-maps
 let currentPage = 0;
 let totalPages = 0;
 let pageElements = [];
@@ -372,6 +375,11 @@ async function loadContextCountries() {
 
 async function loadAcquisitions() {
   return d3.json("/data/us-territorial-expansion/acquisitions.geojson");
+}
+
+async function loadUSStates() {
+  const topo = await d3.json("/data/us-territorial-expansion/us-states-10m.json");
+  return topojson.feature(topo, topo.objects.states);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1097,19 +1105,42 @@ function renderFootnoteMiniMap(container, data) {
     });
   }
 
-  // Location marker
-  if (data.mapMarker) {
+  // Highlighted state outline (e.g. Vermont)
+  if (data.highlightStateId && usStates) {
+    const stateFeature = usStates.features.find(f => f.id === data.highlightStateId);
+    if (stateFeature) {
+      // Filled shape with distinct color
+      g.append("path")
+        .attr("d", miniPath(stateFeature))
+        .attr("fill", "#e63946")
+        .attr("fill-opacity", 0.25)
+        .attr("stroke", "#e63946")
+        .attr("stroke-width", 1.5);
+
+      // Label at marker position or state centroid
+      const labelCoords = data.mapMarker
+        ? [data.mapMarker.lon, data.mapMarker.lat]
+        : d3.geoCentroid(stateFeature);
+      const [lx, ly] = miniProjection(labelCoords);
+      if (lx && ly) {
+        g.append("text")
+          .attr("x", lx)
+          .attr("y", ly - 12)
+          .attr("text-anchor", "middle")
+          .attr("font-family", "Inter, system-ui, sans-serif")
+          .attr("font-size", "11px")
+          .attr("font-weight", "600")
+          .attr("fill", "#e63946")
+          .attr("stroke", "#eef1f5")
+          .attr("stroke-width", 2.5)
+          .attr("paint-order", "stroke")
+          .text(data.mapMarker?.label || "");
+      }
+    }
+  } else if (data.mapMarker) {
+    // Fallback: simple dot marker if no state outline available
     const [mx, my] = miniProjection([data.mapMarker.lon, data.mapMarker.lat]);
     if (mx && my) {
-      g.append("circle")
-        .attr("cx", mx)
-        .attr("cy", my)
-        .attr("r", 24)
-        .attr("fill", "none")
-        .attr("stroke", "#e63946")
-        .attr("stroke-width", 1.5)
-        .attr("opacity", 0.35);
-
       g.append("circle")
         .attr("cx", mx)
         .attr("cy", my)
@@ -1207,10 +1238,11 @@ function handleResize() {
 
 async function init() {
   // Load data in parallel
-  [geoDataByStep, contextCountries, acquisitionsData] = await Promise.all([
+  [geoDataByStep, contextCountries, acquisitionsData, usStates] = await Promise.all([
     loadAllGeoJSON(),
     loadContextCountries(),
-    loadAcquisitions()
+    loadAcquisitions(),
+    loadUSStates()
   ]);
 
   pageElements = Array.from(document.querySelectorAll(".page"));
