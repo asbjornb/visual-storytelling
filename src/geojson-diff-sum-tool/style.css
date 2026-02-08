@@ -83,6 +83,44 @@ select:focus {
   min-height: 1em;
 }
 
+/* ── Thumbnails ── */
+
+.thumb {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 42px;
+  background: #0e0e0e;
+  border: 1px solid #222;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.thumb svg {
+  display: block;
+}
+
+.base-select-wrap,
+.op-select-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.base-select-wrap {
+  margin-bottom: 0.1rem;
+}
+
+.base-select-wrap select,
+.op-select-wrap select {
+  flex: 1;
+  min-width: 0;
+}
+
+.op-select-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
 /* ── Operation rows ── */
 
 #operations {
@@ -130,7 +168,6 @@ select:focus {
 }
 
 .op-row select {
-  flex: 1;
   font-size: 0.82rem;
 }
 

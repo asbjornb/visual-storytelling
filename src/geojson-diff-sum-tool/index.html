@@ -25,7 +25,10 @@
       <section class="controls">
         <div class="base-row">
           <label>Start with</label>
-          <select id="base-file"></select>
+          <div class="base-select-wrap">
+            <select id="base-file"></select>
+            <div class="thumb" id="base-thumb"></div>
+          </div>
           <div class="feature-info" id="base-info"></div>
         </div>
 
@@ -34,9 +37,8 @@
         <button id="btn-add-op" class="add-op-btn">+ Add operation</button>
 
         <div class="action-row">
-          <button id="btn-compute" class="primary-btn">Compute</button>
           <button id="btn-download" class="secondary-btn" disabled>
-            Download Result GeoJSON
+            Download GeoJSON
           </button>
           <button id="btn-share" class="secondary-btn">
             Copy Share URL

@@ -46,9 +46,9 @@ const NON_US_CATEGORIES = new Set([
 
 const baseSelect = document.getElementById("base-file");
 const baseInfo = document.getElementById("base-info");
+const baseThumbEl = document.getElementById("base-thumb");
 const opsContainer = document.getElementById("operations");
 const btnAddOp = document.getElementById("btn-add-op");
-const btnCompute = document.getElementById("btn-compute");
 const btnDownload = document.getElementById("btn-download");
 const filterUS = document.getElementById("filter-us");
 const statusEl = document.getElementById("status");
@@ -80,6 +80,66 @@ function populateSelect(selectEl, selectedValue) {
   }
 
   if (selectedValue) selectEl.value = selectedValue;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Thumbnail rendering (shared projection)
+// ─────────────────────────────────────────────────────────────
+
+const THUMB_W = 64;
+const THUMB_H = 42;
+
+const thumbProjection = d3
+  .geoConicEqualArea()
+  .parallels([20, 50])
+  .rotate([90, 0])
+  .center([0, 35])
+  .fitSize([THUMB_W, THUMB_H], {
+    type: "Feature",
+    geometry: {
+      type: "Polygon",
+      coordinates: [
+        [
+          [-180, 10],
+          [-180, 75],
+          [-50, 75],
+          [-50, 10],
+          [-180, 10],
+        ],
+      ],
+    },
+  });
+
+const thumbPath = d3.geoPath().projection(thumbProjection);
+
+async function renderThumbnail(container, filename) {
+  // Clear previous
+  container.innerHTML = "";
+
+  const svg = d3
+    .select(container)
+    .append("svg")
+    .attr("viewBox", `0 0 ${THUMB_W} ${THUMB_H}`)
+    .attr("width", THUMB_W)
+    .attr("height", THUMB_H);
+
+  try {
+    const raw = await loadGeoJSON(filename);
+    const fc = filterFeatures(raw, filterUS.checked);
+    if (fc.features.length === 0) return;
+
+    svg
+      .selectAll("path")
+      .data(fc.features)
+      .join("path")
+      .attr("d", thumbPath)
+      .attr("fill", "#5a8abd")
+      .attr("stroke", "#0a0a0a")
+      .attr("stroke-width", 0.3)
+      .attr("opacity", 0.9);
+  } catch {
+    // silently fail for thumbnails
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -115,10 +175,25 @@ function addOperationRow(defaultOp = "subtract", defaultFile = null) {
     toggle.classList.toggle("add", isSub);
     toggle.textContent = isSub ? "+" : "\u2212";
     toggle.title = isSub ? "Add (union)" : "Subtract (difference)";
+    scheduleCompute();
   });
+
+  const selectWrap = document.createElement("div");
+  selectWrap.className = "op-select-wrap";
 
   const select = document.createElement("select");
   populateSelect(select, defaultFile);
+  select.addEventListener("change", () => {
+    renderThumbnail(thumb, select.value);
+    scheduleCompute();
+  });
+
+  const thumb = document.createElement("div");
+  thumb.className = "thumb";
+  renderThumbnail(thumb, select.value);
+
+  selectWrap.appendChild(select);
+  selectWrap.appendChild(thumb);
 
   // Move & remove buttons
   const actions = document.createElement("div");
@@ -133,6 +208,7 @@ function addOperationRow(defaultOp = "subtract", defaultFile = null) {
     if (prev) {
       opsContainer.insertBefore(row, prev);
       updateMoveButtons();
+      scheduleCompute();
     }
   });
 
@@ -145,6 +221,7 @@ function addOperationRow(defaultOp = "subtract", defaultFile = null) {
     if (next) {
       opsContainer.insertBefore(next, row);
       updateMoveButtons();
+      scheduleCompute();
     }
   });
 
@@ -155,6 +232,7 @@ function addOperationRow(defaultOp = "subtract", defaultFile = null) {
   removeBtn.addEventListener("click", () => {
     row.remove();
     updateMoveButtons();
+    scheduleCompute();
   });
 
   actions.appendChild(moveUp);
@@ -162,7 +240,7 @@ function addOperationRow(defaultOp = "subtract", defaultFile = null) {
   actions.appendChild(removeBtn);
 
   row.appendChild(toggle);
-  row.appendChild(select);
+  row.appendChild(selectWrap);
   row.appendChild(actions);
   opsContainer.appendChild(row);
 
@@ -180,7 +258,10 @@ function getOperations() {
   }));
 }
 
-btnAddOp.addEventListener("click", () => addOperationRow());
+btnAddOp.addEventListener("click", () => {
+  addOperationRow();
+  scheduleCompute();
+});
 
 // ─────────────────────────────────────────────────────────────
 // URL hash state persistence
@@ -190,7 +271,9 @@ function encodeState() {
   const state = {
     base: baseSelect.value,
     usOnly: filterUS.checked,
-    ops: getOperations().map((o) => `${o.op === "subtract" ? "-" : "+"}${o.file}`),
+    ops: getOperations().map(
+      (o) => `${o.op === "subtract" ? "-" : "+"}${o.file}`
+    ),
   };
   return "#" + encodeURIComponent(JSON.stringify(state));
 }
@@ -221,7 +304,6 @@ btnShare.addEventListener("click", () => {
       }, 1500);
     },
     () => {
-      // Fallback: select a prompt
       prompt("Copy this URL:", url);
     }
   );
@@ -342,7 +424,7 @@ function describeGeoJSON(geojson) {
   const categories = {};
   for (const f of geojson.features) {
     const cat =
-      f.properties?.CATEGORY || f.properties?.era || f.properties?.id || "—";
+      f.properties?.CATEGORY || f.properties?.era || f.properties?.id || "\u2014";
     categories[cat] = (categories[cat] || 0) + 1;
   }
   const parts = Object.entries(categories)
@@ -403,10 +485,114 @@ function toFC(feature) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Initialization
+// Auto-compute (debounced)
 // ─────────────────────────────────────────────────────────────
 
 const mapMain = createMap("map-main");
+let computeTimer = null;
+let computeGeneration = 0;
+
+function scheduleCompute() {
+  clearTimeout(computeTimer);
+  computeTimer = setTimeout(runCompute, 150);
+}
+
+async function runCompute() {
+  const generation = ++computeGeneration;
+  btnDownload.disabled = true;
+  resultGeoJSON = null;
+  statusEl.textContent = "Computing\u2026";
+  statusEl.className = "";
+
+  try {
+    const usOnly = filterUS.checked;
+
+    // Load and filter base
+    const baseRaw = await loadGeoJSON(baseSelect.value);
+    const baseFC = filterFeatures(baseRaw, usOnly);
+
+    // Update base info
+    baseInfo.textContent = describeGeoJSON(baseFC);
+
+    const ops = getOperations();
+
+    // No operations — just show the base
+    if (ops.length === 0) {
+      if (generation !== computeGeneration) return;
+      resultGeoJSON = baseFC;
+      renderGeoJSON(mapMain, baseFC);
+      const label =
+        baseSelect.options[baseSelect.selectedIndex]?.text || "Base";
+      mapTitle.textContent = label;
+      statusEl.innerHTML = `<span class="success">${label} \u2014 ${baseFC.features.length} feature${baseFC.features.length !== 1 ? "s" : ""}</span>`;
+      btnDownload.disabled = false;
+      pushState();
+      return;
+    }
+
+    // Run chained operations
+    let current = dissolveToSingle(baseFC);
+    const opDescriptions = [
+      baseSelect.options[baseSelect.selectedIndex]?.text || "Base",
+    ];
+
+    for (let i = 0; i < ops.length; i++) {
+      const { op, file } = ops[i];
+      const raw = await loadGeoJSON(file);
+      const fc = filterFeatures(raw, usOnly);
+      const operand = dissolveToSingle(fc);
+
+      const shortName = file.startsWith("state:")
+        ? file.slice(6)
+        : file.replace(".geojson", "");
+
+      if (op === "subtract") {
+        current = geometricDiff(current, operand);
+        opDescriptions.push(`\u2212 ${shortName}`);
+      } else {
+        current = geometricUnion(current, operand);
+        opDescriptions.push(`+ ${shortName}`);
+      }
+    }
+
+    // Stale check — a newer compute may have started
+    if (generation !== computeGeneration) return;
+
+    resultGeoJSON = toFC(current);
+
+    if (current) {
+      current.properties = { operation: opDescriptions.join(" ") };
+    }
+
+    renderGeoJSON(mapMain, resultGeoJSON);
+
+    const featureCount = resultGeoJSON.features.length;
+    const desc = opDescriptions.join(" ");
+    if (featureCount === 0) {
+      statusEl.innerHTML = `<span class="success">${desc} \u2014 empty result</span>`;
+      mapTitle.textContent = desc;
+    } else {
+      const geomType = resultGeoJSON.features[0]?.geometry?.type || "unknown";
+      const detail =
+        geomType === "MultiPolygon"
+          ? `${resultGeoJSON.features[0].geometry.coordinates.length} polygons`
+          : geomType;
+      statusEl.innerHTML = `<span class="success">${desc} \u2014 ${detail}</span>`;
+      mapTitle.textContent = desc;
+    }
+    btnDownload.disabled = false;
+    pushState();
+  } catch (err) {
+    if (generation !== computeGeneration) return;
+    statusEl.innerHTML = `<span class="error">Error: ${err.message}</span>`;
+    renderGeoJSON(mapMain, toFC(null));
+    mapTitle.textContent = "Error";
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Initialization
+// ─────────────────────────────────────────────────────────────
 
 async function init() {
   // Load individual states for the dropdowns
@@ -438,97 +624,28 @@ async function init() {
     addOperationRow("subtract", "1789-original-states.geojson");
   }
 
-  updateBaseInfo();
+  // Base thumbnail
+  renderThumbnail(baseThumbEl, baseSelect.value);
+
+  // Wire up base select & filter
+  baseSelect.addEventListener("change", () => {
+    renderThumbnail(baseThumbEl, baseSelect.value);
+    scheduleCompute();
+  });
+  filterUS.addEventListener("change", () => {
+    // Re-render all thumbnails on filter change
+    renderThumbnail(baseThumbEl, baseSelect.value);
+    opsContainer.querySelectorAll(".op-row").forEach((row) => {
+      const thumb = row.querySelector(".thumb");
+      const sel = row.querySelector("select");
+      if (thumb && sel) renderThumbnail(thumb, sel.value);
+    });
+    scheduleCompute();
+  });
+
+  // Initial compute
+  scheduleCompute();
 }
-
-async function updateBaseInfo() {
-  try {
-    const raw = await loadGeoJSON(baseSelect.value);
-    const usOnly = filterUS.checked;
-    const filtered = filterFeatures(raw, usOnly);
-    baseInfo.textContent = describeGeoJSON(filtered);
-    renderGeoJSON(mapMain, filtered);
-    mapTitle.textContent = "Base";
-  } catch (err) {
-    baseInfo.textContent = `Error: ${err.message}`;
-  }
-}
-
-baseSelect.addEventListener("change", updateBaseInfo);
-filterUS.addEventListener("change", updateBaseInfo);
-
-// ─────────────────────────────────────────────────────────────
-// Compute
-// ─────────────────────────────────────────────────────────────
-
-btnCompute.addEventListener("click", async () => {
-  btnCompute.disabled = true;
-  btnDownload.disabled = true;
-  resultGeoJSON = null;
-  statusEl.textContent = "Computing...";
-  statusEl.className = "";
-
-  try {
-    const usOnly = filterUS.checked;
-
-    // Load and filter base
-    const baseRaw = await loadGeoJSON(baseSelect.value);
-    const baseFC = filterFeatures(baseRaw, usOnly);
-    let current = dissolveToSingle(baseFC);
-
-    const ops = getOperations();
-    const opDescriptions = [baseSelect.options[baseSelect.selectedIndex].text];
-
-    for (let i = 0; i < ops.length; i++) {
-      const { op, file } = ops[i];
-      const raw = await loadGeoJSON(file);
-      const fc = filterFeatures(raw, usOnly);
-      const operand = dissolveToSingle(fc);
-
-      if (op === "subtract") {
-        current = geometricDiff(current, operand);
-        opDescriptions.push(
-          `\u2212 ${file.startsWith("state:") ? file.slice(6) : file.replace(".geojson", "")}`
-        );
-      } else {
-        current = geometricUnion(current, operand);
-        opDescriptions.push(
-          `+ ${file.startsWith("state:") ? file.slice(6) : file.replace(".geojson", "")}`
-        );
-      }
-    }
-
-    resultGeoJSON = toFC(current);
-
-    if (current) {
-      current.properties = { operation: opDescriptions.join(" ") };
-    }
-
-    renderGeoJSON(mapMain, resultGeoJSON);
-
-    const featureCount = resultGeoJSON.features.length;
-    if (featureCount === 0) {
-      statusEl.innerHTML = `<span class="success">Computed — empty result (geometries may cancel out)</span>`;
-      mapTitle.textContent = "Result (empty)";
-    } else {
-      const geomType = resultGeoJSON.features[0]?.geometry?.type || "unknown";
-      const detail =
-        geomType === "MultiPolygon"
-          ? `${resultGeoJSON.features[0].geometry.coordinates.length} polygons`
-          : geomType;
-      statusEl.innerHTML = `<span class="success">Computed — ${detail}</span>`;
-      mapTitle.textContent = `Result: ${opDescriptions.join(" ")}`;
-    }
-    btnDownload.disabled = false;
-    pushState();
-  } catch (err) {
-    statusEl.innerHTML = `<span class="error">Error: ${err.message}</span>`;
-    renderGeoJSON(mapMain, toFC(null));
-    mapTitle.textContent = "Error";
-  } finally {
-    btnCompute.disabled = false;
-  }
-});
 
 // ─────────────────────────────────────────────────────────────
 // Download
