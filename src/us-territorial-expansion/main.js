@@ -1037,6 +1037,11 @@ function renderFootnoteMiniMap(container, data) {
     .style("border-radius", "8px")
     .style("background", "#eef1f5");
 
+  // Clip everything to the viewBox so off-screen geometry doesn't bleed
+  svg.append("defs").append("clipPath").attr("id", "fn-clip")
+    .append("rect").attr("width", width).attr("height", height);
+  const g = svg.append("g").attr("clip-path", "url(#fn-clip)");
+
   const [[west, south], [east, north]] = data.mapBounds;
   const boundsFeature = {
     type: "Feature",
@@ -1046,6 +1051,14 @@ function renderFootnoteMiniMap(container, data) {
     },
   };
 
+  // Pad the bounds a little so we test feature overlap generously
+  const pad = Math.max(east - west, north - south) * 0.5;
+  const inView = (feat) => {
+    if (!feat.geometry) return false;
+    const [[x0, y0], [x1, y1]] = d3.geoBounds(feat);
+    return x1 > west - pad && x0 < east + pad && y1 > south - pad && y0 < north + pad;
+  };
+
   const miniProjection = d3.geoMercator()
     .fitSize([width - 16, height - 16], boundsFeature);
   const [tx, ty] = miniProjection.translate();
@@ -1053,10 +1066,10 @@ function renderFootnoteMiniMap(container, data) {
 
   const miniPath = d3.geoPath().projection(miniProjection);
 
-  // Context countries
+  // Context countries (only those near the viewport)
   if (contextCountries) {
-    svg.selectAll(".mini-context")
-      .data(contextCountries.features)
+    g.selectAll(".mini-context")
+      .data(contextCountries.features.filter(inView))
       .enter()
       .append("path")
       .attr("d", miniPath)
@@ -1065,10 +1078,10 @@ function renderFootnoteMiniMap(container, data) {
       .attr("stroke-width", 0.5);
   }
 
-  // Acquisition territories
+  // Acquisition territories (only those near the viewport)
   if (acquisitionsData) {
     const stepIndex = data.mapStep !== undefined ? data.mapStep : 0;
-    acquisitionsData.features.forEach((feature) => {
+    acquisitionsData.features.filter(inView).forEach((feature) => {
       const featureStep = feature.properties.step;
       const era = feature.properties.era;
       let fill;
@@ -1078,7 +1091,7 @@ function renderFootnoteMiniMap(container, data) {
         fill = CONTEXT_COLOR;
       }
 
-      svg.append("path")
+      g.append("path")
         .attr("d", miniPath(feature))
         .attr("fill", fill)
         .attr("stroke", "#fff")
@@ -1091,7 +1104,7 @@ function renderFootnoteMiniMap(container, data) {
   if (data.mapMarker) {
     const [mx, my] = miniProjection([data.mapMarker.lon, data.mapMarker.lat]);
     if (mx && my) {
-      svg.append("circle")
+      g.append("circle")
         .attr("cx", mx)
         .attr("cy", my)
         .attr("r", 24)
@@ -1100,7 +1113,7 @@ function renderFootnoteMiniMap(container, data) {
         .attr("stroke-width", 1.5)
         .attr("opacity", 0.35);
 
-      svg.append("circle")
+      g.append("circle")
         .attr("cx", mx)
         .attr("cy", my)
         .attr("r", 4)
@@ -1108,7 +1121,7 @@ function renderFootnoteMiniMap(container, data) {
         .attr("stroke", "#fff")
         .attr("stroke-width", 1.5);
 
-      svg.append("text")
+      g.append("text")
         .attr("x", mx + 10)
         .attr("y", my - 10)
         .attr("font-family", "Inter, system-ui, sans-serif")
