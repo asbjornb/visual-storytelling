@@ -1105,36 +1105,51 @@ function renderFootnoteMiniMap(container, data) {
     });
   }
 
-  // Highlighted state outline (e.g. Vermont)
-  if (data.highlightStateId && usStates) {
-    const stateFeature = usStates.features.find(f => f.id === data.highlightStateId);
-    if (stateFeature) {
-      // Filled shape with distinct color
-      g.append("path")
-        .attr("d", miniPath(stateFeature))
-        .attr("fill", "#e63946")
-        .attr("fill-opacity", 0.25)
-        .attr("stroke", "#e63946")
-        .attr("stroke-width", 1.5);
+  // State borders for geographic context + highlighted state
+  if (usStates) {
+    const visibleStates = usStates.features.filter(inView);
 
-      // Label at marker position or state centroid
-      const labelCoords = data.mapMarker
-        ? [data.mapMarker.lon, data.mapMarker.lat]
-        : d3.geoCentroid(stateFeature);
-      const [lx, ly] = miniProjection(labelCoords);
-      if (lx && ly) {
-        g.append("text")
-          .attr("x", lx)
-          .attr("y", ly - 12)
-          .attr("text-anchor", "middle")
-          .attr("font-family", "Inter, system-ui, sans-serif")
-          .attr("font-size", "11px")
-          .attr("font-weight", "600")
-          .attr("fill", "#e63946")
-          .attr("stroke", "#eef1f5")
-          .attr("stroke-width", 2.5)
-          .attr("paint-order", "stroke")
-          .text(data.mapMarker?.label || "");
+    // Draw subtle borders for all visible states
+    g.selectAll(".mini-state-border")
+      .data(visibleStates)
+      .enter()
+      .append("path")
+      .attr("d", miniPath)
+      .attr("fill", "none")
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 0.5)
+      .attr("opacity", 0.6);
+
+    // Highlight the featured state
+    if (data.highlightStateId) {
+      const stateFeature = visibleStates.find(f => f.id === data.highlightStateId);
+      if (stateFeature) {
+        g.append("path")
+          .attr("d", miniPath(stateFeature))
+          .attr("fill", "#fff")
+          .attr("fill-opacity", 0.3)
+          .attr("stroke", "#2a2d34")
+          .attr("stroke-width", 2);
+
+        // Label at marker position or state centroid
+        const labelCoords = data.mapMarker
+          ? [data.mapMarker.lon, data.mapMarker.lat]
+          : d3.geoCentroid(stateFeature);
+        const [lx, ly] = miniProjection(labelCoords);
+        if (lx && ly) {
+          g.append("text")
+            .attr("x", lx)
+            .attr("y", ly - 12)
+            .attr("text-anchor", "middle")
+            .attr("font-family", "Inter, system-ui, sans-serif")
+            .attr("font-size", "11px")
+            .attr("font-weight", "600")
+            .attr("fill", "#2a2d34")
+            .attr("stroke", "#eef1f5")
+            .attr("stroke-width", 2.5)
+            .attr("paint-order", "stroke")
+            .text(data.mapMarker?.label || "");
+        }
       }
     }
   } else if (data.mapMarker) {
