@@ -627,7 +627,54 @@ input[type="range"]::-moz-range-thumb {
   font-weight: 600;
 }
 
-/* ── Light Switch ─────────────────────────────────── */
+/* ── Frequency Thresholds ────────────────────────── */
+
+.freq-thresholds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.freq-marker {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.freq-marker[title] {
+  cursor: help;
+}
+
+.freq-marker.dimmed {
+  opacity: 0.45;
+}
+
+.marker-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.marker-dot.green {
+  background: var(--green);
+}
+
+.marker-dot.amber {
+  background: var(--amber);
+}
+
+.marker-dot.red {
+  background: var(--red);
+}
+
+/* ── Halftime Button (Football Surge) ────────────── */
 
 .switch-row {
   display: flex;
@@ -636,109 +683,86 @@ input[type="range"]::-moz-range-thumb {
   margin-top: 1.5rem;
 }
 
-.light-switch {
-  border: none;
-  background: none;
-  cursor: pointer;
-  padding: 0;
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
-  flex-shrink: 0;
-}
-
-.switch-plate {
-  width: 64px;
-  height: 100px;
-  background: linear-gradient(180deg, #f0ede8 0%, #e4e0db 100%);
-  border-radius: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.switch-plate::before,
-.switch-plate::after {
-  content: "";
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #d4d0cb, #b8b4af);
-  border: 0.5px solid rgba(0, 0, 0, 0.08);
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.switch-plate::before {
-  top: 8px;
-}
-
-.switch-plate::after {
-  bottom: 8px;
-}
-
-.switch-rocker {
-  width: 30px;
-  height: 52px;
-  border-radius: 4px;
+.halftime-btn {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  background: linear-gradient(180deg, #e6e3de 0%, #d6d3ce 100%);
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  transition:
-    transform 0.12s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.12s ease;
-  transform: perspective(300px) rotateX(10deg);
-  box-shadow: 0 3px 3px rgba(0, 0, 0, 0.12);
-}
-
-.light-switch[aria-checked="true"] .switch-rocker {
-  transform: perspective(300px) rotateX(-10deg);
-  box-shadow: 0 -3px 3px rgba(0, 0, 0, 0.12);
-}
-
-.rocker-on,
-.rocker-off {
-  flex: 1;
-  display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  gap: 0.25rem;
+  border: 2px solid var(--border-bright);
+  background: var(--surface-solid);
+  border-radius: 1rem;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
   font-family: inherit;
-  transition: color 0.2s;
-  user-select: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.rocker-on {
-  color: rgba(0, 0, 0, 0.15);
+.halftime-btn:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
 }
 
-.rocker-off {
-  color: rgba(0, 0, 0, 0.35);
+.halftime-btn.running {
+  border-color: var(--red);
+  background: rgba(239, 68, 68, 0.06);
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.15);
 }
 
-.light-switch[aria-checked="true"] .rocker-on {
+.halftime-btn.done {
+  border-color: var(--green);
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.halftime-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.halftime-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.halftime-btn.running .halftime-label {
+  color: var(--red);
+}
+
+.halftime-btn.done .halftime-label {
+  color: var(--green);
+}
+
+/* ── Tier Headings ───────────────────────────────── */
+
+.tier-heading {
+  font-family: "Outfit", sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-top: 1.2rem;
+  margin-bottom: 0.3rem;
+}
+
+/* ── Source Link ──────────────────────────────────── */
+
+.source-link {
+  display: inline-block;
+  margin-top: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 500;
   color: var(--accent);
+  text-decoration: none;
+  transition: color 0.2s;
 }
 
-.light-switch[aria-checked="true"] .rocker-off {
-  color: rgba(0, 0, 0, 0.15);
-}
-
-.light-switch:hover .switch-rocker {
-  background: linear-gradient(180deg, #ece9e4 0%, #dcd9d4 100%);
-}
-
-.light-switch:active .switch-rocker {
-  transition-duration: 0.06s;
+.source-link:hover {
+  color: var(--pink);
+  text-decoration: underline;
 }
 
 .switch-info {

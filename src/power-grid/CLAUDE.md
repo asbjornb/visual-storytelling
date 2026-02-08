@@ -27,7 +27,7 @@ Interactive 5-chapter visual storybook explaining how electricity grids, markets
 
 ## Chapters
 
-1. **The Balancing Act** (`slides/ch1-balance.html` + `chapters/ch1-balance.js`) - Supply must equal demand every second. Light switch triggers a 25 GW demand surge; time-based cascade shows batteries firing instantly, handing off to hydro, then gas, then batteries recharging. Real-time frequency display.
+1. **The Balancing Act** (`slides/ch1-balance.html` + `chapters/ch1-balance.js`) - Supply must equal demand every second. Football button triggers a 2,800 MW kettle surge (1990 World Cup scenario); 8 technology sub-bars in 3 tiers (First Response → Secondary Response → Backup & Relief) animate a reserve cascade. Frequency derived from MW imbalance with exponential smoothing. Shortfall/surplus indicator flips from red to green. Plain-English labels throughout, no jargon.
 2. **The Merit Order** (`slides/ch2-merit.html` + `chapters/ch2-merit.js`) - D3 supply curve showing generators stacked by cost, with solar/wind/demand sliders and live clearing price readout. The marginal plant glows.
 3. **Grid Pressures** (`slides/ch3-grid.html` + `chapters/ch3-grid.js`) - Node-link European grid map (8 regions) with 4 scenario buttons (wind drought, cold snap, Nordic dry spell, French nuclear outage). Shows price divergence, congested lines, animated power flows.
 4. **Enter the Traders** (`slides/ch4-traders.html` + `chapters/ch4-traders.js`) - Two-region visualization (Norway vs Germany). Interconnector capacity slider shows spatial arbitrage: price convergence, consumer savings, flow arrows.

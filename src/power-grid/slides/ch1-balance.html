@@ -11,43 +11,62 @@
           <span class="freq-unit">Hz</span>
           <span class="freq-status" id="freq-status">Stable</span>
         </div>
+        <div class="freq-thresholds">
+          <div class="freq-marker" data-hz="50.00" title="Grid target frequency"><span class="marker-dot green"></span>50.00 Normal</div>
+          <div class="freq-marker" data-hz="49.85" title="Deepest the frequency drops before reserves catch it"><span class="marker-dot amber"></span>49.85 Lowest dip</div>
+          <div class="freq-marker" data-hz="49.80" title="Every fast-response unit is now at full output"><span class="marker-dot red"></span>49.80 Max response</div>
+          <div class="freq-marker dimmed" data-hz="49.20" title="Automatic disconnection to prevent blackout"><span class="marker-dot"></span>49.20 Emergency cutoffs</div>
+        </div>
         <div class="viz-card" id="response-stack"></div>
         <div class="switch-row">
-          <button class="light-switch" id="power-switch" role="switch" aria-checked="false">
-            <span class="switch-plate">
-              <span class="switch-rocker">
-                <span class="rocker-on">ON</span>
-                <span class="rocker-off">OFF</span>
-              </span>
-            </span>
+          <button class="halftime-btn" id="power-switch">
+            <span class="halftime-icon">&#9917;</span>
+            <span class="halftime-label">GAME OVER</span>
           </button>
           <div class="switch-info">
-            <span class="switch-label" id="demand-status">Flip the switch to add demand</span>
+            <span class="switch-label" id="demand-status">Press to trigger the kettle surge</span>
             <span class="cascade-timer" id="cascade-timer"></span>
           </div>
         </div>
         <p class="viz-hint">
-          Flip the switch to add 25 GW of demand &mdash; watch the cascade of response unfold in real time
+          1990 World Cup semi-final: England lose on penalties
+          and a million kettles switch on, creating a 2,800 MW surge.
+          In 2008 two large plants tripped within minutes, dropping
+          1,500 MW instantly. The same reserves caught both.
         </p>
+        <a class="source-link" href="https://en.wikipedia.org/wiki/TV_pickup" target="_blank" rel="noopener">
+          Learn about TV pickup surges &#8599;
+        </a>
       </div>
       <div class="text-col">
         <p class="lede">
-          Supply must equal demand every second. There is no warehouse for
-          electricity.
+          Supply must equal demand every second. There is no large-scale
+          warehouse for electricity.
         </p>
+        <h3 class="tier-heading" style="color: #10b981;">First Response <span style="font-weight: 400; font-size: 0.8em; color: #94a3b8;">(grid operators call this FCR)</span></h3>
         <p>
-          Flip the switch. Frequency dips instantly. Batteries fire in
-          milliseconds to arrest the drop. Hydro follows in seconds. Gas
-          turbines need minutes. Once gas is carrying the load, batteries
-          recharge &mdash; preparing for the next surge.
+          The instant frequency drops, <strong>batteries</strong> and
+          <strong>power-plant control systems</strong> respond automatically
+          within seconds. Their job: arrest the fall and buy time. No human
+          intervention &mdash; pure physics and control loops.
         </p>
+        <h3 class="tier-heading" style="color: #22d3ee;">Secondary Response <span style="font-weight: 400; font-size: 0.8em; color: #94a3b8;">(called aFRR)</span></h3>
         <p>
-          In the 2021 Texas freeze, this cascade failed &mdash; the grid
-          came within minutes of total collapse.
+          Within 30 seconds, fast-ramping plants kick in, such as
+          <strong>pumped hydro</strong> and <strong>gas turbines</strong>.
+          They restore frequency to 50.00 Hz and free the batteries for
+          the next event.
+        </p>
+        <h3 class="tier-heading" style="color: #f59e0b;">Backup &amp; Relief <span style="font-weight: 400; font-size: 0.8em; color: #94a3b8;">(called mFRR)</span></h3>
+        <p>
+          Operators call on <strong>standby gas plants</strong>,
+          <strong>factories that cut back</strong>, and
+          <strong>cross-border cables</strong> to relieve the secondary
+          reserves and rebuild margin. This can take 10&ndash;15 minutes.
         </p>
         <div class="callout">
-          Everything that follows &mdash; markets, trading, pricing &mdash;
-          exists to keep this cascade working.
+          Markets, trading, and prices must operate within this physical
+          reality of a real-time balance between supply and demand.
         </div>
       </div>
     </div>
