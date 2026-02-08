@@ -269,6 +269,21 @@ h1 {
   line-height: 1.55;
 }
 
+.callout-negative {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 211, 238, 0.08),
+    rgba(34, 211, 238, 0.03)
+  );
+  border-color: rgba(34, 211, 238, 0.25);
+  animation: negFadeIn 0.4s ease-out;
+}
+
+@keyframes negFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ── Viz Cards — Glass Morphism ───────────────────── */
 
 .viz-card {
