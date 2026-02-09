@@ -39,7 +39,8 @@
           <span class="gen-legend-item"><i style="background:#fb923c"></i>Gas CCGT</span>
           <span class="gen-legend-item"><i style="background:#f472b6"></i>Gas Peaker</span>
           <span class="gen-legend-item"><i style="background:#94a3b8"></i>Coal</span>
-          <span class="gen-legend-item"><i style="background:#f87171"></i>Charging</span>
+          <span class="gen-legend-item"><i style="border:1.5px dashed #64748b;background:none"></i>Demand</span>
+          <span class="gen-legend-item"><i style="background:repeating-linear-gradient(45deg,#10b981 0 2px,transparent 2px 5px)"></i>Charging</span>
         </div>
       </div>
       <div class="slider-row">
@@ -51,11 +52,11 @@
       <div class="slider-row duo">
         <label>
           <span>Solar Capacity</span>
-          <input type="range" id="solar-cap" min="0" max="100" value="20" />
+          <input type="range" id="solar-cap" min="0" max="80" value="20" />
         </label>
         <label>
           <span>Battery Storage</span>
-          <input type="range" id="battery-cap" min="0" max="120" value="0" />
+          <input type="range" id="battery-cap" min="0" max="60" value="0" />
         </label>
       </div>
       <div class="play-controls">
@@ -102,20 +103,20 @@
           and gas must ramp violently.
         </p>
         <p>
-          Crank up solar capacity: midday becomes a wall of yellow,
-          pushing everything else off. But the evening still needs gas.
-          Now add batteries &mdash; they charge at noon (red, above the
-          demand line) and discharge at sunset (green).
+          Crank up solar capacity: midday becomes a wall of yellow.
+          Now add batteries &mdash; they charge on cheap midday solar
+          (bars above the demand line) and discharge at sunset to
+          displace expensive gas peakers (green).
         </p>
         <p>
-          Hit <strong>Play 24h</strong> to watch the daily cycle animate.
-          Notice how the mix at 2 PM and 7 PM are completely different
-          worlds.
+          Battery owners forecast the day and spread charge/discharge
+          to maximise the price spread: buy cheap, sell dear. The grid
+          gets cleaner and prices stabilise.
         </p>
         <div class="callout">
           The green transition makes the grid <em>more</em> volatile, not
-          less. Managing that volatility is the central engineering
-          challenge of the next decade.
+          less. Batteries are the shock absorbers &mdash; charging on
+          surplus renewables, discharging to shave peaks.
         </div>
       </div>
     </div>

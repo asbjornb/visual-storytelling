@@ -23,15 +23,14 @@ export function init() {
   if (!container || !hourSlider) return;
 
   const genTypes = [
-    { name: "Nuclear", color: "#a78bfa", co2: 12 },
-    { name: "Wind", color: "#22d3ee", co2: 0 },
     { name: "Solar", color: "#fbbf24", co2: 0 },
+    { name: "Wind", color: "#22d3ee", co2: 0 },
+    { name: "Nuclear", color: "#a78bfa", co2: 12 },
     { name: "Hydro", color: "#34d399", co2: 0 },
     { name: "Battery", color: "#10b981", co2: 0 },
     { name: "Gas CCGT", color: "#fb923c", co2: 400 },
     { name: "Gas Peaker", color: "#f472b6", co2: 550 },
     { name: "Coal", color: "#94a3b8", co2: 900 },
-    { name: "Charging", color: "#f87171", co2: 0 },
   ];
 
   const margin = { top: 30, right: 20, bottom: 25, left: 50 };
@@ -54,6 +53,16 @@ export function init() {
   const yAxisG = gEl.append("g").attr("class", "y-axis");
 
   const defs = svg.append("defs");
+
+  // Diagonal stripe pattern for the "charging" overlay above the demand line
+  const chargePat = defs.append("pattern")
+    .attr("id", "charge-stripes")
+    .attr("patternUnits", "userSpaceOnUse")
+    .attr("width", 5).attr("height", 5)
+    .attr("patternTransform", "rotate(45)");
+  chargePat.append("rect").attr("width", 2).attr("height", 5)
+    .attr("fill", "#10b981").attr("opacity", 0.45);
+
   const skyGrad = defs.append("linearGradient").attr("id", "sky-bg").attr("x1", "0%").attr("x2", "100%");
   skyGrad.append("stop").attr("offset", "0%").attr("stop-color", "#e8edf5");
   skyGrad.append("stop").attr("offset", "25%").attr("stop-color", "#e8edf5");
@@ -69,6 +78,8 @@ export function init() {
     .attr("x", 0).attr("y", 0).attr("width", w).attr("height", h)
     .attr("fill", "url(#sky-bg)").attr("opacity", 0.25);
 
+  const chargeOverlayG = gEl.append("g").attr("class", "charge-overlays");
+
   const demandPath = gEl.append("path")
     .attr("fill", "none").attr("stroke", COLORS.label).attr("stroke-width", 2)
     .attr("stroke-dasharray", "4 3").attr("opacity", 0.4);
@@ -77,6 +88,157 @@ export function init() {
     .attr("fill", COLORS.accent).attr("opacity", 0.1).attr("rx", 3);
 
   // Legend is rendered in HTML (not SVG) so it stays readable on mobile.
+
+  // Dispatch the merit order stack to meet a given load, with optional
+  // battery discharge injected after hydro (near-zero marginal cost).
+  function dispatchStack(load, solar, wind, battDischarge) {
+    let remaining = load;
+    const mix = {};
+
+    const s = Math.min(solar, remaining);
+    mix["Solar"] = s; remaining -= s;
+
+    const w = Math.min(wind, remaining);
+    mix["Wind"] = w; remaining -= w;
+
+    const nuc = Math.min(12, remaining);
+    mix["Nuclear"] = nuc; remaining -= nuc;
+
+    const hyd = Math.min(12, remaining);
+    mix["Hydro"] = hyd; remaining -= hyd;
+
+    const batt = Math.min(battDischarge, remaining);
+    mix["Battery"] = batt; remaining -= batt;
+
+    const ccgt = Math.min(22, remaining);
+    mix["Gas CCGT"] = ccgt; remaining -= ccgt;
+
+    const peaker = Math.min(12, remaining);
+    mix["Gas Peaker"] = peaker; remaining -= peaker;
+
+    const coal = Math.min(15, remaining);
+    mix["Coal"] = coal;
+
+    return mix;
+  }
+
+  // Battery operators forecast the day and schedule optimally.
+  // The rule: charge from source X only if you can discharge to displace
+  // a source more expensive than X.  Three arbitrage tiers:
+  //   A) Charge from cheap surplus (solar/wind/nuclear/hydro) → displace any fossil
+  //   B) Charge from CCGT spare capacity → displace only peaker or coal
+  //   C) Charge from peaker spare capacity → displace only coal
+  function scheduleBattery(demand, solarOutput, windOutput, batteryCap) {
+    if (batteryCap <= 0) return new Array(24).fill(0);
+
+    const energyCap = batteryCap * 5;
+    const powerCap = batteryCap * 0.8;
+    const hours = d3.range(24);
+
+    // Base dispatch per hour (no battery) to see what's running / has spare capacity
+    const base = hours.map(hr =>
+      dispatchStack(demand[hr], solarOutput[hr], windOutput[hr], 0)
+    );
+
+    // Charge capacity at each cost tier
+    const cheapSpare = hours.map(hr =>
+      Math.max(0, solarOutput[hr] + windOutput[hr] + 12 + 12 - demand[hr])
+    );
+    const ccgtSpare = hours.map(hr => 22 - (base[hr]["Gas CCGT"] || 0));
+    const peakerSpare = hours.map(hr => 12 - (base[hr]["Gas Peaker"] || 0));
+
+    // Fossil running (what can be displaced) — decremented as tiers allocate
+    const rCoal = hours.map(hr => base[hr]["Coal"] || 0);
+    const rPeaker = hours.map(hr => base[hr]["Gas Peaker"] || 0);
+    const rCcgt = hours.map(hr => base[hr]["Gas CCGT"] || 0);
+
+    const chargePow = new Array(24).fill(0);
+    const dischargePow = new Array(24).fill(0);
+    let energyLeft = energyCap * 0.7;
+
+    function runTier(chargeCapFn, dischargeCapFn) {
+      if (energyLeft <= 0) return;
+
+      const cHrs = hours.filter(hr => chargeCapFn(hr) > 0.5)
+        .sort((a, b) => chargeCapFn(b) - chargeCapFn(a));
+      const dHrs = hours.filter(hr => dischargeCapFn(hr) > 0.5)
+        .sort((a, b) => dischargeCapFn(b) - dischargeCapFn(a));
+
+      // Compute total discharge capacity — never charge more than we can discharge
+      let maxDischarge = 0;
+      for (const hr of dHrs) {
+        maxDischarge += Math.min(powerCap - dischargePow[hr], dischargeCapFn(hr));
+      }
+      if (maxDischarge < 0.5) return;
+
+      const storeLimit = Math.min(energyLeft, maxDischarge);
+
+      // Charge phase — capped by discharge capacity
+      let stored = 0;
+      for (const hr of cHrs) {
+        if (storeLimit - stored <= 0) break;
+        const pw = Math.min(
+          powerCap - chargePow[hr], chargeCapFn(hr),
+          (storeLimit - stored) / 0.92
+        );
+        if (pw > 0.5) { chargePow[hr] += pw; stored += pw * 0.92; }
+      }
+
+      // Discharge phase — displace most expensive fossil first
+      let toDischarge = stored;
+      for (const hr of dHrs) {
+        if (toDischarge <= 0) break;
+        const pw = Math.min(
+          powerCap - dischargePow[hr], dischargeCapFn(hr), toDischarge
+        );
+        if (pw > 0.5) {
+          dischargePow[hr] += pw;
+          toDischarge -= pw;
+          // Decrement remaining fossil (most expensive first)
+          let d = pw;
+          const dc = Math.min(rCoal[hr], d); rCoal[hr] -= dc; d -= dc;
+          const dp = Math.min(rPeaker[hr], d); rPeaker[hr] -= dp; d -= dp;
+          const dg = Math.min(rCcgt[hr], d); rCcgt[hr] -= dg;
+        }
+      }
+
+      energyLeft -= stored;
+    }
+
+    // Tier A: free/cheap surplus → displace any fossil
+    runTier(
+      hr => Math.min(cheapSpare[hr], powerCap - chargePow[hr]),
+      hr => Math.min(rCoal[hr] + rPeaker[hr] + rCcgt[hr], powerCap - dischargePow[hr])
+    );
+
+    // Tier B: CCGT spare → displace peaker + coal only
+    runTier(
+      hr => Math.min(ccgtSpare[hr], powerCap - chargePow[hr]),
+      hr => Math.min(rCoal[hr] + rPeaker[hr], powerCap - dischargePow[hr])
+    );
+
+    // Tier C: peaker spare → displace coal only
+    runTier(
+      hr => Math.min(peakerSpare[hr], powerCap - chargePow[hr]),
+      hr => Math.min(rCoal[hr], powerCap - dischargePow[hr])
+    );
+
+    // Simulate chronologically respecting actual energy limits
+    let energy = energyCap * 0.3;
+    const result = [];
+    for (let hr = 0; hr < 24; hr++) {
+      let batt = 0;
+      if (chargePow[hr] > 0 && energy < energyCap) {
+        batt = -Math.min(chargePow[hr], (energyCap - energy) / 0.92);
+        energy += (-batt) * 0.92;
+      } else if (dischargePow[hr] > 0 && energy > energyCap * 0.05) {
+        batt = Math.min(dischargePow[hr], (energy - energyCap * 0.05) * 0.92);
+        energy -= batt / 0.92;
+      }
+      result.push(batt);
+    }
+    return result;
+  }
 
   function computeHourlyMix(solarCap, batteryCap) {
     const hours = d3.range(24);
@@ -94,70 +256,24 @@ export function init() {
 
     const windOutput = hours.map(hr => 15 + 4 * Math.sin(((hr + 2) / 24) * Math.PI * 2));
 
-    const energyCap = batteryCap * 5;
-    const powerCap = batteryCap * 0.8;
-    let energy = energyCap * 0.3;
-    const batteryOutput = [];
-
-    hours.forEach(hr => {
-      const netNeed = demand[hr] - solarOutput[hr] - windOutput[hr] - 12;
-      let batt = 0;
-      if (netNeed < 35 && energy < energyCap) {
-        const charge = Math.min(powerCap, 35 - netNeed, energyCap - energy);
-        batt = -charge;
-        energy += charge * 0.92;
-      } else if (netNeed > 38 && energy > 0) {
-        const discharge = Math.min(powerCap, netNeed - 38, energy);
-        batt = discharge;
-        energy -= discharge / 0.92;
-      }
-      batteryOutput.push(batt);
-    });
+    // Cost-optimised battery schedule
+    const battSchedule = scheduleBattery(demand, solarOutput, windOutput, batteryCap);
 
     return hours.map(hr => {
       const d = demand[hr];
-      let remaining = d;
-      const mix = {};
+      const charging = battSchedule[hr] < 0 ? -battSchedule[hr] : 0;
+      const discharging = battSchedule[hr] > 0 ? battSchedule[hr] : 0;
 
-      // Solar is must-run: inverters are hard to disconnect, near-zero
-      // marginal cost.  It dispatches first and keeps its midday peak.
-      const solar = Math.min(solarOutput[hr], remaining);
-      mix["Solar"] = solar; remaining -= solar;
+      // Total load the grid must serve: consumers + battery charging.
+      // The charging power comes from real generators — bars exceed the
+      // demand line at midday because solar/wind are powering the battery.
+      const totalLoad = d + charging;
+      const mix = dispatchStack(totalLoad, solarOutput[hr], windOutput[hr], discharging);
 
-      // Wind is also must-run but turbines can be feathered, so it
-      // yields after solar has taken its share.
-      const wind = Math.min(windOutput[hr], remaining);
-      mix["Wind"] = wind; remaining -= wind;
+      // Renewable surplus that can't be absorbed (drives negative prices)
+      const surplus = Math.max(0, solarOutput[hr] + windOutput[hr] - totalLoad);
 
-      // Nuclear: baseload but ramps down when squeezed by renewables.
-      const nuclear = Math.min(12, remaining);
-      mix["Nuclear"] = nuclear; remaining -= nuclear;
-
-      const hydro = Math.min(12, remaining);
-      mix["Hydro"] = hydro; remaining -= hydro;
-
-      const batt = Math.max(0, batteryOutput[hr]);
-      const battUsed = Math.min(batt, remaining);
-      mix["Battery"] = battUsed; remaining -= battUsed;
-
-      const ccgt = Math.min(22, remaining);
-      mix["Gas CCGT"] = ccgt; remaining -= ccgt;
-
-      const peaker = Math.min(12, remaining);
-      mix["Gas Peaker"] = peaker; remaining -= peaker;
-
-      const coal = Math.min(15, remaining);
-      mix["Coal"] = coal;
-
-      // Battery charging sits on top of the stack: bars exceed the demand
-      // line at midday, showing the grid absorbing power into storage.
-      mix["Charging"] = batteryOutput[hr] < 0 ? -batteryOutput[hr] : 0;
-
-      // Renewable surplus that must be curtailed (drives negative prices)
-      const battCharging = batteryOutput[hr] < 0 ? -batteryOutput[hr] : 0;
-      const surplus = Math.max(0, solarOutput[hr] + windOutput[hr] - d - battCharging);
-
-      return { hour: hr, demand: d, mix, surplus };
+      return { hour: hr, demand: d, mix, surplus, charging };
     });
   }
 
@@ -174,11 +290,13 @@ export function init() {
   }
 
   function hourStats(d) {
-    const gen = Object.values(d.mix).reduce((s, v) => s + v, 0) - (d.mix["Charging"] || 0);
+    const gen = Object.values(d.mix).reduce((s, v) => s + v, 0);
+    // Renewables % is relative to consumer demand (not total load incl. charging)
     const renew = (d.mix["Solar"] || 0) + (d.mix["Wind"] || 0) + (d.mix["Hydro"] || 0) + (d.mix["Battery"] || 0);
+    const denom = d.demand || gen;
     let co2 = 0;
     genTypes.forEach(g => { co2 += (d.mix[g.name] || 0) * g.co2; });
-    return { gen, renew, renewPct: gen > 0 ? (renew / gen) * 100 : 0, co2, co2Intensity: gen > 0 ? co2 / gen : 0 };
+    return { gen, renew, renewPct: denom > 0 ? Math.min(100, (renew / denom) * 100) : 0, co2, co2Intensity: gen > 0 ? co2 / gen : 0 };
   }
 
   function getPeriodName(hr) {
@@ -243,6 +361,26 @@ export function init() {
     });
 
     hourGroups.exit().remove();
+
+    // Charging overlay: diagonal stripes on the portion above the demand line.
+    // Raise the group above the bars so stripes paint on top.
+    chargeOverlayG.raise();
+    const chargeData = data.filter(d => d.charging > 0).map(d => {
+      const stackTop = Object.values(d.mix).reduce((s, v) => s + v, 0);
+      return { hour: d.hour, demandY: d.demand, stackTop };
+    });
+    const chargeRects = chargeOverlayG.selectAll("rect").data(chargeData, d => d.hour);
+    chargeRects.enter().append("rect").attr("rx", 3)
+      .merge(chargeRects)
+      .transition().duration(300)
+      .attr("x", d => xScale(d.hour))
+      .attr("width", xScale.bandwidth())
+      .attr("y", d => yScale(d.stackTop))
+      .attr("height", d => Math.max(0, yScale(d.demandY) - yScale(d.stackTop)))
+      .attr("fill", "url(#charge-stripes)")
+      .attr("opacity", d => d.hour === selectedHour ? 1 : 0.7)
+      .attr("pointer-events", "none");
+    chargeRects.exit().remove();
 
     const lineGen = d3.line()
       .x(d => xScale(d.hour) + xScale.bandwidth() / 2)
