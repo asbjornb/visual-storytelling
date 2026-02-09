@@ -204,28 +204,54 @@ export function init() {
   nodeGlow.append("feMerge").selectAll("feMergeNode")
     .data(["blur", "SourceGraphic"]).join("feMergeNode").attr("in", d => d);
 
-  // Subtle water filter
-  const waterFilter = defs.append("filter").attr("id", "water-blur");
-  waterFilter.append("feGaussianBlur").attr("stdDeviation", "8");
+  /* ── Background geography (land vs water) ─── */
 
-  /* ── Background geography hints ──────────── */
+  const geoG = svg.append("g").attr("class", "geo-bg");
 
-  const geoG = svg.append("g").attr("class", "geo-bg").attr("opacity", 0.08);
+  // Sea first so coastlines/land sit on top
+  geoG.append("rect")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("width", 540)
+    .attr("height", 460)
+    .attr("fill", "#e9eef9")
+    .attr("opacity", 0.45);
 
-  // North Sea — between UK, NO, DK, NL
-  geoG.append("path")
-    .attr("d", "M80,40 Q160,20 230,50 L340,120 Q360,160 340,210 L340,280 Q300,300 260,290 L140,280 Q80,260 60,200 Z")
-    .attr("fill", "#6366f1").attr("filter", "url(#water-blur)");
+  const landStyle = {
+    fill: "#cbd5e1",
+    fillOpacity: 0.3,
+    stroke: "#94a3b8",
+    strokeOpacity: 0.35,
+    strokeWidth: 1.2,
+  };
 
-  // Baltic hints
-  geoG.append("ellipse")
-    .attr("cx", 370).attr("cy", 150).attr("rx", 40).attr("ry", 60)
-    .attr("fill", "#6366f1").attr("filter", "url(#water-blur)");
+  const landShapes = [
+    // Great Britain
+    "M90,170 L105,145 L128,125 L145,140 L150,170 L145,205 L130,232 L110,250 L93,240 L84,215 Z",
+    // Ireland
+    "M62,178 L72,162 L85,166 L89,186 L81,208 L66,213 L56,198 Z",
+    // Norway + Sweden (Scandinavian peninsula)
+    "M180,58 L205,44 L230,48 L250,70 L265,100 L276,135 L280,170 L266,197 L246,214 L230,194 L226,156 L220,122 L208,95 L192,82 L174,80 Z",
+    // Denmark / Jutland
+    "M265,178 L281,182 L287,197 L276,212 L261,206 L257,192 Z",
+    // Continental Europe (NL, BE, DE, FR, west-central mass)
+    "M190,240 L224,224 L265,226 L303,218 L350,206 L398,206 L430,232 L432,269 L410,303 L372,330 L330,345 L279,349 L238,338 L206,320 L182,296 L176,270 Z",
+    // Southern Norway coast hint
+    "M180,82 L194,89 L202,104 L198,124 L186,126 L176,108 Z",
+    // Baltic/eastern coast hint (Finland/west Baltic rim)
+    "M302,86 L328,86 L350,98 L358,122 L352,150 L330,168 L312,155 L305,127 Z",
+  ];
 
-  // English Channel / Bay of Biscay hint
-  geoG.append("path")
-    .attr("d", "M60,300 Q120,340 180,370 Q160,400 100,410 Q40,380 40,340 Z")
-    .attr("fill", "#6366f1").attr("filter", "url(#water-blur)");
+  geoG.selectAll(".land-shape")
+    .data(landShapes)
+    .join("path")
+    .attr("class", "land-shape")
+    .attr("d", d => d)
+    .attr("fill", landStyle.fill)
+    .attr("fill-opacity", landStyle.fillOpacity)
+    .attr("stroke", landStyle.stroke)
+    .attr("stroke-opacity", landStyle.strokeOpacity)
+    .attr("stroke-width", landStyle.strokeWidth);
 
   /* ── Stress type label (in SVG) ──────────── */
 
