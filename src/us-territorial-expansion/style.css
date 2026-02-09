@@ -1072,27 +1072,31 @@ body {
    ═══════════════════════════════════════════════════════════ */
 
 .inline-note {
+  display: inline;
   background: none;
   border: none;
   font: inherit;
   font-size: inherit;
   color: var(--accent);
   cursor: pointer;
-  border-bottom: 1px dashed currentColor;
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-underline-offset: 2px;
   padding: 0;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
   line-height: inherit;
+  text-align: left;
 }
 
 .inline-note:hover {
   color: var(--fg);
-  border-bottom-style: solid;
+  text-decoration-style: solid;
 }
 
 .inline-note::after {
-  content: " \203A";
-  font-size: 0.9em;
-  opacity: 0.5;
+  content: " \2197";
+  font-size: 0.75em;
+  opacity: 0.6;
 }
 
 /* ═══════════════════════════════════════════════════════════
