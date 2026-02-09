@@ -107,7 +107,7 @@ export function init() {
       savingsText.attr("fill", COLORS.green)
         .text(`German consumers save \u20AC${fmt0(saving)}/MWh \u00B7 Norway earns \u20AC${fmt0(noPrice - noBase)}/MWh more`);
       cableLabel.attr("fill", COLORS.labelDim)
-        .text(`Real cables: NordLink (1,400 MW), NorNed (700 MW) \u2014 you've built ${fmt0(capacityMW)} MW`);
+        .text(`Real cable: NordLink (1,400 MW, Norway\u2013Germany) \u2014 you've built ${fmt0(capacityMW)} MW`);
     }
   }
 

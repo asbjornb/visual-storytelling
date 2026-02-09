@@ -158,7 +158,7 @@ MW). As the reader increases capacity:
 - German prices fall (imports push price down)
 - Prices converge toward a midpoint (65% convergence at max capacity)
 - Savings readout shows: "German consumers save €X/MWh · Norway earns €Y/MWh more"
-- Real cable reference: NordLink (1,400 MW), NorNed (700 MW)
+- Real cable reference: NordLink (1,400 MW, Norway–Germany)
 
 **Key narrative points:**
 - Hedging: genuine insurance, locks in stable prices
