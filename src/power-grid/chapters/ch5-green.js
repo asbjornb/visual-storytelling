@@ -122,10 +122,12 @@ export function init() {
     return mix;
   }
 
-  // Battery operators forecast the day and schedule optimally:
-  //   - charge ONLY when cheap generation (solar+wind+nuclear+hydro) exceeds
-  //     consumer demand — so no fossil fuel is needed to power the charging
-  //   - discharge into hours where fossil is running, displacing the dirtiest plants
+  // Battery operators forecast the day and schedule optimally.
+  // The rule: charge from source X only if you can discharge to displace
+  // a source more expensive than X.  Three arbitrage tiers:
+  //   A) Charge from cheap surplus (solar/wind/nuclear/hydro) → displace any fossil
+  //   B) Charge from CCGT spare capacity → displace only peaker or coal
+  //   C) Charge from peaker spare capacity → displace only coal
   function scheduleBattery(demand, solarOutput, windOutput, batteryCap) {
     if (batteryCap <= 0) return new Array(24).fill(0);
 
@@ -133,60 +135,95 @@ export function init() {
     const powerCap = batteryCap * 0.8;
     const hours = d3.range(24);
 
-    // "Cheap headroom" = how much cheap generation exceeds consumer demand.
-    // Positive → surplus cheap power available for charging.
-    // Negative → fossil already needed, charging would make it worse.
-    const cheapCap = hours.map(hr =>
-      solarOutput[hr] + windOutput[hr] + 12 + 12 // solar + wind + nuclear + hydro
+    // Base dispatch per hour (no battery) to see what's running / has spare capacity
+    const base = hours.map(hr =>
+      dispatchStack(demand[hr], solarOutput[hr], windOutput[hr], 0)
     );
-    const headroom = hours.map(hr => cheapCap[hr] - demand[hr]);
 
-    // Fossil load without battery = how much fossil runs to meet demand
-    const fossilLoad = hours.map(hr => Math.max(0, -headroom[hr]));
+    // Charge capacity at each cost tier
+    const cheapSpare = hours.map(hr =>
+      Math.max(0, solarOutput[hr] + windOutput[hr] + 12 + 12 - demand[hr])
+    );
+    const ccgtSpare = hours.map(hr => 22 - (base[hr]["Gas CCGT"] || 0));
+    const peakerSpare = hours.map(hr => 12 - (base[hr]["Gas Peaker"] || 0));
 
-    // Rank charge candidates: most headroom first (cheapest to charge)
-    const chargeRank = hours.filter(hr => headroom[hr] > 1)
-      .sort((a, b) => headroom[b] - headroom[a]);
+    // Fossil running (what can be displaced) — decremented as tiers allocate
+    const rCoal = hours.map(hr => base[hr]["Coal"] || 0);
+    const rPeaker = hours.map(hr => base[hr]["Gas Peaker"] || 0);
+    const rCcgt = hours.map(hr => base[hr]["Gas CCGT"] || 0);
 
-    // Rank discharge candidates: most fossil first (most value to displace)
-    const dischargeRank = hours.filter(hr => fossilLoad[hr] > 1)
-      .sort((a, b) => fossilLoad[b] - fossilLoad[a]);
+    const chargePow = new Array(24).fill(0);
+    const dischargePow = new Array(24).fill(0);
+    let energyLeft = energyCap * 0.7;
 
-    // Build schedule: charge up to headroom (never needing fossil),
-    // discharge up to fossil load (never displacing more than is running)
-    const chargePower = new Array(24).fill(0);
-    const dischargePower = new Array(24).fill(0);
+    function runTier(chargeCapFn, dischargeCapFn) {
+      if (energyLeft <= 0) return;
 
-    let chargeTarget = energyCap * 0.7; // aim to store this much
-    for (const hr of chargeRank) {
-      if (chargeTarget <= 0) break;
-      const pw = Math.min(powerCap, headroom[hr], chargeTarget / 0.92);
-      if (pw > 0.5) {
-        chargePower[hr] = pw;
-        chargeTarget -= pw * 0.92;
+      const cHrs = hours.filter(hr => chargeCapFn(hr) > 0.5)
+        .sort((a, b) => chargeCapFn(b) - chargeCapFn(a));
+      const dHrs = hours.filter(hr => dischargeCapFn(hr) > 0.5)
+        .sort((a, b) => dischargeCapFn(b) - dischargeCapFn(a));
+
+      // Charge phase
+      let stored = 0;
+      for (const hr of cHrs) {
+        if (energyLeft - stored <= 0) break;
+        const pw = Math.min(
+          powerCap - chargePow[hr], chargeCapFn(hr),
+          (energyLeft - stored) / 0.92
+        );
+        if (pw > 0.5) { chargePow[hr] += pw; stored += pw * 0.92; }
       }
+
+      // Discharge phase — displace most expensive fossil first
+      let toDischarge = stored;
+      for (const hr of dHrs) {
+        if (toDischarge <= 0) break;
+        const pw = Math.min(
+          powerCap - dischargePow[hr], dischargeCapFn(hr), toDischarge
+        );
+        if (pw > 0.5) {
+          dischargePow[hr] += pw;
+          toDischarge -= pw;
+          // Decrement remaining fossil (most expensive first)
+          let d = pw;
+          const dc = Math.min(rCoal[hr], d); rCoal[hr] -= dc; d -= dc;
+          const dp = Math.min(rPeaker[hr], d); rPeaker[hr] -= dp; d -= dp;
+          const dg = Math.min(rCcgt[hr], d); rCcgt[hr] -= dg;
+        }
+      }
+
+      energyLeft -= stored;
     }
 
-    let dischargeAvail = (energyCap * 0.7 - chargeTarget) * 0.92; // what was stored
-    for (const hr of dischargeRank) {
-      if (dischargeAvail <= 0) break;
-      const pw = Math.min(powerCap, fossilLoad[hr], dischargeAvail);
-      if (pw > 0.5) {
-        dischargePower[hr] = pw;
-        dischargeAvail -= pw / 0.92;
-      }
-    }
+    // Tier A: free/cheap surplus → displace any fossil
+    runTier(
+      hr => Math.min(cheapSpare[hr], powerCap - chargePow[hr]),
+      hr => Math.min(rCoal[hr] + rPeaker[hr] + rCcgt[hr], powerCap - dischargePow[hr])
+    );
 
-    // Simulate chronologically respecting energy limits
+    // Tier B: CCGT spare → displace peaker + coal only
+    runTier(
+      hr => Math.min(ccgtSpare[hr], powerCap - chargePow[hr]),
+      hr => Math.min(rCoal[hr] + rPeaker[hr], powerCap - dischargePow[hr])
+    );
+
+    // Tier C: peaker spare → displace coal only
+    runTier(
+      hr => Math.min(peakerSpare[hr], powerCap - chargePow[hr]),
+      hr => Math.min(rCoal[hr], powerCap - dischargePow[hr])
+    );
+
+    // Simulate chronologically respecting actual energy limits
     let energy = energyCap * 0.3;
     const result = [];
     for (let hr = 0; hr < 24; hr++) {
       let batt = 0;
-      if (chargePower[hr] > 0 && energy < energyCap) {
-        batt = -Math.min(chargePower[hr], (energyCap - energy) / 0.92);
+      if (chargePow[hr] > 0 && energy < energyCap) {
+        batt = -Math.min(chargePow[hr], (energyCap - energy) / 0.92);
         energy += (-batt) * 0.92;
-      } else if (dischargePower[hr] > 0 && energy > energyCap * 0.05) {
-        batt = Math.min(dischargePower[hr], (energy - energyCap * 0.05) * 0.92);
+      } else if (dischargePow[hr] > 0 && energy > energyCap * 0.05) {
+        batt = Math.min(dischargePow[hr], (energy - energyCap * 0.05) * 0.92);
         energy -= batt / 0.92;
       }
       result.push(batt);
