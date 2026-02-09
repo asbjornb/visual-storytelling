@@ -164,13 +164,22 @@ export function init() {
       const dHrs = hours.filter(hr => dischargeCapFn(hr) > 0.5)
         .sort((a, b) => dischargeCapFn(b) - dischargeCapFn(a));
 
-      // Charge phase
+      // Compute total discharge capacity — never charge more than we can discharge
+      let maxDischarge = 0;
+      for (const hr of dHrs) {
+        maxDischarge += Math.min(powerCap - dischargePow[hr], dischargeCapFn(hr));
+      }
+      if (maxDischarge < 0.5) return;
+
+      const storeLimit = Math.min(energyLeft, maxDischarge);
+
+      // Charge phase — capped by discharge capacity
       let stored = 0;
       for (const hr of cHrs) {
-        if (energyLeft - stored <= 0) break;
+        if (storeLimit - stored <= 0) break;
         const pw = Math.min(
           powerCap - chargePow[hr], chargeCapFn(hr),
-          (energyLeft - stored) / 0.92
+          (storeLimit - stored) / 0.92
         );
         if (pw > 0.5) { chargePow[hr] += pw; stored += pw * 0.92; }
       }
@@ -353,7 +362,9 @@ export function init() {
 
     hourGroups.exit().remove();
 
-    // Charging overlay: diagonal stripes on the portion above the demand line
+    // Charging overlay: diagonal stripes on the portion above the demand line.
+    // Raise the group above the bars so stripes paint on top.
+    chargeOverlayG.raise();
     const chargeData = data.filter(d => d.charging > 0).map(d => {
       const stackTop = Object.values(d.mix).reduce((s, v) => s + v, 0);
       return { hour: d.hour, demandY: d.demand, stackTop };
@@ -367,6 +378,7 @@ export function init() {
       .attr("y", d => yScale(d.stackTop))
       .attr("height", d => Math.max(0, yScale(d.demandY) - yScale(d.stackTop)))
       .attr("fill", "url(#charge-stripes)")
+      .attr("opacity", d => d.hour === selectedHour ? 1 : 0.7)
       .attr("pointer-events", "none");
     chargeRects.exit().remove();
 
