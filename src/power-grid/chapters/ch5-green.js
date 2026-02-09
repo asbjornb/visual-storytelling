@@ -53,6 +53,16 @@ export function init() {
   const yAxisG = gEl.append("g").attr("class", "y-axis");
 
   const defs = svg.append("defs");
+
+  // Diagonal stripe pattern for the "charging" overlay above the demand line
+  const chargePat = defs.append("pattern")
+    .attr("id", "charge-stripes")
+    .attr("patternUnits", "userSpaceOnUse")
+    .attr("width", 5).attr("height", 5)
+    .attr("patternTransform", "rotate(45)");
+  chargePat.append("rect").attr("width", 2).attr("height", 5)
+    .attr("fill", "#10b981").attr("opacity", 0.45);
+
   const skyGrad = defs.append("linearGradient").attr("id", "sky-bg").attr("x1", "0%").attr("x2", "100%");
   skyGrad.append("stop").attr("offset", "0%").attr("stop-color", "#e8edf5");
   skyGrad.append("stop").attr("offset", "25%").attr("stop-color", "#e8edf5");
@@ -67,6 +77,8 @@ export function init() {
   gEl.insert("rect", ":first-child")
     .attr("x", 0).attr("y", 0).attr("width", w).attr("height", h)
     .attr("fill", "url(#sky-bg)").attr("opacity", 0.25);
+
+  const chargeOverlayG = gEl.append("g").attr("class", "charge-overlays");
 
   const demandPath = gEl.append("path")
     .attr("fill", "none").attr("stroke", COLORS.label).attr("stroke-width", 2)
@@ -111,9 +123,9 @@ export function init() {
   }
 
   // Battery operators forecast the day and schedule optimally:
-  //   - charge during cheapest hours (abundant renewables, low residual demand)
-  //   - discharge during most expensive hours (high residual demand → gas peakers)
-  // This maximises the price spread and displaces the dirtiest generation.
+  //   - charge ONLY when cheap generation (solar+wind+nuclear+hydro) exceeds
+  //     consumer demand — so no fossil fuel is needed to power the charging
+  //   - discharge into hours where fossil is running, displacing the dirtiest plants
   function scheduleBattery(demand, solarOutput, windOutput, batteryCap) {
     if (batteryCap <= 0) return new Array(24).fill(0);
 
@@ -121,20 +133,48 @@ export function init() {
     const powerCap = batteryCap * 0.8;
     const hours = d3.range(24);
 
-    // Residual demand = what fossil/hydro must cover. Low → cheap, high → expensive.
-    const residual = hours.map(hr =>
-      Math.max(0, demand[hr] - solarOutput[hr] - windOutput[hr])
+    // "Cheap headroom" = how much cheap generation exceeds consumer demand.
+    // Positive → surplus cheap power available for charging.
+    // Negative → fossil already needed, charging would make it worse.
+    const cheapCap = hours.map(hr =>
+      solarOutput[hr] + windOutput[hr] + 12 + 12 // solar + wind + nuclear + hydro
     );
+    const headroom = hours.map(hr => cheapCap[hr] - demand[hr]);
 
-    // Rank hours cheapest-first
-    const ranked = hours.slice().sort((a, b) => residual[a] - residual[b]);
-    const medianRes = residual[ranked[12]];
+    // Fossil load without battery = how much fossil runs to meet demand
+    const fossilLoad = hours.map(hr => Math.max(0, -headroom[hr]));
 
-    // Mark cheap hours for charging, expensive hours for discharging
-    const targets = new Array(24).fill(0);
-    for (const hr of ranked) {
-      if (residual[hr] < medianRes - 2) targets[hr] = -1;
-      else if (residual[hr] > medianRes + 2) targets[hr] = 1;
+    // Rank charge candidates: most headroom first (cheapest to charge)
+    const chargeRank = hours.filter(hr => headroom[hr] > 1)
+      .sort((a, b) => headroom[b] - headroom[a]);
+
+    // Rank discharge candidates: most fossil first (most value to displace)
+    const dischargeRank = hours.filter(hr => fossilLoad[hr] > 1)
+      .sort((a, b) => fossilLoad[b] - fossilLoad[a]);
+
+    // Build schedule: charge up to headroom (never needing fossil),
+    // discharge up to fossil load (never displacing more than is running)
+    const chargePower = new Array(24).fill(0);
+    const dischargePower = new Array(24).fill(0);
+
+    let chargeTarget = energyCap * 0.7; // aim to store this much
+    for (const hr of chargeRank) {
+      if (chargeTarget <= 0) break;
+      const pw = Math.min(powerCap, headroom[hr], chargeTarget / 0.92);
+      if (pw > 0.5) {
+        chargePower[hr] = pw;
+        chargeTarget -= pw * 0.92;
+      }
+    }
+
+    let dischargeAvail = (energyCap * 0.7 - chargeTarget) * 0.92; // what was stored
+    for (const hr of dischargeRank) {
+      if (dischargeAvail <= 0) break;
+      const pw = Math.min(powerCap, fossilLoad[hr], dischargeAvail);
+      if (pw > 0.5) {
+        dischargePower[hr] = pw;
+        dischargeAvail -= pw / 0.92;
+      }
     }
 
     // Simulate chronologically respecting energy limits
@@ -142,11 +182,11 @@ export function init() {
     const result = [];
     for (let hr = 0; hr < 24; hr++) {
       let batt = 0;
-      if (targets[hr] < 0 && energy < energyCap) {
-        batt = -Math.min(powerCap, (energyCap - energy) / 0.92);
+      if (chargePower[hr] > 0 && energy < energyCap) {
+        batt = -Math.min(chargePower[hr], (energyCap - energy) / 0.92);
         energy += (-batt) * 0.92;
-      } else if (targets[hr] > 0 && energy > energyCap * 0.05) {
-        batt = Math.min(powerCap, (energy - energyCap * 0.05) * 0.92);
+      } else if (dischargePower[hr] > 0 && energy > energyCap * 0.05) {
+        batt = Math.min(dischargePower[hr], (energy - energyCap * 0.05) * 0.92);
         energy -= batt / 0.92;
       }
       result.push(batt);
@@ -275,6 +315,23 @@ export function init() {
     });
 
     hourGroups.exit().remove();
+
+    // Charging overlay: diagonal stripes on the portion above the demand line
+    const chargeData = data.filter(d => d.charging > 0).map(d => {
+      const stackTop = Object.values(d.mix).reduce((s, v) => s + v, 0);
+      return { hour: d.hour, demandY: d.demand, stackTop };
+    });
+    const chargeRects = chargeOverlayG.selectAll("rect").data(chargeData, d => d.hour);
+    chargeRects.enter().append("rect").attr("rx", 3)
+      .merge(chargeRects)
+      .transition().duration(300)
+      .attr("x", d => xScale(d.hour))
+      .attr("width", xScale.bandwidth())
+      .attr("y", d => yScale(d.stackTop))
+      .attr("height", d => Math.max(0, yScale(d.demandY) - yScale(d.stackTop)))
+      .attr("fill", "url(#charge-stripes)")
+      .attr("pointer-events", "none");
+    chargeRects.exit().remove();
 
     const lineGen = d3.line()
       .x(d => xScale(d.hour) + xScale.bandwidth() / 2)
