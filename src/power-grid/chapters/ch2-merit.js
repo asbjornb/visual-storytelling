@@ -19,7 +19,7 @@ export function init() {
     { name: "Coal", baseCap: 16, cost: 55, color: "#94a3b8" },
     { name: "Gas CCGT", baseCap: 22, cost: 78, color: "#fb923c" },
     { name: "Gas Peaker", baseCap: 12, cost: 130, color: "#f472b6" },
-    { name: "Oil", baseCap: 6, cost: 190, color: "#ef4444" },
+    { name: "Oil", baseCap: 20, cost: 190, color: "#ef4444" },
   ];
 
   const margin = { top: 30, right: 20, bottom: 60, left: 50 };
