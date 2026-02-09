@@ -7,7 +7,7 @@ export function init() {
   const solarSlider = document.getElementById("solar-slider");
   const windSlider = document.getElementById("wind-slider");
   const demandSlider = document.getElementById("demand-merit");
-  const negNote = document.getElementById("negative-price-note");
+
 
   if (!container || !priceEl) return;
 
@@ -212,10 +212,6 @@ export function init() {
       : clearingPrice > 80 ? COLORS.amber
       : COLORS.green;
 
-    /* ── Show/hide negative-price explainer ────────────────── */
-    if (negNote) {
-      negNote.style.display = isNegative ? "block" : "none";
-    }
   }
 
   solarSlider.addEventListener("input", update);
