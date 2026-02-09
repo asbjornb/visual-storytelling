@@ -23,15 +23,14 @@ export function init() {
   if (!container || !hourSlider) return;
 
   const genTypes = [
-    { name: "Nuclear", color: "#a78bfa", co2: 12 },
-    { name: "Wind", color: "#22d3ee", co2: 0 },
     { name: "Solar", color: "#fbbf24", co2: 0 },
+    { name: "Wind", color: "#22d3ee", co2: 0 },
+    { name: "Nuclear", color: "#a78bfa", co2: 12 },
     { name: "Hydro", color: "#34d399", co2: 0 },
     { name: "Battery", color: "#10b981", co2: 0 },
     { name: "Gas CCGT", color: "#fb923c", co2: 400 },
     { name: "Gas Peaker", color: "#f472b6", co2: 550 },
     { name: "Coal", color: "#94a3b8", co2: 900 },
-    { name: "Charging", color: "#f87171", co2: 0 },
   ];
 
   const margin = { top: 30, right: 20, bottom: 25, left: 50 };
@@ -78,6 +77,83 @@ export function init() {
 
   // Legend is rendered in HTML (not SVG) so it stays readable on mobile.
 
+  // Dispatch the merit order stack to meet a given load, with optional
+  // battery discharge injected after hydro (near-zero marginal cost).
+  function dispatchStack(load, solar, wind, battDischarge) {
+    let remaining = load;
+    const mix = {};
+
+    const s = Math.min(solar, remaining);
+    mix["Solar"] = s; remaining -= s;
+
+    const w = Math.min(wind, remaining);
+    mix["Wind"] = w; remaining -= w;
+
+    const nuc = Math.min(12, remaining);
+    mix["Nuclear"] = nuc; remaining -= nuc;
+
+    const hyd = Math.min(12, remaining);
+    mix["Hydro"] = hyd; remaining -= hyd;
+
+    const batt = Math.min(battDischarge, remaining);
+    mix["Battery"] = batt; remaining -= batt;
+
+    const ccgt = Math.min(22, remaining);
+    mix["Gas CCGT"] = ccgt; remaining -= ccgt;
+
+    const peaker = Math.min(12, remaining);
+    mix["Gas Peaker"] = peaker; remaining -= peaker;
+
+    const coal = Math.min(15, remaining);
+    mix["Coal"] = coal;
+
+    return mix;
+  }
+
+  // Battery operators forecast the day and schedule optimally:
+  //   - charge during cheapest hours (abundant renewables, low residual demand)
+  //   - discharge during most expensive hours (high residual demand → gas peakers)
+  // This maximises the price spread and displaces the dirtiest generation.
+  function scheduleBattery(demand, solarOutput, windOutput, batteryCap) {
+    if (batteryCap <= 0) return new Array(24).fill(0);
+
+    const energyCap = batteryCap * 5;
+    const powerCap = batteryCap * 0.8;
+    const hours = d3.range(24);
+
+    // Residual demand = what fossil/hydro must cover. Low → cheap, high → expensive.
+    const residual = hours.map(hr =>
+      Math.max(0, demand[hr] - solarOutput[hr] - windOutput[hr])
+    );
+
+    // Rank hours cheapest-first
+    const ranked = hours.slice().sort((a, b) => residual[a] - residual[b]);
+    const medianRes = residual[ranked[12]];
+
+    // Mark cheap hours for charging, expensive hours for discharging
+    const targets = new Array(24).fill(0);
+    for (const hr of ranked) {
+      if (residual[hr] < medianRes - 2) targets[hr] = -1;
+      else if (residual[hr] > medianRes + 2) targets[hr] = 1;
+    }
+
+    // Simulate chronologically respecting energy limits
+    let energy = energyCap * 0.3;
+    const result = [];
+    for (let hr = 0; hr < 24; hr++) {
+      let batt = 0;
+      if (targets[hr] < 0 && energy < energyCap) {
+        batt = -Math.min(powerCap, (energyCap - energy) / 0.92);
+        energy += (-batt) * 0.92;
+      } else if (targets[hr] > 0 && energy > energyCap * 0.05) {
+        batt = Math.min(powerCap, (energy - energyCap * 0.05) * 0.92);
+        energy -= batt / 0.92;
+      }
+      result.push(batt);
+    }
+    return result;
+  }
+
   function computeHourlyMix(solarCap, batteryCap) {
     const hours = d3.range(24);
     const demand = hours.map(hr => {
@@ -94,75 +170,24 @@ export function init() {
 
     const windOutput = hours.map(hr => 15 + 4 * Math.sin(((hr + 2) / 24) * Math.PI * 2));
 
-    const energyCap = batteryCap * 5;
-    const powerCap = batteryCap * 0.8;
-    let energy = energyCap * 0.3;
-    const batteryOutput = [];
-
-    // Floor scales down with battery capacity: at low capacity the battery
-    // only shaves peaks (floor≈38); at high capacity it displaces gas more
-    // aggressively, down to the hydro-capacity floor of 12 GW.
-    const dischargeFloor = Math.max(12, 38 - batteryCap * 0.5);
-
-    hours.forEach(hr => {
-      const netNeed = demand[hr] - solarOutput[hr] - windOutput[hr] - 12;
-      let batt = 0;
-      if (netNeed < 35 && energy < energyCap) {
-        const charge = Math.min(powerCap, 35 - netNeed, energyCap - energy);
-        batt = -charge;
-        energy += charge * 0.92;
-      } else if (netNeed > 38 && energy > 0) {
-        const discharge = Math.min(powerCap, netNeed - dischargeFloor, energy * 0.92);
-        batt = discharge;
-        energy -= discharge / 0.92;
-      }
-      batteryOutput.push(batt);
-    });
+    // Cost-optimised battery schedule
+    const battSchedule = scheduleBattery(demand, solarOutput, windOutput, batteryCap);
 
     return hours.map(hr => {
       const d = demand[hr];
-      let remaining = d;
-      const mix = {};
+      const charging = battSchedule[hr] < 0 ? -battSchedule[hr] : 0;
+      const discharging = battSchedule[hr] > 0 ? battSchedule[hr] : 0;
 
-      // Solar is must-run: inverters are hard to disconnect, near-zero
-      // marginal cost.  It dispatches first and keeps its midday peak.
-      const solar = Math.min(solarOutput[hr], remaining);
-      mix["Solar"] = solar; remaining -= solar;
+      // Total load the grid must serve: consumers + battery charging.
+      // The charging power comes from real generators — bars exceed the
+      // demand line at midday because solar/wind are powering the battery.
+      const totalLoad = d + charging;
+      const mix = dispatchStack(totalLoad, solarOutput[hr], windOutput[hr], discharging);
 
-      // Wind is also must-run but turbines can be feathered, so it
-      // yields after solar has taken its share.
-      const wind = Math.min(windOutput[hr], remaining);
-      mix["Wind"] = wind; remaining -= wind;
+      // Renewable surplus that can't be absorbed (drives negative prices)
+      const surplus = Math.max(0, solarOutput[hr] + windOutput[hr] - totalLoad);
 
-      // Nuclear: baseload but ramps down when squeezed by renewables.
-      const nuclear = Math.min(12, remaining);
-      mix["Nuclear"] = nuclear; remaining -= nuclear;
-
-      const hydro = Math.min(12, remaining);
-      mix["Hydro"] = hydro; remaining -= hydro;
-
-      const batt = Math.max(0, batteryOutput[hr]);
-      const battUsed = Math.min(batt, remaining);
-      mix["Battery"] = battUsed; remaining -= battUsed;
-
-      const ccgt = Math.min(22, remaining);
-      mix["Gas CCGT"] = ccgt; remaining -= ccgt;
-
-      const peaker = Math.min(12, remaining);
-      mix["Gas Peaker"] = peaker; remaining -= peaker;
-
-      const coal = Math.min(15, remaining);
-      mix["Coal"] = coal;
-
-      // Battery charging sits on top of the stack: bars exceed the demand
-      // line at midday, showing the grid absorbing power into storage.
-      mix["Charging"] = batteryOutput[hr] < 0 ? -batteryOutput[hr] : 0;
-
-      // Renewable surplus that must be curtailed (drives negative prices)
-      const battCharging = batteryOutput[hr] < 0 ? -batteryOutput[hr] : 0;
-      const surplus = Math.max(0, solarOutput[hr] + windOutput[hr] - d - battCharging);
-
-      return { hour: hr, demand: d, mix, surplus };
+      return { hour: hr, demand: d, mix, surplus, charging };
     });
   }
 
@@ -179,11 +204,13 @@ export function init() {
   }
 
   function hourStats(d) {
-    const gen = Object.values(d.mix).reduce((s, v) => s + v, 0) - (d.mix["Charging"] || 0);
+    const gen = Object.values(d.mix).reduce((s, v) => s + v, 0);
+    // Renewables % is relative to consumer demand (not total load incl. charging)
     const renew = (d.mix["Solar"] || 0) + (d.mix["Wind"] || 0) + (d.mix["Hydro"] || 0) + (d.mix["Battery"] || 0);
+    const denom = d.demand || gen;
     let co2 = 0;
     genTypes.forEach(g => { co2 += (d.mix[g.name] || 0) * g.co2; });
-    return { gen, renew, renewPct: gen > 0 ? (renew / gen) * 100 : 0, co2, co2Intensity: gen > 0 ? co2 / gen : 0 };
+    return { gen, renew, renewPct: denom > 0 ? Math.min(100, (renew / denom) * 100) : 0, co2, co2Intensity: gen > 0 ? co2 / gen : 0 };
   }
 
   function getPeriodName(hr) {
