@@ -1282,12 +1282,6 @@ input[type="range"]::-moz-range-thumb {
   width: 20px;
 }
 
-/* ── Ch5 Green Transition — extra bottom clearance for timeline bar ── */
-
-#ch-green {
-  padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
-}
-
 /* ── Ch3 Grid — compact layout for laptop viewports ── */
 
 #ch-grid {
