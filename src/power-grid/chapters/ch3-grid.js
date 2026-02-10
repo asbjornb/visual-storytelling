@@ -1,4 +1,5 @@
 import * as d3 from "d3";
+import { feature } from "topojson-client";
 import { COLORS } from "./colors.js";
 
 /* ── Node & Edge topology ─────────────────────────── */
@@ -204,54 +205,55 @@ export function init() {
   nodeGlow.append("feMerge").selectAll("feMergeNode")
     .data(["blur", "SourceGraphic"]).join("feMergeNode").attr("in", d => d);
 
-  /* ── Background geography (land vs water) ─── */
+  /* ── Background geography (real coastlines) ─ */
 
   const geoG = svg.append("g").attr("class", "geo-bg");
 
-  // Sea first so coastlines/land sit on top
+  // Sea first so coastlines/land sit on top.
   geoG.append("rect")
     .attr("x", 0)
     .attr("y", 0)
     .attr("width", 540)
     .attr("height", 460)
     .attr("fill", "#e9eef9")
-    .attr("opacity", 0.45);
+    .attr("opacity", 0.48);
 
-  const landStyle = {
-    fill: "#cbd5e1",
-    fillOpacity: 0.3,
-    stroke: "#94a3b8",
-    strokeOpacity: 0.35,
-    strokeWidth: 1.2,
-  };
+  const europeBBox = { minLon: -15, minLat: 45, maxLon: 20, maxLat: 72 };
+  d3.json("/data/us-territorial-expansion/world-countries-50m.json").then((topology) => {
+    const countries = feature(topology, topology.objects.countries);
+    const europeFeatures = countries.features.filter((f) => {
+      const [minLon, minLat, maxLon, maxLat] = d3.geoBounds(f).flat();
+      return maxLon >= europeBBox.minLon && minLon <= europeBBox.maxLon
+        && maxLat >= europeBBox.minLat && minLat <= europeBBox.maxLat;
+    });
 
-  const landShapes = [
-    // Great Britain
-    "M90,170 L105,145 L128,125 L145,140 L150,170 L145,205 L130,232 L110,250 L93,240 L84,215 Z",
-    // Ireland
-    "M62,178 L72,162 L85,166 L89,186 L81,208 L66,213 L56,198 Z",
-    // Norway + Sweden (Scandinavian peninsula)
-    "M180,58 L205,44 L230,48 L250,70 L265,100 L276,135 L280,170 L266,197 L246,214 L230,194 L226,156 L220,122 L208,95 L192,82 L174,80 Z",
-    // Denmark / Jutland
-    "M265,178 L281,182 L287,197 L276,212 L261,206 L257,192 Z",
-    // Continental Europe (NL, BE, DE, FR, west-central mass)
-    "M190,240 L224,224 L265,226 L303,218 L350,206 L398,206 L430,232 L432,269 L410,303 L372,330 L330,345 L279,349 L238,338 L206,320 L182,296 L176,270 Z",
-    // Southern Norway coast hint
-    "M180,82 L194,89 L202,104 L198,124 L186,126 L176,108 Z",
-    // Baltic/eastern coast hint (Finland/west Baltic rim)
-    "M302,86 L328,86 L350,98 L358,122 L352,150 L330,168 L312,155 L305,127 Z",
-  ];
+    const regionFC = { type: "FeatureCollection", features: europeFeatures };
+    const projection = d3.geoMercator().fitExtent([[40, 28], [500, 430]], regionFC);
+    const path = d3.geoPath(projection);
 
-  geoG.selectAll(".land-shape")
-    .data(landShapes)
-    .join("path")
-    .attr("class", "land-shape")
-    .attr("d", d => d)
-    .attr("fill", landStyle.fill)
-    .attr("fill-opacity", landStyle.fillOpacity)
-    .attr("stroke", landStyle.stroke)
-    .attr("stroke-opacity", landStyle.strokeOpacity)
-    .attr("stroke-width", landStyle.strokeWidth);
+    geoG.append("path")
+      .datum(regionFC)
+      .attr("d", path)
+      .attr("fill", "#cbd5e1")
+      .attr("fill-opacity", 0.34)
+      .attr("stroke", "#94a3b8")
+      .attr("stroke-opacity", 0.32)
+      .attr("stroke-width", 0.9)
+      .attr("vector-effect", "non-scaling-stroke");
+
+    geoG.selectAll(".country-outline")
+      .data(europeFeatures)
+      .join("path")
+      .attr("class", "country-outline")
+      .attr("d", path)
+      .attr("fill", "none")
+      .attr("stroke", "#94a3b8")
+      .attr("stroke-opacity", 0.2)
+      .attr("stroke-width", 0.6)
+      .attr("vector-effect", "non-scaling-stroke");
+  }).catch(() => {
+    // If geography fails to load, keep only the subtle sea backdrop.
+  });
 
   /* ── Stress type label (in SVG) ──────────── */
 
