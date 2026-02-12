@@ -12,8 +12,8 @@ export function init() {
   if (!container || !priceEl) return;
 
   const sources = [
-    { name: "Solar", baseCap: 25, cost: -5, color: "#fbbf24" },
     { name: "Wind", baseCap: 30, cost: -10, color: "#22d3ee" },
+    { name: "Solar", baseCap: 25, cost: -5, color: "#fbbf24" },
     { name: "Nuclear", baseCap: 14, cost: 12, color: "#a78bfa" },
     { name: "Hydro", baseCap: 12, cost: 22, color: "#34d399" },
     { name: "Coal", baseCap: 16, cost: 55, color: "#94a3b8" },
