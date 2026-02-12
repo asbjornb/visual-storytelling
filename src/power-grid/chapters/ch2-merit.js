@@ -12,8 +12,8 @@ export function init() {
   if (!container || !priceEl) return;
 
   const sources = [
-    { name: "Solar", baseCap: 25, cost: 0, color: "#fbbf24" },
-    { name: "Wind", baseCap: 30, cost: 0, color: "#22d3ee" },
+    { name: "Solar", baseCap: 25, cost: -5, color: "#fbbf24" },
+    { name: "Wind", baseCap: 30, cost: -10, color: "#22d3ee" },
     { name: "Nuclear", baseCap: 14, cost: 12, color: "#a78bfa" },
     { name: "Hydro", baseCap: 12, cost: 22, color: "#34d399" },
     { name: "Coal", baseCap: 16, cost: 55, color: "#94a3b8" },
@@ -87,20 +87,13 @@ export function init() {
       }
     }
 
-    /* ── Negative pricing when renewables exceed demand ─────── */
-    const renewableCap = stack
-      .filter(s => s.name === "Solar" || s.name === "Wind")
-      .reduce((sum, s) => sum + s.cap, 0);
-
-    if (clearingPrice === 0 && renewableCap > demand) {
-      const excess = renewableCap - demand;
-      clearingPrice = -Math.round(Math.min(80, excess * 2));
-    }
-
     const isNegative = clearingPrice < 0;
 
-    /* ── Dynamic y-domain: extend below zero when negative ─── */
-    const yMin = isNegative ? Math.min(-20, clearingPrice - 10) : 0;
+    /* ── Dynamic y-domain: extend below zero for negative bids ── */
+    const hasNegBids = stack.some(s => s.cost < 0 && s.cap > 0);
+    const yMin = isNegative ? Math.min(-20, clearingPrice - 10)
+               : hasNegBids ? -15
+               : 0;
     yScale.domain([yMin, 220]);
 
     /* Reposition x-axis to chart bottom (which now maps to yMin) */
@@ -124,7 +117,7 @@ export function init() {
 
     /* ── Zero line (visible only when y-axis extends negative) ── */
     zeroLineG.selectAll("*").remove();
-    if (isNegative) {
+    if (yMin < 0) {
       zeroLineG.append("line")
         .attr("x1", 0).attr("x2", w)
         .attr("y1", yScale(0)).attr("y2", yScale(0))
@@ -158,27 +151,27 @@ export function init() {
     const merged = enter.merge(sel);
 
     merged.select(".block-bg").transition().duration(400)
-      .attr("x", d => xScale(d.x0) + 1).attr("y", d => yScale(d.cost))
+      .attr("x", d => xScale(d.x0) + 1).attr("y", d => Math.min(yScale(d.cost), y0))
       .attr("width", d => Math.max(0, xScale(d.x1) - xScale(d.x0) - 2))
-      .attr("height", d => y0 - yScale(d.cost)).attr("rx", 4)
+      .attr("height", d => Math.abs(y0 - yScale(d.cost))).attr("rx", 4)
       .attr("fill", d => d.dispatched ? d.color : COLORS.capBarFill)
       .attr("stroke", d => d.dispatched ? d.color : COLORS.capBarStroke)
       .attr("stroke-width", 1)
       .attr("opacity", d => d.dispatched ? (d.isMarginal ? 1 : 0.75) : 0.3);
 
     merged.select(".block-glow").transition().duration(400)
-      .attr("x", d => xScale(d.x0) + 1).attr("y", d => yScale(d.cost))
+      .attr("x", d => xScale(d.x0) + 1).attr("y", d => Math.min(yScale(d.cost), y0))
       .attr("width", d => Math.max(0, xScale(d.x1) - xScale(d.x0) - 2))
-      .attr("height", d => y0 - yScale(d.cost)).attr("rx", 4)
+      .attr("height", d => Math.abs(y0 - yScale(d.cost))).attr("rx", 4)
       .attr("fill", d => d.isMarginal ? d.color : "none")
       .attr("opacity", d => d.isMarginal ? 0.3 : 0)
       .attr("filter", "url(#merit-glow)");
 
     merged.select(".block-label")
       .attr("x", d => xScale((d.x0 + d.x1) / 2))
-      .attr("y", d => (y0 - yScale(d.cost)) > 30 ? yScale(d.cost) + 18 : yScale(d.cost) - 8)
+      .attr("y", d => { const bt = Math.min(yScale(d.cost), y0); return Math.abs(y0 - yScale(d.cost)) > 30 ? bt + 18 : bt - 8; })
       .attr("text-anchor", "middle")
-      .attr("fill", d => (y0 - yScale(d.cost)) > 30 ? COLORS.labelInside : d.color)
+      .attr("fill", d => Math.abs(y0 - yScale(d.cost)) > 30 ? COLORS.labelInside : d.color)
       .attr("font-size", d => (xScale(d.x1) - xScale(d.x0)) > 40 ? 11 : 9)
       .attr("font-weight", 600)
       .attr("opacity", d => d.cap > 0.5 ? 1 : 0)
