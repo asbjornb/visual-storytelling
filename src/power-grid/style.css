@@ -1377,6 +1377,86 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
+/* ── Advanced Merit Order ─────────────────────────── */
+
+.adv-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.8rem;
+  margin-top: 0.6rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+}
+
+.adv-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.adv-legend-item i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.adv-mr-tag {
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  cursor: help;
+}
+
+.adv-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.adv-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.adv-stat-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.adv-stat-value {
+  font-family: "Outfit", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-bright);
+}
+
+.adv-unit {
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+#ch-merit-adv .ch-num {
+  background: linear-gradient(135deg, var(--cyan), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 @media (max-width: 600px) {
   .scenario-bar {
     flex-direction: column;
@@ -1455,6 +1535,15 @@ input[type="range"]::-moz-range-thumb {
 
   .daily-summary-group {
     gap: 0.5rem;
+  }
+
+  .adv-stats {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+
+  .adv-legend {
+    gap: 0.2rem 0.5rem;
   }
 
   .gen-legend {
