@@ -146,8 +146,10 @@ export function init() {
     const sel = gEl.selectAll(".merit-block").data(blocks, d => d.name);
     const enter = sel.enter().append("g").attr("class", "merit-block");
     enter.append("rect").attr("class", "block-bg");
+    enter.append("rect").attr("class", "block-unused");
     enter.append("rect").attr("class", "block-glow");
     enter.append("text").attr("class", "block-label");
+    enter.append("text").attr("class", "block-partial-label");
     const merged = enter.merge(sel);
 
     merged.select(".block-bg").transition().duration(400)
@@ -158,6 +160,44 @@ export function init() {
       .attr("stroke", d => d.dispatched ? d.color : COLORS.capBarStroke)
       .attr("stroke-width", 1)
       .attr("opacity", d => d.dispatched ? (d.isMarginal ? 1 : 0.75) : 0.3);
+
+    /* ── Partial-clearing: shade unused portion of marginal block ── */
+    merged.select(".block-unused").transition().duration(400)
+      .attr("x", d => {
+        if (!d.isMarginal) return 0;
+        return xScale(demand) + 1;
+      })
+      .attr("y", d => Math.min(yScale(d.cost), y0))
+      .attr("width", d => {
+        if (!d.isMarginal) return 0;
+        return Math.max(0, xScale(d.x1) - xScale(demand) - 2);
+      })
+      .attr("height", d => d.isMarginal ? Math.abs(y0 - yScale(d.cost)) : 0)
+      .attr("rx", 4)
+      .attr("fill", "#0f172a")
+      .attr("opacity", d => d.isMarginal && demand > d.x0 && demand < d.x1 ? 0.12 : 0);
+
+    merged.select(".block-partial-label")
+      .attr("x", d => {
+        if (!d.isMarginal || demand <= d.x0 || demand >= d.x1) return 0;
+        const unusedW = xScale(d.x1) - xScale(demand);
+        return xScale(demand) + unusedW / 2;
+      })
+      .attr("y", d => {
+        if (!d.isMarginal) return 0;
+        const bt = Math.min(yScale(d.cost), y0);
+        return bt + Math.abs(y0 - yScale(d.cost)) / 2 + 4;
+      })
+      .attr("text-anchor", "middle")
+      .attr("fill", COLORS.axis)
+      .attr("font-size", 8)
+      .attr("font-weight", 600)
+      .attr("opacity", d => {
+        if (!d.isMarginal || demand <= d.x0 || demand >= d.x1) return 0;
+        const unusedW = xScale(d.x1) - xScale(demand);
+        return unusedW > 28 ? 0.7 : 0;
+      })
+      .text("partial");
 
     merged.select(".block-glow").transition().duration(400)
       .attr("x", d => xScale(d.x0) + 1).attr("y", d => Math.min(yScale(d.cost), y0))
@@ -210,6 +250,24 @@ export function init() {
   solarSlider.addEventListener("input", update);
   windSlider.addEventListener("input", update);
   demandSlider.addEventListener("input", update);
+
+  /* Link to advanced version (navigated via main.js goToPage) */
+  const advLink = document.getElementById("merit-adv-link");
+  if (advLink) {
+    advLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      const target = document.querySelector('[data-page]  #ch-merit-adv');
+      if (target) {
+        const wrapper = target.closest(".page-wrapper");
+        if (wrapper) {
+          const pageIdx = parseInt(wrapper.dataset.page);
+          // Dispatch custom event that main.js listens for
+          window.dispatchEvent(new CustomEvent("go-to-page", { detail: pageIdx }));
+        }
+      }
+    });
+  }
+
   update();
 }
 

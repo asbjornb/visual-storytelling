@@ -1,5 +1,6 @@
 import * as ch1 from "./chapters/ch1-balance.js";
 import * as ch2 from "./chapters/ch2-merit.js";
+import * as ch2b from "./chapters/ch2b-merit-advanced.js";
 import * as ch3 from "./chapters/ch3-grid.js";
 import * as ch4 from "./chapters/ch4-traders.js";
 import * as ch5 from "./chapters/ch5-green.js";
@@ -7,6 +8,7 @@ import * as ch5 from "./chapters/ch5-green.js";
 import heroHtml from "./slides/hero.html?raw";
 import ch1Html from "./slides/ch1-balance.html?raw";
 import ch2Html from "./slides/ch2-merit.html?raw";
+import ch2bHtml from "./slides/ch2b-merit-advanced.html?raw";
 import ch3Html from "./slides/ch3-grid.html?raw";
 import ch4Html from "./slides/ch4-traders.html?raw";
 import ch5Html from "./slides/ch5-green.html?raw";
@@ -17,8 +19,9 @@ import conclusionHtml from "./slides/conclusion.html?raw";
 const SLIDES = [
   { id: "hero",       html: heroHtml,       chapter: null },
   { id: "ch-balance", html: ch1Html,        chapter: ch1 },
-  { id: "ch-merit",   html: ch2Html,        chapter: ch2 },
-  { id: "ch-grid",    html: ch3Html,        chapter: ch3 },
+  { id: "ch-merit",     html: ch2Html,        chapter: ch2 },
+  { id: "ch-merit-adv", html: ch2bHtml,      chapter: ch2b },
+  { id: "ch-grid",      html: ch3Html,       chapter: ch3 },
   { id: "ch-traders", html: ch4Html,        chapter: ch4 },
   { id: "ch-green",   html: ch5Html,        chapter: ch5 },
   { id: "conclusion", html: conclusionHtml, chapter: null },
@@ -56,6 +59,12 @@ function boot() {
   setupEdgeNav();
   setupKeyboard();
   setupSwipe();
+
+  // Allow chapters to navigate via custom event
+  window.addEventListener("go-to-page", (e) => {
+    const idx = e.detail;
+    if (typeof idx === "number") goToPage(idx);
+  });
 
   // Initialize first slide's chapter
   goToPage(0);

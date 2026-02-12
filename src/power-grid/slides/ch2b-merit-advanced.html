@@ -1,0 +1,80 @@
+<section class="page" id="ch-merit-adv">
+  <div class="page-inner">
+    <header class="ch-head">
+      <span class="ch-num">02 &mdash; ADVANCED</span>
+      <h2>Unit-Level Merit Order</h2>
+    </header>
+    <div class="two-col">
+      <div class="viz-col wide">
+        <div class="price-hero">
+          <span class="price-label">Clearing Price</span>
+          <span class="price-num" id="adv-merit-price">&euro;0</span>
+          <span class="price-unit">/MWh</span>
+        </div>
+        <div class="viz-card" id="adv-merit-chart"></div>
+        <div class="slider-row" style="grid-template-columns: repeat(4, 1fr);">
+          <label>
+            <span>Solar</span>
+            <input type="range" id="adv-solar-slider" min="0" max="100" value="40" />
+          </label>
+          <label>
+            <span>Wind</span>
+            <input type="range" id="adv-wind-slider" min="0" max="100" value="35" />
+          </label>
+          <label>
+            <span>Base Demand</span>
+            <input type="range" id="adv-demand-slider" min="20" max="120" value="65" />
+          </label>
+          <label>
+            <span>Elasticity</span>
+            <input type="range" id="adv-elasticity-slider" min="0" max="100" value="40" />
+          </label>
+        </div>
+        <div class="adv-legend" id="adv-legend"></div>
+      </div>
+      <div class="text-col">
+        <p class="lede">
+          The same auction, but with many individual power plants and a
+          demand that responds to price.
+        </p>
+        <p>
+          Each thin bar is one generating unit. Costs vary within
+          the same technology &mdash; an old coal plant costs more than
+          a new one; a wind farm in Jutland bids differently from one
+          in Bavaria.
+        </p>
+        <p>
+          The <strong>demand curve</strong> now slopes downward: at
+          higher prices, large industrial consumers reduce load. Where
+          supply meets demand is the <em>equilibrium</em>.
+        </p>
+        <div class="callout">
+          <strong>Must-run plants</strong> (nuclear, some renewables)
+          cannot easily shut down. They bid at or below zero to guarantee
+          dispatch &mdash; even if it means negative prices.
+        </div>
+        <div class="callout" id="adv-stats-box">
+          <div class="adv-stats">
+            <div class="adv-stat">
+              <span class="adv-stat-label">Units dispatched</span>
+              <span class="adv-stat-value" id="adv-dispatched">0</span>
+            </div>
+            <div class="adv-stat">
+              <span class="adv-stat-label">Total capacity</span>
+              <span class="adv-stat-value" id="adv-total-cap">0 GW</span>
+            </div>
+            <div class="adv-stat">
+              <span class="adv-stat-label">Demand met at</span>
+              <span class="adv-stat-value" id="adv-demand-met">0 GW</span>
+            </div>
+          </div>
+        </div>
+        <p class="viz-hint">
+          <a href="#ch-merit" class="source-link" id="adv-back-link">
+            &larr;&nbsp;Back to the simple version
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
