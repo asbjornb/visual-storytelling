@@ -125,22 +125,13 @@ const CONTEXT_COUNTRY_IDS = [
   214, // Dominican Republic
 ];
 
-const CATEGORY_CLASS = {
-  state: "map-state",
-  territory: "map-territory",
-  other_country: "map-other",
-  disputed: "map-disputed",
-  none: "map-none",
-  seceded_state: "map-seceded",
-};
-
 const DESKTOP_BREAKPOINT = 900;
 
 // ─────────────────────────────────────────────────────────────
 // State
 // ─────────────────────────────────────────────────────────────
 
-let geoDataByStep = [];
+let finalGeoData = null; // Only the final step's features, for projection sizing
 let acquisitionsData = null;
 let contextCountries = null;
 let usStates = null; // US state boundaries for footnote mini-maps
@@ -151,7 +142,6 @@ let touchStartX = 0;
 let touchStartY = 0;
 let currentMapStep = -1;
 let currentZoomLevel = null;
-let isZooming = false;
 
 // ─────────────────────────────────────────────────────────────
 // D3 setup - North America projection
@@ -177,7 +167,7 @@ let zoomProjections = {};
 // Zoom level calculations
 // ─────────────────────────────────────────────────────────────
 
-function calculateZoomProjections(geoData) {
+function calculateZoomProjections(finalStepData) {
   const width = window.innerWidth;
   const height = window.innerHeight;
   const desktop = isDesktop();
@@ -190,8 +180,7 @@ function calculateZoomProjections(geoData) {
     .rotate([90, 0])
     .center([0, 35]);
 
-  const finalData = geoData[geoData.length - 1];
-  const usFeatures = Object.values(finalData).flat();
+  const usFeatures = Object.values(finalStepData).flat();
   const allFeatures = contextCountries
     ? [...usFeatures, ...contextCountries.features]
     : usFeatures;
@@ -271,8 +260,6 @@ function applyZoomLevel(zoomLevel, animate = false, duration = 800) {
   const endScale = targetParams.scale;
   const endTranslate = targetParams.translate;
 
-  isZooming = true;
-
   d3.transition()
     .duration(duration)
     .ease(d3.easeCubicInOut)
@@ -288,14 +275,13 @@ function applyZoomLevel(zoomLevel, animate = false, duration = 800) {
       };
     })
     .on("end", () => {
-      isZooming = false;
       currentZoomLevel = zoomLevel;
     });
 
   currentZoomLevel = zoomLevel;
 }
 
-function updateAllPaths(svg, duration = 0) {
+function updateAllPaths(svg) {
   // Update context countries
   svg.select(".layer-context")
     .selectAll(".context-country")
@@ -342,19 +328,18 @@ function getNavigableIndices() {
 // Data loading
 // ─────────────────────────────────────────────────────────────
 
-async function loadAllGeoJSON() {
-  const promises = MAP_STEPS.map((s) =>
-    d3.json(`/data/us-territorial-expansion/${s.file}`).then((geojson) => {
-      const byCategory = {};
-      for (const feature of geojson.features) {
-        const cat = feature.properties.CATEGORY || "none";
-        if (!byCategory[cat]) byCategory[cat] = [];
-        byCategory[cat].push(feature);
-      }
-      return byCategory;
-    })
-  );
-  return Promise.all(promises);
+async function loadFinalGeoJSON() {
+  // Only the final step's features are needed (for projection sizing).
+  // Actual map rendering uses acquisitionsData exclusively.
+  const lastStep = MAP_STEPS[MAP_STEPS.length - 1];
+  const geojson = await d3.json(`/data/us-territorial-expansion/${lastStep.file}`);
+  const byCategory = {};
+  for (const feature of geojson.features) {
+    const cat = feature.properties.CATEGORY || "none";
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(feature);
+  }
+  return byCategory;
 }
 
 async function loadContextCountries() {
@@ -386,7 +371,7 @@ async function loadUSStates() {
 // Map rendering
 // ─────────────────────────────────────────────────────────────
 
-function fitProjection(svg, geoData) {
+function fitProjection(svg) {
   const width = window.innerWidth;
   const height = window.innerHeight;
 
@@ -394,7 +379,7 @@ function fitProjection(svg, geoData) {
   baseHeight = height;
 
   // Calculate zoom projections for all zoom levels
-  calculateZoomProjections(geoData);
+  calculateZoomProjections(finalGeoData);
 
   svg.attr("viewBox", `0 0 ${width} ${height}`);
   svg.attr("preserveAspectRatio", "xMidYMid meet");
@@ -547,7 +532,7 @@ function hideTooltip() {
   }
 }
 
-function renderMapStep(svg, geoData, stepIndex, options = {}) {
+function renderMapStep(svg, stepIndex, options = {}) {
   const { opacity = 1, duration = 800, animate = true } = options;
 
   if (!acquisitionsData) return;
@@ -732,7 +717,7 @@ function goToPage(newPage) {
   } else if (type === "transition") {
     mapLayer.classList.remove("is-thumbnail");
     if (step !== currentMapStep) {
-      renderMapStep(svg, geoDataByStep, step, { opacity: 1, duration: 800 });
+      renderMapStep(svg, step, { opacity: 1, duration: 800 });
     } else {
       updateMapOpacity(svg, 1, 600);
     }
@@ -746,7 +731,7 @@ function goToPage(newPage) {
       mapLayer.classList.add("is-thumbnail");
     }
     if (step !== currentMapStep) {
-      renderMapStep(svg, geoDataByStep, step, { opacity: 1, duration: desktop ? 800 : 400 });
+      renderMapStep(svg, step, { opacity: 1, duration: desktop ? 800 : 400 });
     } else {
       updateMapOpacity(svg, 1, desktop ? 800 : 400);
     }
@@ -1190,7 +1175,7 @@ function handleResize() {
   const desktop = isDesktop();
 
   // Recalculate zoom projections for new viewport
-  fitProjection(svg, geoDataByStep);
+  fitProjection(svg);
 
   // Remember current zoom level but reset so it gets reapplied
   const savedZoomLevel = currentZoomLevel;
@@ -1231,7 +1216,7 @@ function handleResize() {
 
   if (type === "intro") {
     mapLayer.classList.remove("is-thumbnail");
-    renderMapStep(svg, geoDataByStep, 0, { opacity: 0.15, duration: 0, animate: false });
+    renderMapStep(svg, 0, { opacity: 0.15, duration: 0, animate: false });
   } else if (type === "overview") {
     mapLayer.classList.remove("is-thumbnail");
     renderOverviewMap(svg, { opacity: 1, duration: 0, animate: false });
@@ -1241,7 +1226,7 @@ function handleResize() {
     } else {
       mapLayer.classList.add("is-thumbnail");
     }
-    renderMapStep(svg, geoDataByStep, step, { opacity: 1, duration: 0, animate: false });
+    renderMapStep(svg, step, { opacity: 1, duration: 0, animate: false });
   }
 
   updateEdgeNav();
@@ -1253,8 +1238,8 @@ function handleResize() {
 
 async function init() {
   // Load data in parallel
-  [geoDataByStep, contextCountries, acquisitionsData, usStates] = await Promise.all([
-    loadAllGeoJSON(),
+  [finalGeoData, contextCountries, acquisitionsData, usStates] = await Promise.all([
+    loadFinalGeoJSON(),
     loadContextCountries(),
     loadAcquisitions(),
     loadUSStates()
@@ -1265,7 +1250,7 @@ async function init() {
   lastWasDesktop = isDesktop();
 
   const svg = d3.select("#map");
-  fitProjection(svg, geoDataByStep);
+  fitProjection(svg);
 
   // Apply initial zoom level before creating paths
   const initialZoom = MAP_STEPS[0].zoom;
@@ -1275,7 +1260,7 @@ async function init() {
   initializeMap(svg);
 
   // Render initial US state (zoom already applied, so pass animate: false)
-  renderMapStep(svg, geoDataByStep, 0, { opacity: 0.15, duration: 0, animate: false });
+  renderMapStep(svg, 0, { opacity: 0.15, duration: 0, animate: false });
 
   buildTimeline();
   setupEdgeNav();

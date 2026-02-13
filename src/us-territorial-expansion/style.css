@@ -806,41 +806,6 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   MAP PATHS
-   ═══════════════════════════════════════════════════════════ */
-
-.map-state {
-  fill: #b8c4d0;  /* Established US - medium blue-gray */
-  stroke: var(--bg);
-  stroke-width: 0.8;
-  transition: fill 0.8s ease;
-}
-
-.map-territory {
-  fill: #b8c4d0;  /* Established US - medium blue-gray */
-  stroke: var(--bg);
-  stroke-width: 0.8;
-  transition: fill 0.8s ease;
-}
-
-.map-other {
-  fill: #e8e4dc;  /* Non-US - dim */
-  stroke: none;
-}
-
-.map-disputed {
-  fill: #e0d8cc;
-  stroke: var(--accent-dim);
-  stroke-width: 0.5;
-  stroke-dasharray: 3 2;
-}
-
-.map-none {
-  fill: transparent;
-  stroke: none;
-}
-
-/* ═══════════════════════════════════════════════════════════
    RESPONSIVE - DESKTOP (side panel layout)
    ═══════════════════════════════════════════════════════════ */
 
