@@ -1,4 +1,5 @@
 import * as d3 from "d3";
+import { feature } from "topojson-client";
 import { COLORS } from "./colors.js";
 
 /* ── Node & Edge topology ─────────────────────────── */
@@ -204,28 +205,55 @@ export function init() {
   nodeGlow.append("feMerge").selectAll("feMergeNode")
     .data(["blur", "SourceGraphic"]).join("feMergeNode").attr("in", d => d);
 
-  // Subtle water filter
-  const waterFilter = defs.append("filter").attr("id", "water-blur");
-  waterFilter.append("feGaussianBlur").attr("stdDeviation", "8");
+  /* ── Background geography (real coastlines) ─ */
 
-  /* ── Background geography hints ──────────── */
+  const geoG = svg.append("g").attr("class", "geo-bg");
 
-  const geoG = svg.append("g").attr("class", "geo-bg").attr("opacity", 0.08);
+  // Sea first so coastlines/land sit on top.
+  geoG.append("rect")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("width", 540)
+    .attr("height", 460)
+    .attr("fill", "#e9eef9")
+    .attr("opacity", 0.48);
 
-  // North Sea — between UK, NO, DK, NL
-  geoG.append("path")
-    .attr("d", "M80,40 Q160,20 230,50 L340,120 Q360,160 340,210 L340,280 Q300,300 260,290 L140,280 Q80,260 60,200 Z")
-    .attr("fill", "#6366f1").attr("filter", "url(#water-blur)");
+  const europeBBox = { minLon: -15, minLat: 45, maxLon: 20, maxLat: 72 };
+  d3.json("/data/us-territorial-expansion/world-countries-50m.json").then((topology) => {
+    const countries = feature(topology, topology.objects.countries);
+    const europeFeatures = countries.features.filter((f) => {
+      const [minLon, minLat, maxLon, maxLat] = d3.geoBounds(f).flat();
+      return maxLon >= europeBBox.minLon && minLon <= europeBBox.maxLon
+        && maxLat >= europeBBox.minLat && minLat <= europeBBox.maxLat;
+    });
 
-  // Baltic hints
-  geoG.append("ellipse")
-    .attr("cx", 370).attr("cy", 150).attr("rx", 40).attr("ry", 60)
-    .attr("fill", "#6366f1").attr("filter", "url(#water-blur)");
+    const regionFC = { type: "FeatureCollection", features: europeFeatures };
+    const projection = d3.geoMercator().fitExtent([[40, 28], [500, 430]], regionFC);
+    const path = d3.geoPath(projection);
 
-  // English Channel / Bay of Biscay hint
-  geoG.append("path")
-    .attr("d", "M60,300 Q120,340 180,370 Q160,400 100,410 Q40,380 40,340 Z")
-    .attr("fill", "#6366f1").attr("filter", "url(#water-blur)");
+    geoG.append("path")
+      .datum(regionFC)
+      .attr("d", path)
+      .attr("fill", "#cbd5e1")
+      .attr("fill-opacity", 0.34)
+      .attr("stroke", "#94a3b8")
+      .attr("stroke-opacity", 0.32)
+      .attr("stroke-width", 0.9)
+      .attr("vector-effect", "non-scaling-stroke");
+
+    geoG.selectAll(".country-outline")
+      .data(europeFeatures)
+      .join("path")
+      .attr("class", "country-outline")
+      .attr("d", path)
+      .attr("fill", "none")
+      .attr("stroke", "#94a3b8")
+      .attr("stroke-opacity", 0.2)
+      .attr("stroke-width", 0.6)
+      .attr("vector-effect", "non-scaling-stroke");
+  }).catch(() => {
+    // If geography fails to load, keep only the subtle sea backdrop.
+  });
 
   /* ── Stress type label (in SVG) ──────────── */
 
